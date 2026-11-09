@@ -1,0 +1,63 @@
+name: Sincronizar con Odoo
+
+on:
+  # Todos los días a las 2:00 a. m. de Guatemala (8:00 UTC)
+  schedule:
+    - cron: "0 8 * * *"
+  # Botón "Run workflow" para actualizar en cualquier momento
+  workflow_dispatch:
+  # También al subir cambios a las apps
+  push:
+    branches: [main]
+    paths: ["site/**", "sync/**"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: sincronizar
+  cancel-in-progress: false
+
+jobs:
+  sincronizar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicar.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Descargar datos de Odoo
+        env:
+          ODOO_URL: ${{ secrets.ODOO_URL }}
+          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_USER: ${{ secrets.ODOO_USER }}
+          ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+        run: python sync/sync_odoo.py --out site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publicar en GitHub Pages
+        id: publicar
+        uses: actions/deploy-pages@v4
+
+      # GitHub apaga las tareas programadas si el repositorio pasa 60 días sin cambios.
+      # Este paso guarda la fecha de la última sincronización para mantenerlo activo.
+      - name: Registrar sincronización
+        run: |
+          cp site/ultima-sincronizacion.json sync/ultima-sincronizacion.json
+          git config user.name "Sincronizacion Odoo"
+          git config user.email "actions@users.noreply.github.com"
+          git add sync/ultima-sincronizacion.json
+          git commit -m "Sincronización con Odoo" || echo "Sin cambios"
+          git push || echo "No se pudo registrar (no afecta la publicación)"
