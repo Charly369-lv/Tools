@@ -202,7 +202,7 @@ mark { background: var(--gold); color: var(--gold-ink); padding: 0 1px; border-r
       <span class="tagline">Un mundo por descubrir</span>
     </div>
     <div class="ribbon">
-      <span class="ribbon-t">Bazar de Descuentos <b>60%</b> y <b>75%</b></span>
+      <span class="ribbon-t" id="ribbonT">Bazar de Descuentos</span>
       <span class="ribbon-s">Válido solo en tiendas físicas</span>
     </div>
   </div>
@@ -238,7 +238,7 @@ mark { background: var(--gold); color: var(--gold-ink); padding: 0 1px; border-r
 // Carga por partes: los códigos y referencias se buscan en archivos pequeños (c/NN.json, r/NN.json);
 // las ofertas del bazar llegan primero (bazar.json); el catálogo completo para buscar por nombre se descarga
 // en segundo plano y se guarda en el equipo para que la próxima vez abra al instante.
-let CAT_V = "";
+let CAT_V = "", MAXPCT = 75;
 const num = n => Math.round(n).toLocaleString("es-GT", { maximumFractionDigits: 0 });
 const fmt = n => "Q" + num(n);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -264,6 +264,11 @@ function shard(kind, k) {
 async function loadBazar() {
   const d = await (await fetch("bazar.json")).json();
   BZ = d.bz; TOTAL = d.total; CAT_V = d.v || String(TOTAL);
+  // Porcentajes vigentes según las categorías de Odoo (ej. 60%, 75%, 90%)
+  const pcts = [...new Set(BZ.map(p => p[8]))].sort((a, b) => a - b);
+  MAXPCT = pcts.length ? pcts[pcts.length - 1] : 0;
+  const list = pcts.map(x => `<b>${x}%</b>`);
+  $("ribbonT").innerHTML = "Bazar de Descuentos " + (list.length > 1 ? list.slice(0, -1).join(", ") + " y " + list[list.length - 1] : list.join(""));
   for (const p of BZ) if (p[6]) { if (!TEMA_BZ.has(p[6])) TEMA_BZ.set(p[6], []); TEMA_BZ.get(p[6]).push(p); }
   bzReady = true;
   $("count").textContent = TOTAL.toLocaleString("es-GT") + " productos · " + BZ.length.toLocaleString("es-GT") + " en bazar" + (d.v ? " · Actualizado desde Odoo: " + fechaLocal(d.v) : "");
@@ -421,7 +426,7 @@ function showItem(p) {
         <span class="reg-note">Este artículo está a precio normal. No forma parte del Bazar de Descuentos.</span>
       </div>
       ${out.length ? `<div class="advice">
-        <h3>Te aconsejamos estas ofertas del bazar ${temaTxt}, con <em>hasta 75% de descuento</em></h3>
+        <h3>Te aconsejamos estas ofertas del bazar ${temaTxt}, con <em>hasta ${MAXPCT}% de descuento</em></h3>
         <p class="legal-s">Ofertas válidas solo en tiendas físicas.</p>
         <div class="picks">${out.map(b => `
           <button type="button" class="pick" data-i="${reg(b)}">
