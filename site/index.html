@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Herramientas De Museo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;600;700&display=swap">
+<style>
+:root { --navy: #112369; --navy-deep: #0b1748; --gold: #f2bd3c; --red: #d62818; --bg: #f3f4f9; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --surface: #fff; }
+@media (prefers-color-scheme: dark) { :root { --bg: #080e26; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --surface: #111a3d; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 "Archivo", system-ui, sans-serif; }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 720px; margin: 0 auto; }
+header { background: var(--navy-deep); color: #fff; padding-block: 28px; }
+header img { width: min(300px, 70vw); display: block; }
+header p { margin: 10px 0 0; font-family: "Bodoni Moda", Didot, serif; font-style: italic; opacity: .85; }
+main { padding-block: 28px 48px; display: grid; gap: 14px; }
+a.tool { display: grid; gap: 4px; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+a.tool:hover { border-color: var(--navy); }
+a.tool:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+a.tool b { font-family: "Bodoni Moda", Didot, serif; font-weight: 900; font-size: 26px; }
+a.tool span { color: var(--muted); }
+a.tool .tag { justify-self: start; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; color: #fff; }
+.sync { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header class="pad"><div class="inner"><img src="checador/logo.png" alt="De Museo"><p>Herramientas para tiendas</p></div></header>
+<main class="pad"><div class="inner" style="display:grid;gap:14px">
+  <a class="tool" href="checador/"><span class="tag" style="background:var(--red)">Bazar de Descuentos</span><b>Checador de precios</b><span>Escanea un libro y mira su precio y su precio de bazar.</span></a>
+  <a class="tool" href="inventario/"><span class="tag" style="background:var(--navy)">Operaciones</span><b>Inventario</b><span>Cuenta productos por localidad y zona, y exporta el CSV para Odoo.</span></a>
+  <p class="sync" id="sync">Datos sincronizados con Odoo.</p>
+</div></main>
+<script>
+fetch("ultima-sincronizacion.json", { cache: "no-cache" }).then(r => r.json()).then(d => {
+  const f = new Date(d.fecha_utc.replace(" ", "T") + ":00Z");
+  document.getElementById("sync").textContent = `Última actualización desde Odoo: ${f.toLocaleString("es-GT", { dateStyle: "medium", timeStyle: "short" })} · ${d.productos.toLocaleString("es-GT")} productos, ${d.en_bazar.toLocaleString("es-GT")} en bazar.`;
+}).catch(() => {});
+</script>
+</body>
+</html>
