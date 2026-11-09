@@ -43,25 +43,34 @@ class Odoo:
     """Cliente mínimo: intenta la API JSON-2 (Odoo 19+) y, si no está, usa /jsonrpc."""
 
     def __init__(self, url, db, user, key):
-        self.url, self.db, self.user, self.key = url.rstrip("/"), db, user, key
+        url = url.strip().rstrip("/")
+        if not re.match(r"^https?://", url, re.I):
+            url = "https://" + url  # tolera "demuseo.odoo.com" sin https://
+        url = re.sub(r"/(web|odoo)(/.*)?$", "", url)  # tolera ".../web" o ".../odoo"
+        self.url, self.db, self.user, self.key = url, db.strip(), user.strip(), key.strip()
         self.mode = None
         self.uid = None
 
     def _post(self, path, body, headers=None, tries=4):
+        """Devuelve (estado_http, respuesta). Si Odoo responde con una página web en vez
+        de datos, la respuesta es {"_html": True, ...} para poder dar un mensaje claro."""
         data = json.dumps(body).encode()
-        h = {"Content-Type": "application/json", "User-Agent": "demuseo-sync/1.0"}
+        h = {"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "demuseo-sync/1.1"}
         h.update(headers or {})
+
+        def parse(txt, final_url, ctype):
+            try:
+                return json.loads(txt or "null")
+            except ValueError:
+                return {"_html": True, "url_final": final_url, "tipo": ctype, "inicio": re.sub(r"\s+", " ", txt[:160])}
+
         for attempt in range(tries):
             req = urllib.request.Request(self.url + path, data=data, headers=h, method="POST")
             try:
                 with urllib.request.urlopen(req, timeout=180) as r:
-                    return r.status, json.loads(r.read().decode() or "null")
+                    return r.status, parse(r.read().decode(errors="replace"), r.geturl(), r.headers.get("Content-Type", ""))
             except urllib.error.HTTPError as e:
-                txt = e.read().decode(errors="replace")
-                try:
-                    payload = json.loads(txt)
-                except ValueError:
-                    payload = txt
+                payload = parse(e.read().decode(errors="replace"), e.geturl(), e.headers.get("Content-Type", "") if e.headers else "")
                 if e.code in (429, 502, 503, 504) and attempt < tries - 1:
                     time.sleep(5 * (attempt + 1))
                     continue
@@ -73,21 +82,37 @@ class Odoo:
                 raise SystemExit(f"No se pudo conectar con {self.url}: {e}")
 
     def connect(self):
-        # 1) JSON-2
+        # 1) API JSON-2 (Odoo 19 o más nuevo). Solo vale si responde datos, no una página web.
         st, res = self._post("/json/2/res.users/context_get", {}, self._j2h())
-        if st == 200:
+        if st == 200 and isinstance(res, dict) and not res.get("_html"):
             self.mode = "json2"
+            print("Método de conexión: API JSON-2")
             return
-        # 2) JSON-RPC clásico
+        print("La API JSON-2 no está disponible; se usa la conexión clásica (JSON-RPC).")
+        # 2) JSON-RPC clásico (todas las versiones)
         st, res = self._post("/jsonrpc", {"jsonrpc": "2.0", "method": "call", "params": {
             "service": "common", "method": "authenticate", "args": [self.db, self.user, self.key, {}]}})
         if st == 200 and isinstance(res, dict) and res.get("result"):
             self.mode, self.uid = "jsonrpc", res["result"]
             return
-        detail = res.get("error", res) if isinstance(res, dict) else res
+        if isinstance(res, dict) and res.get("_html"):
+            raise SystemExit(
+                f"La dirección {self.url} no respondió como Odoo (devolvió una página web).\n"
+                f"Revisa que ODOO_URL sea exactamente https://demuseo.odoo.com\n"
+                f"Detalle: estado {st}, terminó en {res.get('url_final')}, tipo {res.get('tipo')}")
+        if isinstance(res, dict) and res.get("result") is False:
+            raise SystemExit(
+                "Odoo rechazó el usuario o la clave. Revisa:\n"
+                "  - ODOO_USER: el correo exacto con el que ese usuario entra a Odoo\n"
+                "  - ODOO_API_KEY: la clave API completa (genera una nueva si dudas)\n"
+                f"  - ODOO_DB: el nombre de la base de datos (ahora: '{self.db}')")
+        err = res.get("error", {}) if isinstance(res, dict) else {}
+        msg = (err.get("data", {}) or {}).get("message") or err.get("message") or str(res)[:400]
+        if "database" in str(msg).lower() or "does not exist" in str(msg).lower():
+            raise SystemExit(f"Odoo no encontró la base de datos '{self.db}'. Revisa ODOO_DB.\nDetalle: {msg}")
         raise SystemExit(
             "Odoo rechazó la conexión. Revisa ODOO_URL, ODOO_DB, ODOO_USER y ODOO_API_KEY, "
-            "y que el plan de Odoo permita la API externa.\nDetalle: " + json.dumps(detail, ensure_ascii=False)[:600])
+            f"y que el plan de Odoo permita la API externa.\nDetalle (estado {st}): {msg}")
 
     def _j2h(self):
         return {"Authorization": "bearer " + self.key, "X-Odoo-Database": self.db}
@@ -107,7 +132,7 @@ class Odoo:
         st, res = self._post("/jsonrpc", {"jsonrpc": "2.0", "method": "call", "params": {
             "service": "object", "method": "execute_kw",
             "args": [self.db, self.uid, self.key, model, method, args, kw]}})
-        if st != 200 or not isinstance(res, dict) or "error" in res:
+        if st != 200 or not isinstance(res, dict) or "error" in res or res.get("_html"):
             raise SystemExit(f"Error de Odoo en {model}.{method}: {json.dumps(res, ensure_ascii=False)[:600]}")
         return res["result"]
 
