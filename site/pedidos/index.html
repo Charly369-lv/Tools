@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Revisor de Pedidos De Museo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: banda azul De Museo; paso 1 subir pedido, paso 2 columnas, paso 3 semáforo con resumen, filtros, tabla y descargas */
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8;
+  --gray: #5b6386; --gray-bg: #eceef4; --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; --gray: #9da6c9; --gray-bg: #1c2650; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1100px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 18px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.mast img { width: min(220px, 56vw); display: block; }
+.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; }
+.mast a { color: var(--on-navy); opacity: .85; font-size: 14px; }
+main { padding-block: 22px 56px; }
+main .inner { display: grid; gap: 18px; }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(22px, 4.6vw, 28px); line-height: 1.15; }
+h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 14px; }
+button { font: 700 15px var(--f-body); border-radius: 8px; cursor: pointer; padding: 10px 16px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 44px; }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+select, textarea { font: 15px var(--f-body); padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+textarea { width: 100%; min-height: 130px; font-family: var(--f-mono); font-size: 14px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+.drop { border: 3px dashed var(--line); border-radius: 12px; padding: 28px 20px; text-align: center; display: grid; gap: 10px; justify-items: center; cursor: pointer; background: var(--surface); }
+.drop.over { border-color: var(--navy); background: var(--soft); }
+.drop b { font-size: 18px; }
+.loadbar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden; }
+.loadbar i { display: block; height: 100%; width: 0; background: var(--navy); transition: width .2s; }
+
+.map { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.map label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+
+.sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.tile { border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; border: 2px solid transparent; cursor: pointer; text-align: left; font: inherit; color: inherit; min-height: 0; }
+.tile b { font-family: var(--f-display); font-weight: 900; font-size: 32px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+.tile span { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.tile[aria-pressed="true"] { border-color: var(--ink); }
+.t-all { background: var(--surface); border-color: var(--line); color: var(--ink); }
+.t-bazar { background: var(--red-bg); color: var(--red); }
+.t-rev { background: var(--amber-bg); color: var(--amber); }
+.t-ok { background: var(--green-bg); color: var(--green); }
+.t-new, .t-inac { background: var(--gray-bg); color: var(--gray); }
+.t-rep { background: var(--soft); color: var(--ink); }
+
+.alert { border-radius: 10px; padding: 14px 16px; background: var(--red-bg); color: var(--ink); display: grid; gap: 4px; border-left: 6px solid var(--red); }
+.alert b { color: var(--red); font-size: 17px; }
+
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 70vh; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mono { font-family: var(--f-mono); font-size: 13px; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.c-bazar { background: var(--red); color: #fff; }
+.c-rev { background: var(--amber-bg); color: var(--amber); border: 1px solid currentColor; }
+.c-ok { background: var(--green-bg); color: var(--green); }
+.c-new, .c-inac { background: var(--gray-bg); color: var(--gray); }
+.c-rep { background: var(--soft); color: var(--ink); border: 1px solid var(--line); margin-top: 4px; }
+tr.r-bazar td { background: var(--red-bg); }
+tr.r-rev td { background: var(--amber-bg); }
+.pname { font-weight: 600; }
+.price b { color: var(--red); font-size: 16px; }
+.price s { color: var(--muted); }
+.how { font-size: 12px; color: var(--muted); }
+.cands { display: grid; gap: 6px; margin-top: 6px; }
+.cands select { max-width: 360px; font-size: 13px; }
+.notice { border-radius: 10px; padding: 12px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.ok { background: var(--green-bg); }
+@media (max-width: 640px) { .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner">
+  <img src="../checador/logo.png" alt="De Museo" width="800" height="144">
+  <span class="mast-t">Revisor de pedidos</span>
+</div></header>
+
+<main class="pad"><div class="inner">
+  <section class="card" id="stepLoad">
+    <div style="display:grid;gap:6px">
+      <h2>¿Este pedido trae libros que ya están en bazar?</h2>
+      <p class="muted">Sube el pedido en Excel o CSV. Se revisa cada línea contra el catálogo de Odoo por ISBN, referencia interna o nombre. El archivo no sale de este equipo.</p>
+    </div>
+    <div id="catStatus" class="muted"><span id="catMsg">Cargando catálogo de Odoo…</span><div class="loadbar" style="margin-top:6px"><i id="catBar"></i></div></div>
+    <label class="drop" id="drop" for="file">
+      <b>Arrastra aquí el pedido o toca para elegirlo</b>
+      <span class="muted">Excel (.xlsx, .xls) o CSV. Debe tener una columna con ISBN, referencia interna o título.</span>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv,.txt" hidden>
+    </label>
+    <details>
+      <summary class="muted" style="cursor:pointer">O pega una lista (un ISBN, referencia o título por línea)</summary>
+      <div style="display:grid;gap:8px;margin-top:10px">
+        <textarea id="paste" placeholder="9788408172177&#10;9786070756061 x 5&#10;Cien años de soledad"></textarea>
+        <div class="row"><button type="button" id="btnPaste">Revisar lista</button><span class="muted">Puedes poner la cantidad al final: "x 5".</span></div>
+      </div>
+    </details>
+    <p class="notice bad" id="loadErr" hidden></p>
+  </section>
+
+  <section class="card" id="stepMap" hidden>
+    <div class="row" style="justify-content:space-between">
+      <div style="display:grid;gap:4px"><h3>Columnas del archivo</h3><p class="muted" id="mapInfo"></p></div>
+      <label class="muted" id="sheetWrap" hidden>Hoja: <select id="sheet"></select></label>
+    </div>
+    <div class="map">
+      <label>ISBN / código de barras<select id="mCode"></select></label>
+      <label>Referencia interna<select id="mRef"></select></label>
+      <label>Título / nombre<select id="mName"></select></label>
+      <label>Autor (opcional)<select id="mAut"></select></label>
+      <label>Cantidad (opcional)<select id="mQty"></select></label>
+    </div>
+    <div class="row"><button type="button" id="btnRun">Revisar pedido</button><button type="button" class="ghost" id="btnNew">Subir otro archivo</button></div>
+  </section>
+
+  <section id="stepRes" hidden style="display:grid;gap:16px">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="resTitle">Resultado</h2>
+      <div class="row">
+        <button type="button" id="btnXlsx">Descargar pedido revisado</button>
+        <button type="button" class="ghost" id="btnClean">Descargar sin libros de bazar</button>
+      </div>
+    </div>
+    <div id="bigAlert"></div>
+    <div class="sum" id="sum"></div>
+    <div class="tbl"><table>
+      <thead><tr><th>#</th><th>Revisión</th><th>En el pedido</th><th>Producto en Odoo</th><th class="num">Cant.</th><th class="num">Precio</th></tr></thead>
+      <tbody id="tb"></tbody>
+    </table></div>
+    <p class="muted">Las líneas en amarillo se encontraron solo por el nombre o tienen varias opciones: elige la correcta en la lista y la revisión se actualiza.</p>
+  </section>
+</div></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// Catálogo: el mismo que usa el checador (../checador/), sincronizado cada noche con Odoo.
+// Producto: [código, referencia, título, autor, editorial, precio, tema, precioBazar?, %descuento?]
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+const fmt = n => "Q" + Math.round(n).toLocaleString("es-GT");
+const n0 = n => Number(n).toLocaleString("es-GT");
+const isBz = p => p && p.length > 7 && p[7] != null;
+const STOP = new Set("DE LA EL LOS LAS Y EN DEL UN UNA UNO AL LO SE SU SUS POR PARA CON SIN THE OF AND A TO IN ON FOR".split(" "));
+const tokens = s => [...new Set(norm(s).split(/[^A-Z0-9]+/).filter(t => t.length > 1 && !STOP.has(t)))];
+
+let CAT = [], BYCODE = new Map(), BYREF = new Map(), TOK = new Map(), CTOK = [];
+let INAC_C = new Map(), INAC_R = new Map();
+let catReady = false, CAT_V = "";
+
+// ---------- carga del catálogo (con caché en el equipo, compartida con el checador) ----------
+function idb() { return new Promise((res, rej) => { try { const r = indexedDB.open("demuseo-checador", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
+async function idbGet(k) { const db = await idb(); return new Promise((res, rej) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbSet(k, v) { const db = await idb(); return new Promise((res, rej) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+
+async function loadCatalog() {
+  const b = await (await fetch("../checador/bazar.json?t=" + Date.now(), { cache: "no-store" })).json();
+  CAT_V = b.v || String(b.total);
+  let text = null;
+  try { const c = await idbGet("catalogo"); if (c && c.v === CAT_V) text = c.text; } catch (e) {}
+  if (!text) {
+    const r = await fetch("../checador/catalogo.json?v=" + encodeURIComponent(CAT_V));
+    if (!r.ok) throw new Error("catálogo");
+    let got = 0; const total = 10.4e6;
+    const counted = r.body.pipeThrough(new TransformStream({ transform(ch, c) { got += ch.length; $("catBar").style.width = Math.min(98, got / total * 100) + "%"; c.enqueue(ch); } }));
+    text = await new Response(counted).text();
+    try { await idbSet("catalogo", { v: CAT_V, text }); } catch (e) {}
+  }
+  const d = JSON.parse(text);
+  CAT = d.p.map(r => { const p = [r[0], r[1], r[2], d.a[r[3]], d.e[r[4]], r[5], d.t[r[6]]]; if (r.length > 7) p.push(r[7], r[8]); return p; });
+  CAT.forEach((p, i) => {
+    if (p[0]) BYCODE.set(p[0], i);
+    if (p[1]) BYREF.set(norm(p[1]), i);
+    const ts = tokens(p[2] + " " + p[3]);
+    CTOK[i] = ts;
+    for (const t of ts) { let a = TOK.get(t); if (!a) TOK.set(t, a = []); a.push(i); }
+  });
+  try {
+    const r = await fetch("inactivos.json?v=" + encodeURIComponent(CAT_V));
+    if (r.ok) { const x = await r.json(); for (const p of x.p) { if (p[0]) INAC_C.set(p[0], p); if (p[1]) INAC_R.set(norm(p[1]), p); } }
+  } catch (e) {}
+  catReady = true;
+  const f = new Date(String(b.v).replace(" ", "T") + ":00Z");
+  $("catMsg").textContent = `Catálogo listo: ${n0(CAT.length)} productos, ${n0(b.bz.length)} en bazar${isNaN(f) ? "" : " · actualizado " + f.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`;
+  $("catBar").parentElement.hidden = true;
+  if (pendingRun) { const f2 = pendingRun; pendingRun = null; f2(); }
+}
+let pendingRun = null;
+loadCatalog().catch(() => { $("catMsg").textContent = "No se pudo cargar el catálogo. Revisa la conexión y recarga la página."; });
+
+// ---------- búsqueda ----------
+function isbn10to13(s) {
+  const b = "978" + s.slice(0, 9); let sum = 0;
+  for (let i = 0; i < 12; i++) sum += (+b[i]) * (i % 2 ? 3 : 1);
+  return b + ((10 - sum % 10) % 10);
+}
+function codeVariants(raw) {
+  let s = typeof raw === "number" ? Math.round(raw).toString() : String(raw ?? "").toUpperCase().replace(/[^0-9X]/g, "");
+  if (!s) return [];
+  const out = [s];
+  if (/^\d{9}[\dX]$/.test(s)) out.push(isbn10to13(s));
+  const d = s.replace(/\D/g, "");
+  if (d && d !== s) out.push(d);
+  out.push(d.replace(/^0+/, ""), "0" + d);
+  return [...new Set(out.filter(Boolean))];
+}
+function byCode(raw) {
+  for (const v of codeVariants(raw)) { if (BYCODE.has(v)) return { i: BYCODE.get(v), how: v === String(raw).replace(/[^0-9X]/gi, "") ? "ISBN / código de barras" : "ISBN convertido (10→13 o ceros)" }; }
+  for (const v of codeVariants(raw)) { if (BYREF.has(v)) return { i: BYREF.get(v), how: "Referencia interna (en la columna de código)" }; }
+  return null;
+}
+function byRef(raw) {
+  const r = norm(String(raw ?? "").trim()); if (!r) return null;
+  if (BYREF.has(r)) return { i: BYREF.get(r), how: "Referencia interna" };
+  const d = r.replace(/\D/g, ""); if (d && BYREF.has(d)) return { i: BYREF.get(d), how: "Referencia interna" };
+  if (d && BYCODE.has(d)) return { i: BYCODE.get(d), how: "Código de barras (en la columna de referencia)" };
+  return null;
+}
+function inactiveFor(code, ref) {
+  for (const v of codeVariants(code)) if (INAC_C.has(v)) return INAC_C.get(v);
+  const r = norm(String(ref ?? "").trim()); if (r && INAC_R.has(r)) return INAC_R.get(r);
+  return null;
+}
+// Coincidencia por nombre: palabras en común entre el título del pedido y el del catálogo
+function byName(name, autor) {
+  const q = tokens(name + " " + (autor || ""));
+  if (!q.length) return [];
+  const lists = q.map(t => TOK.get(t) || []).filter(a => a.length).sort((a, b) => a.length - b.length);
+  if (!lists.length) return [];
+  const pool = new Set();
+  for (const a of lists.slice(0, 2)) { for (let k = 0; k < a.length && pool.size < 6000; k++) pool.add(a[k]); }
+  const qs = new Set(q);
+  const scored = [];
+  for (const i of pool) {
+    const ct = CTOK[i]; let inter = 0;
+    for (const t of ct) if (qs.has(t)) inter++;
+    if (!inter) continue;
+    const s = 0.7 * (inter / qs.size) + 0.3 * (inter / ct.length);
+    scored.push([s, i]);
+  }
+  scored.sort((a, b) => b[0] - a[0] || isBz(CAT[b[1]]) - isBz(CAT[a[1]]));
+  return scored.slice(0, 5);
+}
+
+// ---------- lectura del archivo ----------
+let book = null, rows = [], headerRow = -1, fileName = "pedido";
+const PAT = {
+  code: /^(ISBN|ISBN ?13|ISBN ?10|EAN|EAN ?13|UPC|COD(IGO)?( DE)? BARRAS?|BARCODE|CODIGO EAN|CODIGO ISBN)$/,
+  ref: /^(REF(ERENCIA)?( INTERNA)?|COD(IGO)?( INTERNO)?|SKU|DEFAULT CODE|CODIGO DE PRODUCTO|ARTICULO|ITEM)$/,
+  name: /^(TITULO|NOMBRE( DEL)?( LIBRO| PRODUCTO)?|DESCRIPCION|PRODUCTO|TITLE|LIBRO|ARTICULO DESCRIPCION)$/,
+  aut: /^(AUTOR(ES)?|AUTHOR)$/,
+  qty: /^(CANT(IDAD)?|CANT\.?|QTY|QUANTITY|UNIDADES|UDS|PEDIDO|EJEMPLARES)$/,
+};
+const hnorm = s => norm(s).replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+$("drop").addEventListener("dragover", e => { e.preventDefault(); $("drop").classList.add("over"); });
+$("drop").addEventListener("dragleave", () => $("drop").classList.remove("over"));
+$("drop").addEventListener("drop", e => { e.preventDefault(); $("drop").classList.remove("over"); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
+$("file").addEventListener("change", e => { if (e.target.files[0]) readFile(e.target.files[0]); e.target.value = ""; });
+
+async function readFile(f) {
+  $("loadErr").hidden = true;
+  if (!window.XLSX) { showErr("No se pudo cargar el lector de Excel. Revisa la conexión a internet y recarga la página."); return; }
+  try {
+    fileName = f.name.replace(/\.[^.]+$/, "");
+    const buf = await f.arrayBuffer();
+    book = XLSX.read(buf, { type: "array", raw: false, cellDates: false });
+    $("sheet").innerHTML = book.SheetNames.map((n, i) => `<option value="${i}">${esc(n)}</option>`).join("");
+    $("sheetWrap").hidden = book.SheetNames.length < 2;
+    loadSheet(0);
+  } catch (e) { showErr("No se pudo leer el archivo. Guárdalo como Excel (.xlsx) o CSV e intenta de nuevo."); }
+}
+function showErr(t) { $("loadErr").textContent = t; $("loadErr").hidden = false; }
+$("sheet").addEventListener("change", e => loadSheet(+e.target.value));
+
+function loadSheet(ix) {
+  const ws = book.Sheets[book.SheetNames[ix]];
+  rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
+  // Encontrar la fila de encabezados entre las primeras 15
+  let best = -1, bestScore = 0;
+  for (let r = 0; r < Math.min(15, rows.length); r++) {
+    const sc = rows[r].reduce((a, c) => a + (Object.values(PAT).some(p => p.test(hnorm(c))) ? 1 : 0), 0);
+    if (sc > bestScore) { bestScore = sc; best = r; }
+  }
+  headerRow = bestScore ? best : -1;
+  const width = Math.max(0, ...rows.slice(0, 200).map(r => r.length));
+  const heads = Array.from({ length: width }, (_, c) => headerRow >= 0 && String(rows[headerRow][c] ?? "").trim() ? String(rows[headerRow][c]).trim() : "Columna " + XLSX.utils.encode_col(c));
+  const guess = { code: -1, ref: -1, name: -1, aut: -1, qty: -1 };
+  if (headerRow >= 0) {
+    heads.forEach((h, c) => { const k = hnorm(h); for (const key of Object.keys(PAT)) if (guess[key] < 0 && PAT[key].test(k)) { guess[key] = c; break; } });
+  }
+  // Sin encabezados (o sin columna de código): adivinar por el contenido
+  const data = rows.slice(headerRow + 1, headerRow + 201);
+  if (guess.code < 0) {
+    let bc = -1, bn = 0;
+    for (let c = 0; c < width; c++) { const n = data.filter(r => /^\d{9}[\dX]$|^\d{12,13}$/i.test(String(typeof r[c] === "number" ? Math.round(r[c]) : r[c] ?? "").replace(/[-\s]/g, ""))).length; if (n > bn && n >= data.length * 0.3) { bn = n; bc = c; } }
+    if (bc >= 0 && bc !== guess.ref) guess.code = bc;
+  }
+  if (guess.name < 0) {
+    let bc = -1, bl = 0;
+    for (let c = 0; c < width; c++) { if (c === guess.code) continue; const l = data.reduce((a, r) => a + (typeof r[c] === "string" && /[A-Za-z]/.test(r[c]) ? r[c].length : 0), 0) / Math.max(1, data.length); if (l > bl && l > 6) { bl = l; bc = c; } }
+    guess.name = bc;
+  }
+  const opts = sel => `<option value="-1">— No usar —</option>` + heads.map((h, c) => `<option value="${c}" ${c === sel ? "selected" : ""}>${esc(h)}</option>`).join("");
+  $("mCode").innerHTML = opts(guess.code); $("mRef").innerHTML = opts(guess.ref); $("mName").innerHTML = opts(guess.name); $("mAut").innerHTML = opts(guess.aut); $("mQty").innerHTML = opts(guess.qty);
+  const nData = rows.length - headerRow - 1;
+  $("mapInfo").textContent = `${n0(nData)} filas${headerRow >= 0 ? `, encabezados en la fila ${headerRow + 1}` : ", sin encabezados"}. Revisa que cada columna sea la correcta.`;
+  $("stepMap").hidden = false;
+  if (guess.code >= 0 || guess.ref >= 0 || guess.name >= 0) run(); else { $("stepRes").hidden = true; }
+}
+$("btnRun").addEventListener("click", run);
+$("btnNew").addEventListener("click", () => { $("file").click(); });
+
+// Lista pegada
+$("btnPaste").addEventListener("click", () => {
+  const lines = $("paste").value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return;
+  book = null; fileName = "lista"; headerRow = 0;
+  rows = [["Entrada", "Cantidad"]];
+  for (const l of lines) { const m = l.match(/^(.*?)\s*(?:[x×*]\s*(\d{1,4}))$/i); rows.push(m ? [m[1], +m[2]] : [l, ""]); }
+  $("sheetWrap").hidden = true;
+  const o = (sel, list) => `<option value="-1">— No usar —</option>` + list.map((h, c) => `<option value="${c}" ${c === sel ? "selected" : ""}>${h}</option>`).join("");
+  $("mCode").innerHTML = o(0, ["Entrada", "Cantidad"]); $("mRef").innerHTML = o(-1, ["Entrada", "Cantidad"]); $("mName").innerHTML = o(0, ["Entrada", "Cantidad"]); $("mAut").innerHTML = o(-1, ["Entrada", "Cantidad"]); $("mQty").innerHTML = o(1, ["Entrada", "Cantidad"]);
+  $("mapInfo").textContent = `${n0(lines.length)} líneas pegadas.`;
+  $("stepMap").hidden = false;
+  run();
+});
+
+// ---------- revisión ----------
+let RES = [], filter = "all";
+function cell(r, c) { return c >= 0 ? r[c] : ""; }
+function run() {
+  if (!catReady) { pendingRun = run; $("catMsg").textContent = "Terminando de cargar el catálogo… el pedido se revisa en cuanto esté listo."; return; }
+  const mc = +$("mCode").value, mr = +$("mRef").value, mn = +$("mName").value, ma = +$("mAut").value, mq = +$("mQty").value;
+  RES = [];
+  for (let r = headerRow + 1; r < rows.length; r++) {
+    const row = rows[r];
+    const code = cell(row, mc), ref = cell(row, mr), name = String(cell(row, mn) ?? "").trim(), aut = String(cell(row, ma) ?? "").trim();
+    const codeStr = typeof code === "number" ? Math.round(code).toString() : String(code ?? "").trim();
+    if (!codeStr && !String(ref).trim() && !name) continue;
+    let qty = cell(row, mq); qty = typeof qty === "number" ? qty : parseFloat(String(qty).replace(",", ".")) || "";
+    const L = { r, row, code: codeStr, ref: String(ref ?? "").trim(), name, aut, qty, i: -1, how: "", cands: [], choice: null, inac: null };
+    let hit = null;
+    // En una lista pegada la misma entrada puede ser código o título
+    if (codeStr && (typeof code === "number" || /^[\d\s-]*\d[\d\s-]*X?$/i.test(codeStr))) hit = byCode(code);
+    if (!hit && L.ref) hit = byRef(ref);
+    if (hit) { L.i = hit.i; L.how = hit.how; }
+    else {
+      L.inac = inactiveFor(codeStr, L.ref);
+      const looksCode = /^[\d\s-]{8,}X?$/i.test(codeStr) && codeStr === name;
+      if (!L.inac && name && !looksCode) {
+        const c = byName(name, aut);
+        L.cands = c;
+        if (c.length && c[0][0] >= 0.85 && (!c[1] || c[1][0] < c[0][0] - 0.12)) { L.i = c[0][1]; L.how = "Nombre (aproximado)"; L.approx = true; }
+        else if (c.length && c[0][0] >= 0.45) { L.how = "Varias opciones por nombre"; L.multi = true; }
+      }
+    }
+    RES.push(L);
+  }
+  classify();
+  $("stepRes").hidden = false;
+  render();
+}
+function classify() {
+  const seen = new Map();
+  for (const L of RES) {
+    const i = L.choice != null ? L.choice : L.i;
+    L.p = i >= 0 ? CAT[i] : null;
+    if (L.choice != null) { L.how = L.choice >= 0 ? "Nombre (elegido a mano)" : "Marcado como nuevo"; }
+    if (L.p && isBz(L.p)) L.st = (L.approx || L.multi) && L.choice == null ? "rev" : "bazar";
+    else if (L.p) L.st = (L.approx || L.multi) && L.choice == null ? "rev" : "ok";
+    else if (L.inac) L.st = "inac";
+    else if (L.multi && L.choice == null) L.st = "rev";
+    else L.st = "new";
+    L.possibleBz = L.st === "rev" && (isBz(L.p) || L.cands.slice(0, 3).some(c => isBz(CAT[c[1]])));
+    const k = L.p ? "p" + (L.p[0] || L.p[1]) : L.code ? "c" + codeVariants(L.code).slice(-1)[0] : L.name ? "n" + norm(L.name) : null;
+    L.k = k; if (k) seen.set(k, (seen.get(k) || 0) + 1);
+  }
+  for (const L of RES) L.rep = L.k && seen.get(L.k) > 1;
+}
+
+const ST = {
+  bazar: { chip: "c-bazar", label: "En bazar · No pedir", tile: "t-bazar", tl: "En bazar" },
+  rev: { chip: "c-rev", label: "Revisar", tile: "t-rev", tl: "Revisar" },
+  ok: { chip: "c-ok", label: "OK · Precio normal", tile: "t-ok", tl: "OK" },
+  inac: { chip: "c-inac", label: "Inactivo en Odoo", tile: "t-inac", tl: "Inactivos" },
+  new: { chip: "c-new", label: "Nuevo · No está en Odoo", tile: "t-new", tl: "Nuevos" },
+};
+function render() {
+  const cnt = { all: RES.length, bazar: 0, rev: 0, ok: 0, inac: 0, new: 0, rep: 0 };
+  RES.forEach(L => { cnt[L.st]++; if (L.rep) cnt.rep++; });
+  $("resTitle").textContent = `${n0(RES.length)} líneas revisadas`;
+  const bz = RES.filter(L => L.st === "bazar"), pb = RES.filter(L => L.possibleBz);
+  $("bigAlert").innerHTML = bz.length
+    ? `<div class="alert"><b>⚠ ${n0(bz.length)} ${bz.length === 1 ? "producto de este pedido está" : "productos de este pedido están"} en el Bazar de Descuentos.</b><span>No los vuelvas a pedir: se vendieron en oferta. ${pb.length ? `Revisa también ${n0(pb.length)} línea(s) en amarillo que podrían estar en bazar.` : ""}</span></div>`
+    : pb.length ? `<div class="notice">Ningún producto confirmado en bazar, pero ${n0(pb.length)} línea(s) en amarillo podrían estarlo. Confírmalas abajo.</div>`
+    : `<div class="notice ok">Ningún producto de este pedido está en bazar.</div>`;
+  const tiles = [["all", "t-all", "Todas"], ["bazar", "t-bazar", "En bazar"], ["rev", "t-rev", "Revisar"], ["ok", "t-ok", "OK"], ["new", "t-new", "Nuevos"], ["inac", "t-inac", "Inactivos"], ["rep", "t-rep", "Repetidos"]];
+  $("sum").innerHTML = tiles.filter(([k]) => k === "all" || cnt[k]).map(([k, cls, lab]) => `<button type="button" class="tile ${cls}" data-f="${k}" aria-pressed="${filter === k}"><b>${n0(cnt[k])}</b><span>${lab}</span></button>`).join("");
+  const list = RES.filter(L => filter === "all" || (filter === "rep" ? L.rep : L.st === filter));
+  $("tb").innerHTML = list.map(L => {
+    const p = L.p, s = ST[L.st];
+    const entrada = [L.code && `<span class="mono">${esc(L.code)}</span>`, L.ref && `Ref. <span class="mono">${esc(L.ref)}</span>`, L.name && (L.name !== L.code) && esc(L.name)].filter(Boolean).join("<br>");
+    let prod = p ? `<span class="pname">${esc(p[2])}</span><br><span class="how">${esc([p[3], p[4]].filter(Boolean).join(" · "))}</span><br><span class="mono how">${esc(p[0] || "")}${p[1] ? " · Ref. " + esc(p[1]) : ""}</span>`
+      : L.inac ? `<span class="pname">${esc(L.inac[2])}</span><br><span class="how">Archivado en Odoo · ${esc(L.inac[0] || "")} ${L.inac[1] ? "Ref. " + esc(L.inac[1]) : ""}</span>` : `<span class="how">No se encontró en el catálogo.</span>`;
+    if (L.how) prod += `<br><span class="how">Encontrado por: ${esc(L.how)}</span>`;
+    if (L.cands.length && (L.approx || L.multi)) {
+      prod += `<div class="cands"><select data-r="${L.r}" aria-label="Elegir producto">
+        <option value="">${L.choice == null ? (L.approx ? "¿Es este? Confírmalo o elige otro…" : "Elige el producto correcto…") : "Cambiar elección…"}</option>
+        ${L.cands.map(([sc, i]) => { const c = CAT[i]; return `<option value="${i}" ${L.choice === i || (L.choice == null && L.approx && L.i === i) ? "selected" : ""}>${isBz(c) ? "🔴 BAZAR " + c[8] + "% · " : ""}${esc(c[2].slice(0, 70))} (${esc(c[1] || c[0])})</option>`; }).join("")}
+        <option value="-1" ${L.choice === -1 ? "selected" : ""}>Ninguno: es un producto nuevo</option></select></div>`;
+    }
+    const price = p ? (isBz(p) ? `<span class="price"><b>${fmt(p[7])}</b> <span class="chip c-bazar">−${p[8]}%</span><br><s>${fmt(p[5])}</s></span>` : (p[5] ? fmt(p[5]) : "—")) : "—";
+    return `<tr class="r-${L.st}"><td class="num how">${L.r + 1}</td><td><span class="chip ${s.chip}">${s.label}</span>${L.possibleBz ? `<br><span class="chip c-bazar" style="margin-top:4px">Posible bazar</span>` : ""}${L.rep ? `<br><span class="chip c-rep">Repetido</span>` : ""}</td><td>${entrada}</td><td>${prod}</td><td class="num">${L.qty === "" ? "" : n0(L.qty)}</td><td class="num">${price}</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="muted" style="padding:20px;text-align:center">No hay líneas en este filtro.</td></tr>`;
+}
+$("sum").addEventListener("click", e => { const b = e.target.closest("[data-f]"); if (b) { filter = b.dataset.f; render(); } });
+$("tb").addEventListener("change", e => {
+  const s = e.target.closest("select[data-r]"); if (!s) return;
+  const L = RES.find(x => x.r === +s.dataset.r); if (!L) return;
+  L.choice = s.value === "" ? null : +s.value;
+  classify(); render();
+});
+
+// ---------- descargas ----------
+const STX = { bazar: "EN BAZAR - NO PEDIR", rev: "REVISAR", ok: "OK", inac: "INACTIVO EN ODOO", new: "NUEVO (no está en Odoo)" };
+function outRows(skipBazar) {
+  const width = Math.max(0, ...rows.map(r => r.length));
+  const extra = ["Revisión", "En bazar", "% bazar", "Precio bazar", "Precio normal Odoo", "Producto en Odoo", "Ref. Odoo", "Código Odoo", "Cómo se encontró", "Repetido"];
+  const head = headerRow >= 0 ? [...Array.from({ length: width }, (_, c) => rows[headerRow][c] ?? ""), ...extra] : [...Array.from({ length: width }, (_, c) => "Columna " + XLSX.utils.encode_col(c)), ...extra];
+  const byR = new Map(RES.map(L => [L.r, L]));
+  const out = [head];
+  for (let r = headerRow + 1; r < rows.length; r++) {
+    const L = byR.get(r), base = Array.from({ length: width }, (_, c) => rows[r][c] ?? "");
+    if (!L) { if (!skipBazar) out.push(base); continue; }
+    if (skipBazar && L.st === "bazar") continue;
+    const p = L.p;
+    out.push([...base, STX[L.st] + (L.possibleBz ? " (posible bazar)" : ""), p && isBz(p) ? "Sí" : "No", p && isBz(p) ? p[8] / 100 : "", p && isBz(p) ? p[7] : "", p ? p[5] : "", p ? p[2] : (L.inac ? L.inac[2] : ""), p ? p[1] : (L.inac ? L.inac[1] : ""), p ? p[0] : (L.inac ? L.inac[0] : ""), L.how, L.rep ? "Sí" : ""]);
+  }
+  return out;
+}
+function save(skipBazar) {
+  if (!RES.length) return;
+  const data = outRows(skipBazar);
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  // Códigos como texto para que Excel no los convierta en notación científica
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  for (let R = 1; R <= range.e.r; R++) for (let C = 0; C <= range.e.c; C++) {
+    const a = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+    if (a && a.t === "n" && Math.abs(a.v) >= 1e8 && Number.isInteger(a.v)) { a.t = "s"; a.v = String(a.v); }
+  }
+  const pc = data[0].indexOf("% bazar");
+  for (let R = 1; R <= range.e.r; R++) { const a = ws[XLSX.utils.encode_cell({ r: R, c: pc })]; if (a && a.t === "n") a.z = "0%"; }
+  ws["!cols"] = data[0].map((h, c) => ({ wch: Math.min(50, Math.max(10, String(h).length + 2, ...data.slice(1, 60).map(r => String(r[c] ?? "").length))) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, skipBazar ? "Pedido sin bazar" : "Pedido revisado");
+  if (!skipBazar) {
+    const bz = RES.filter(L => L.st === "bazar" || L.possibleBz).map(L => {
+      // Para "posible bazar" se muestra el candidato en bazar más parecido
+      const q = L.p && isBz(L.p) ? L.p : (L.cands.map(c => CAT[c[1]]).find(isBz) || L.p);
+      return [L.r + 1, L.code || L.ref || L.name, q ? q[2] : "", q ? q[1] : "", q && isBz(q) ? q[8] / 100 : "", q && isBz(q) ? q[7] : "", q ? q[5] : "", L.st === "bazar" ? "Confirmado" : "Posible: confirmar"];
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet([["Fila", "En el pedido", "Producto", "Ref.", "% bazar", "Precio bazar", "Precio normal", "Estado"], ...bz]);
+    XLSX.utils.book_append_sheet(wb, ws2, "En bazar");
+  }
+  XLSX.writeFile(wb, `${fileName}_${skipBazar ? "sin-bazar" : "revisado"}.xlsx`);
+}
+$("btnXlsx").addEventListener("click", () => save(false));
+$("btnClean").addEventListener("click", () => save(true));
+</script>
+</body>
+</html>

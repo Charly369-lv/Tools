@@ -223,14 +223,15 @@ def main():
         "autor": pick("campo_autor", ["Autor", "AUTOR", "Autores"], text_types),
         "editorial": pick("campo_editorial", ["Editorial"], text_types),
         "tema": pick("campo_tema", ["Tema"], text_types),
-        "precio_bazar": pick("campo_precio_bazar", ["Precio Bazar", "Precio de Bazar", "Bazar"], ("float", "monetary", "integer")),
-        "bazar_flag": pick("campo_bazar", ["Bazar", "En Bazar", "Bazar de descuentos"], ("boolean", "selection", "char", "many2one")),
+        # El precio de bazar se calcula con la categoría ("… #2BAZAR 75%"). Solo si se fija un campo
+        # en config.json ("campo_precio_bazar") se usa ese campo en lugar de la categoría.
+        "precio_bazar": [cfg["campo_precio_bazar"]] if cfg.get("campo_precio_bazar") else [],
     }
     price_field = cfg.get("campo_precio") or ("lst_price" if "lst_price" in pf else "list_price")
     print("\nCampos detectados en Producto:")
     for k, v in F.items():
         found = ", ".join("%s (%s)" % (x, pf[x].get("string")) for x in v if x in pf)
-        print(f"  {k:13s} -> {found or 'NO ENCONTRADO'}")
+        print(f"  {k:13s} -> {found or ('(se calcula con la categoría)' if k == 'precio_bazar' else 'NO ENCONTRADO')}")
     print(f"  precio        -> {price_field}")
     if a.diagnostico:
         extra = [f"{n} ({f.get('string')}, {f.get('type')})" for n, f in sorted(pf.items()) if n.startswith("x_")]
@@ -245,6 +246,13 @@ def main():
     print("\nDescargando productos…")
     domain = cfg.get("dominio_productos", [["active", "=", True]])
     prods = o.search_read_all("product.product", domain, fields)
+
+    print("Descargando productos archivados (para el revisor de pedidos)…")
+    try:
+        inactivos = o.search_read_all("product.product", [["active", "=", False]], ["default_code", "barcode", "name"])
+    except SystemExit as e:
+        print("  Aviso: no se pudieron leer los productos archivados.", e)
+        inactivos = None
 
     print("Descargando ubicaciones…")
     try:
@@ -262,7 +270,10 @@ def main():
                 return t
         return ""
 
-    cat_pct = re.compile(r"BAZAR\s*(\d{1,2})\s*%", re.I)
+    # Busca "BAZAR 75%" en la ruta completa de la categoría, ej. "2006 LIBROS / 30115 #2BAZAR 75%"
+    cat_pct = re.compile(r"BAZAR\D{0,3}(\d{1,2})\s*%", re.I)
+    por_cat = collections.Counter()
+    ejemplos = collections.defaultdict(list)
     rows, seen = [], set()
     stats = collections.Counter()
     for p in prods:
@@ -290,24 +301,30 @@ def main():
         precio = float(p.get(price_field) or 0)
         precio = int(precio) if precio == int(precio) else round(precio, 2)
 
-        # Bazar: precio bazar del campo propio; si no tiene, por la categoría "BAZAR 60%"
+        # Bazar: precio normal menos el porcentaje de la categoría, redondeado al quetzal
+        cat = as_text(p.get("categ_id"))
+        m = cat_pct.search(cat)
+        row = [code, ref, titulo, autor, editorial, precio, tema]
+        pct = int(m.group(1)) if m else 0
         pb = 0.0
-        for n in F["precio_bazar"]:
+        if F["precio_bazar"]:
             try:
-                pb = float(p.get(n) or 0)
+                pb = float(p.get(F["precio_bazar"][0]) or 0)
             except (TypeError, ValueError):
                 pb = 0.0
-            if pb:
-                break
-        m = cat_pct.search(as_text(p.get("categ_id")))
-        if not pb and m and precio:
-            pb = precio * (1 - int(m.group(1)) / 100)
-        en_bazar = bool(precio and 0 < pb < precio)
-        row = [code, ref, titulo, autor, editorial, precio, tema]
-        if en_bazar:
-            pbr = round_half_up(pb)
-            row += [pbr, round((1 - pb / precio) * 100)]
+            if pb and precio:
+                pct = round((1 - pb / precio) * 100)
+        elif pct and precio:
+            pb = precio * (1 - pct / 100)
+        if m and not precio:
+            stats["bazar_sin_precio"] += 1
+        if precio and 0 < pb < precio and 0 < pct < 100:
+            pbr = max(1, round_half_up(pb))
+            row += [pbr, pct]
             stats["en_bazar"] += 1
+            por_cat[cat] += 1
+            if len(ejemplos[pct]) < 3:
+                ejemplos[pct].append(f"{code or ref}  Q{precio} − {pct}% = Q{pb:.2f} → Q{pbr}  ({titulo[:40]})")
         rows.append(row)
         stats["productos"] += 1
 
@@ -317,9 +334,30 @@ def main():
     version = time.strftime("%Y-%m-%d %H:%M", time.gmtime())
     write_checador(os.path.join(a.out, "checador"), rows, version)
     write_inventario(os.path.join(a.out, "inventario"), prods, locations, version)
+    if inactivos is not None:
+        activos_c = {r[0] for r in rows if r[0]}
+        activos_r = {r[1] for r in rows if r[1]}
+        inac = []
+        for p in inactivos:
+            c = re.sub(r"\D", "", str(p.get("barcode") or ""))
+            r = clean(p.get("default_code") or "")
+            if (c and c in activos_c) or (r and r in activos_r) or not (c or r):
+                continue  # si hay una versión activa del mismo producto, manda la activa
+            inac.append([c, r, clean(p.get("name") or "")])
+        dump(os.path.join(a.out, "pedidos", "inactivos.json"), {"v": version, "p": inac})
+        print(f"  {len(inac):,} productos archivados para el revisor de pedidos")
     with open(os.path.join(a.out, "ultima-sincronizacion.json"), "w", encoding="utf-8") as f:
         json.dump({"fecha_utc": version, "productos": stats["productos"], "en_bazar": stats["en_bazar"],
                    "ubicaciones": len(locations) if locations else None, "modo_api": o.mode}, f, ensure_ascii=False, indent=1)
+    print("\nCategorías de bazar encontradas:")
+    for c, n in por_cat.most_common():
+        print(f"  {n:6,}  {c}")
+    if not por_cat:
+        print("  (ninguna: revisa que la categoría diga 'BAZAR 60%' o similar)")
+    print("Ejemplos de cálculo:")
+    for pct in sorted(ejemplos):
+        for e in ejemplos[pct]:
+            print("  " + e)
     print(f"\nListo: {stats['productos']:,} productos, {stats['en_bazar']:,} en bazar"
           + (f", {len(locations)} ubicaciones" if locations else "") + f". Omitidos: {dict((k, v) for k, v in stats.items() if k not in ('productos', 'en_bazar'))}")
 

@@ -83,6 +83,16 @@ En el repositorio: **Settings → Secrets and variables → Actions → New repo
 
 Desde ese momento se actualiza solo cada madrugada. Para actualizar al instante (por ejemplo, después de cambiar precios de bazar), repite el paso 7.
 
+## Revisor de pedidos
+
+`https://TU-USUARIO.github.io/Tools/pedidos/` — sube un pedido en Excel/CSV (o pega una lista) y marca cada línea:
+
+- 🔴 **En bazar · No pedir** — el producto está en una categoría de bazar.
+- 🟡 **Revisar** — encontrado solo por nombre o con varias opciones; elige el correcto en la lista. "Posible bazar" avisa si alguna opción está en bazar.
+- 🟢 **OK** — existe a precio normal. ⚪ **Nuevo** — no está en Odoo. ⚪ **Inactivo** — archivado en Odoo. **Repetido** — aparece más de una vez en el pedido.
+
+Busca por ISBN (convierte ISBN-10 a 13), por referencia interna y por nombre. Descarga el pedido revisado (con una hoja "En bazar") o el pedido sin los libros de bazar. El archivo del pedido no sale del equipo.
+
 ---
 
 ## Si algo sale mal
@@ -105,7 +115,7 @@ El programa busca los campos por su **etiqueta** en Odoo:
 - **Autor**: `Autor` o `AUTOR`
 - **Editorial**: `Editorial`
 - **Tema**: `Tema`
-- **Precio de bazar**: `Precio Bazar`. Si un producto no lo tiene, usa la categoría (`#1BAZAR 60%`, `#2BAZAR 75%`) para calcularlo.
+- **Precio de bazar**: se calcula con el **porcentaje de la categoría** del producto. Ejemplo: categoría `2006 LIBROS / 30115 #2BAZAR 75%` y precio normal Q65 → Q65 − 75% = Q16.25 → **Q16**. Para poner un libro en bazar basta con moverlo a una categoría que diga `BAZAR 60%`, `BAZAR 75%`, etc.
 - **Precio normal**: el precio de venta del producto.
 
 Para fijar un campo a mano, edita `sync/config.json` en GitHub (ícono del lápiz) y escribe el nombre técnico, por ejemplo `"campo_precio_bazar": "x_studio_precio_bazar"`. El nombre técnico se ve en Odoo con el modo desarrollador activo, pasando el mouse sobre el campo.
