@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Revisor de Pedidos De Museo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* Layout: banda azul De Museo; paso 1 subir pedido, paso 2 columnas, paso 3 semáforo con resumen, filtros, tabla y descargas */
 :root {
@@ -94,6 +94,11 @@ tr.r-rev td { background: var(--amber-bg); }
 .notice.bad { background: var(--red-bg); }
 .notice.ok { background: var(--green-bg); }
 @media (max-width: 640px) { .hide-sm { display: none; } }
+
+/* Números (precios, porcentajes, contadores) en Archivo: el 4 de Bodoni se confunde con 1 */
+:root { --f-num: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+.tile b { font-family: var(--f-num) !important; font-weight: 800 !important; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+
 </style>
 </head>
 <body>

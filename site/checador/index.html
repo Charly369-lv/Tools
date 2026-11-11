@@ -3,13 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Números (precios, porcentajes, contadores) en Archivo: el 4 de Bodoni se confunde con 1 */
+:root { --f-num: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+.now-a, .savebar strong, .ribbon-t b, .reg-price .amt, .pick .pr b, .matches .mp b { font-family: var(--f-num) !important; font-weight: 800 !important; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+.now-a { font-size: clamp(64px, 16vw, 112px); }
+.reg-price .amt { font-size: clamp(52px, 13vw, 84px); }
+.ribbon-t b { font-size: .95em; }
+</style>
 </head>
 <body>
 <title>Checador De Museo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: banda azul De Museo con logo arriba, campo de búsqueda, ficha de producto tipo cartel de museo, historial al pie */
 :root {
@@ -257,12 +264,12 @@ const key2 = s => s.slice(-2).padStart(2, "0");
 
 function shard(kind, k) {
   const id = kind + "/" + k;
-  if (!shardCache.has(id)) shardCache.set(id, fetch(id + ".json").then(r => { if (!r.ok) throw 0; return r.json(); }).catch(e => { shardCache.delete(id); throw e; }));
+  if (!shardCache.has(id)) shardCache.set(id, fetch(id + ".json?v=" + encodeURIComponent(CAT_V)).then(r => { if (!r.ok) throw 0; return r.json(); }).catch(e => { shardCache.delete(id); throw e; }));
   return shardCache.get(id);
 }
 
 async function loadBazar() {
-  const d = await (await fetch("bazar.json")).json();
+  const d = await (await fetch("bazar.json?t=" + Date.now(), { cache: "no-store" })).json();
   BZ = d.bz; TOTAL = d.total; CAT_V = d.v || String(TOTAL);
   // Porcentajes vigentes según las categorías de Odoo (ej. 60%, 75%, 90%)
   const pcts = [...new Set(BZ.map(p => p[8]))].sort((a, b) => a - b);
@@ -292,7 +299,7 @@ async function loadCatalog() {
   let text = null;
   try { const c = await idbGet("catalogo"); if (c && c.v === CAT_V) text = c.text; } catch (e) {}
   if (!text) {
-    const r = await fetch("catalogo.json");
+    const r = await fetch("catalogo.json?v=" + encodeURIComponent(CAT_V));
     if (!r.ok) throw 0;
     const total = 10.4e6; let got = 0;
     const counted = r.body.pipeThrough(new TransformStream({ transform(ch, c) { got += ch.length; catPct = Math.min(99, Math.round(got / total * 100)); paintPending(); c.enqueue(ch); } }));
@@ -318,6 +325,7 @@ bazarReady.catch(() => { result.innerHTML = `<div class="loading">No se pudo car
 bazarReady.then(() => setTimeout(() => loadCatalog().catch(() => {}), 400)).catch(() => {});
 
 async function byDigits(d) {
+  try { await bazarReady; } catch (e) {} // la versión de los datos llega con bazar.json
   const tries = [...new Set([d, d.replace(/^0+/, ""), "0" + d])].filter(Boolean);
   for (const t of tries) { const s = await shard("c", key2(t)); if (s[t]) return s[t]; }
   for (const t of tries) { const s = await shard("r", key2(t)); if (s[t]) return s[t]; }

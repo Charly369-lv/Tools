@@ -3,13 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Números (precios, porcentajes, contadores) en Archivo: el 4 de Bodoni se confunde con 1 */
+:root { --f-num: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+.stat b, .last .plus { font-family: var(--f-num) !important; font-weight: 800 !important; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+
+</style>
 </head>
 <body>
 <title>Inventario De Museo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* Layout: banda azul De Museo con la sesión de conteo fija; abajo una sola columna operable con una mano: campo de escaneo, tarjeta de último escaneo, contadores y acciones */
 :root {
