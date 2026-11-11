@@ -23,21 +23,27 @@ a.tool:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 a.tool b { font-family: "Bodoni Moda", Didot, serif; font-weight: 900; font-size: 26px; }
 a.tool span { color: var(--muted); }
 a.tool .tag { justify-self: start; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; color: #fff; }
-.sync { font-size: 13px; color: var(--muted); }
+.sync { font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, Consolas, monospace; opacity: .75; }
 </style>
 </head>
 <body>
 <header class="pad"><div class="inner"><img src="checador/logo.png" alt="De Museo"><p>Herramientas para tiendas</p></div></header>
 <main class="pad"><div class="inner" style="display:grid;gap:14px">
   <a class="tool" href="checador/"><span class="tag" style="background:var(--red)">Bazar de Descuentos</span><b>Checador de precios</b><span>Escanea un libro y mira su precio y su precio de bazar.</span></a>
-  <a class="tool" href="inventario/"><span class="tag" style="background:var(--navy)">Operaciones</span><b>Inventario</b><span>Cuenta productos por localidad y zona, y exporta el CSV para Odoo.</span></a>
+  <a class="tool" href="inventario/"><span class="tag" style="background:var(--navy)">Operaciones</span><b>Inventario</b><span>Cuenta productos por localidad y zona, y exporta el archivo para el sistema.</span></a>
   <a class="tool" href="pedidos/"><span class="tag" style="background:#9a6700">Compras</span><b>Revisor de pedidos</b><span>Sube un pedido y detecta los libros que ya están en bazar antes de volver a pedirlos.</span></a>
-  <p class="sync" id="sync">Datos sincronizados con Odoo.</p>
+  <p class="sync" id="sync"></p>
 </div></main>
 <script>
+// Código de versión camuflado: vAA.MMDD.HHMM · r<productos>-b<en bazar> (hora de Guatemala)
+function codigoVersion(v, total, bazar) {
+  const d = new Date(String(v).replace(" ", "T") + ":00Z");
+  if (isNaN(d)) return "";
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guatemala", year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).map(x => [x.type, x.value]));
+  return `v${p.year}.${p.month}${p.day}.${p.hour}${p.minute}` + (total != null ? ` · r${total}-b${bazar}` : "");
+}
 fetch("ultima-sincronizacion.json", { cache: "no-cache" }).then(r => r.json()).then(d => {
-  const f = new Date(d.fecha_utc.replace(" ", "T") + ":00Z");
-  document.getElementById("sync").textContent = `Última actualización desde Odoo: ${f.toLocaleString("es-GT", { dateStyle: "medium", timeStyle: "short" })} · ${d.productos.toLocaleString("es-GT")} productos, ${d.en_bazar.toLocaleString("es-GT")} en bazar.`;
+  document.getElementById("sync").textContent = codigoVersion(d.fecha_utc, d.productos, d.en_bazar);
 }).catch(() => {});
 </script>
 </body>

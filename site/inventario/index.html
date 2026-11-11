@@ -183,9 +183,9 @@ textarea { width: 100%; min-height: 160px; font: 13px var(--f-mono); padding: 10
     <section id="vSetup" class="card" hidden>
       <div style="display:grid;gap:6px">
         <h2>¿Dónde vas a contar?</h2>
-        <p class="muted">Elige la ubicación de Odoo y escribe la zona o estante. Puedes cambiarla en cualquier momento sin perder lo contado.</p>
+        <p class="muted">Elige la ubicación y escribe la zona o estante. Puedes cambiarla en cualquier momento sin perder lo contado.</p>
       </div>
-      <label class="f" for="fLoc">Localidad (ubicación en Odoo)
+      <label class="f" for="fLoc">Localidad (ubicación del sistema)
         <select id="fLoc"><option value="">Selecciona…</option></select>
       </label>
       <label class="f" for="fZona">Zona o estante
@@ -261,7 +261,7 @@ textarea { width: 100%; min-height: 160px; font: 13px var(--f-mono); padding: 10
 
       <div id="tNf" hidden>
         <div style="display:grid;gap:10px">
-          <p class="muted">Estos códigos no están en la base de productos. No van en el archivo para Odoo, pero sí en el detalle, para que los revises.</p>
+          <p class="muted">Estos códigos no están en la base de productos. No van en el archivo para importar, pero sí en el detalle, para que los revises.</p>
           <div class="tbl"><table><thead><tr><th>Código leído</th><th>Localidad</th><th>Zona</th><th class="num">Veces</th><th></th></tr></thead><tbody id="tbNf"></tbody></table></div>
         </div>
       </div>
@@ -281,10 +281,10 @@ textarea { width: 100%; min-height: 160px; font: 13px var(--f-mono); padding: 10
         <div style="display:grid;gap:14px">
           <div class="card">
             <div style="display:grid;gap:6px">
-              <h3>1 · Archivo para importar en Odoo</h3>
-              <p class="muted">CSV con <b>Ubicación, Producto, Cantidad contada</b>. Suma todas las zonas por localidad. En Odoo: Inventario → Operaciones → Inventario físico → Importar.</p>
+              <h3>1 · Archivo para importar en el sistema</h3>
+              <p class="muted">CSV con <b>Ubicación, Producto, Cantidad contada</b>. Suma todas las zonas por localidad. Se importa en Inventario → Operaciones → Inventario físico → Importar.</p>
             </div>
-            <button type="button" id="btnOdoo">Descargar archivo para Odoo</button>
+            <button type="button" id="btnImport">Descargar archivo para importar</button>
           </div>
           <div class="card">
             <div style="display:grid;gap:6px">
@@ -304,7 +304,7 @@ textarea { width: 100%; min-height: 160px; font: 13px var(--f-mono); padding: 10
           <div class="card">
             <div style="display:grid;gap:6px">
               <h3>Terminar el conteo</h3>
-              <p class="muted">Cuando ya exportaste e importaste en Odoo, borra el conteo de este equipo para empezar uno nuevo.</p>
+              <p class="muted">Cuando ya exportaste e importaste el archivo, borra el conteo de este equipo para empezar uno nuevo.</p>
             </div>
             <button type="button" class="danger" id="btnClear">Borrar conteo de este equipo</button>
             <div class="confirm" id="clearConfirm" hidden>
@@ -325,7 +325,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 const n0 = n => Number(n).toLocaleString("es-GT");
 let LOCS = ["ALDIS/Stock", "AMERI/Stock", "ANTIG/Stock", "BDAÑA/Stock", "BDCS/Stock", "BDSA/Stock", "BOD/Stock", "CAFMJ/Stock", "CAFVD/Stock", "CDV/Stock", "CENTY/Stock", "COBAN/Stock", "CONCE/Stock", "DPROV/Stock", "FLYS/Stock", "INTER/Stock", "MAJAD/Stock", "MIRAF/Stock", "MOVIL/Stock", "NARAN/Stock", "OLYD/Stock", "PORTA/Stock", "PRADE/Stock", "REVIS/Stock", "SANC/Stock", "SG/Stock", "TEL/Stock", "TEMBS/Stock", "TEMPS/Stock", "VIDER/Stock", "WALLM/Stock", "ZONA1/Stock"];
 const key2 = s => String(s).slice(-2).padStart(2, "0");
-const odooName = (ref, name) => ref ? `[${ref}] ${name}` : name;
+const nombreSistema = (ref, name) => ref ? `[${ref}] ${name}` : name;
 const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
 
 // ---------- Base de productos (fragmentos pequeños por código y referencia) ----------
@@ -546,7 +546,7 @@ function setTab(t, quiet) {
   tab = t;
   [...$("tabs").children].forEach(x => x.setAttribute("aria-pressed", x.dataset.t === t));
   $("tProd").hidden = t !== "prod"; $("tNf").hidden = t !== "nf"; $("tCmp").hidden = t !== "cmp"; $("tExp").hidden = t !== "exp";
-  if (t === "exp" && !quiet) exportOdoo(); // al tocar Exportar se genera el CSV de inmediato
+  if (t === "exp" && !quiet) exportImport(); // al tocar Exportar se genera el CSV de inmediato
 }
 $("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTab(b.dataset.t); });
 function renderReview() {
@@ -602,12 +602,12 @@ function baseName() {
   const locs = [...new Set(scans.map(s => s.loc))], cs = [...new Set(scans.map(s => s.conteo))], ops = [...new Set(scans.map(s => s.op))];
   return `Inventario_${locs.length === 1 ? slug(locs[0].split("/")[0]) : "Varias"}_Conteo${cs.length === 1 ? cs[0] : "s"}_${ops.length === 1 ? slug(ops[0]) : "Varios"}_${stamp()}`;
 }
-function buildOdoo() {
+function buildImport() {
   const g = new Map();
   for (const s of scans) {
     if (!s.found) continue;
     const k = s.loc + "|" + s.code + "|" + s.ref;
-    if (!g.has(k)) g.set(k, [s.loc, odooName(s.ref, s.name), 0]);
+    if (!g.has(k)) g.set(k, [s.loc, nombreSistema(s.ref, s.name), 0]);
     g.get(k)[2] += s.qty;
   }
   const rows = [...g.values()].filter(r => r[2] > 0).sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1], "es"));
@@ -615,7 +615,7 @@ function buildOdoo() {
 }
 function buildDetail() {
   const head = ["Localidad", "Zona", "Conteo", "Operador", "Referencia interna", "Código de barras", "Producto", "Cantidad", "Estado"];
-  const rows = groupProducts().map(r => [r.loc, r.zona, r.conteo, opFor(r.ids), r.ref, r.code, odooName(r.ref, r.name), r.qty, "Encontrado"])
+  const rows = groupProducts().map(r => [r.loc, r.zona, r.conteo, opFor(r.ids), r.ref, r.code, nombreSistema(r.ref, r.name), r.qty, "Encontrado"])
     .concat(groupNf().map(r => [r.loc, r.zona, r.conteo, opFor(r.ids), "", r.read, "", r.qty, "No encontrado"]));
   return "﻿" + csv([head, ...rows]);
 }
@@ -629,7 +629,7 @@ async function getDownloads() {
   return downloads;
 }
 getDownloads();
-const exportOdoo = () => offer(baseName() + "_odoo.csv", buildOdoo());
+const exportImport = () => offer(baseName() + "_importar.csv", buildImport());
 let exporting = false;
 function say(msg, cls, text) { msg.className = "notice " + (cls || ""); msg.textContent = text; msg.hidden = false; }
 function showFallback(filename, text, why) {
@@ -664,8 +664,8 @@ async function offer(filename, text) {
     else { msg.hidden = true; showFallback(filename, text, `La descarga no se pudo hacer en este equipo (${code}).`); }
   } finally { exporting = false; }
 }
-$("btnOdoo").addEventListener("click", exportOdoo);
-$("btnExportNow").addEventListener("click", async () => { await exportOdoo(); if (!$("vCount").hidden) focusScan(); });
+$("btnImport").addEventListener("click", exportImport);
+$("btnExportNow").addEventListener("click", async () => { await exportImport(); if (!$("vCount").hidden) focusScan(); });
 $("btnDet").addEventListener("click", () => offer(baseName() + "_detalle.csv", buildDetail()));
 $("btnCopy").addEventListener("click", async () => {
   const ta = $("fbText");
@@ -714,7 +714,7 @@ $("cmpFile").addEventListener("change", async e => {
     names.set(k, r[iP]); if (iN > -1) otherConteo.add(r[iN]);
   }
   const mine = new Map();
-  for (const s of scans) { if (!s.found) continue; const k = s.loc + "|" + s.code + "|" + s.ref; mine.set(k, (mine.get(k) || 0) + s.qty); names.set(k, names.get(k) || odooName(s.ref, s.name)); }
+  for (const s of scans) { if (!s.found) continue; const k = s.loc + "|" + s.code + "|" + s.ref; mine.set(k, (mine.get(k) || 0) + s.qty); names.set(k, names.get(k) || nombreSistema(s.ref, s.name)); }
   const locsOther = new Set([...other.keys()].map(k => k.split("|")[0]));
   const keys = [...new Set([...other.keys(), ...mine.keys()])].filter(k => locsOther.has(k.split("|")[0]));
   const diffs = keys.map(k => ({ k, a: other.get(k) || 0, b: mine.get(k) || 0 })).filter(d => d.a !== d.b)
@@ -729,7 +729,7 @@ $("cmpFile").addEventListener("change", async e => {
 
 // ---------- Arranque ----------
 (async () => {
-  // Ubicaciones actualizadas desde Odoo (si existe locs.json); si no, se usan las de respaldo
+  // Ubicaciones actualizadas desde el sistema (si existe locs.json); si no, se usan las de respaldo
   try {
     const r = await fetch("locs.json", { cache: "no-cache" });
     if (r.ok) { const d = await r.json(); if (d.locs && d.locs.length) { LOCS = d.locs; $("fLoc").length = 1; LOCS.forEach(l => { const o = document.createElement("option"); o.value = l; o.textContent = l; $("fLoc").appendChild(o); }); } }

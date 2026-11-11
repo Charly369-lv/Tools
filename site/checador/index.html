@@ -75,7 +75,7 @@ main .inner { display: grid; gap: 22px; }
 form.scan { display: grid; gap: 8px; }
 .scan-head { display: flex; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; align-items: baseline; }
 label[for="codigo"] { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.count { font-size: 12px; color: var(--muted); font-family: var(--f-mono); letter-spacing: .02em; opacity: .75; font-variant-numeric: tabular-nums; }
 .scan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 button.snd { padding: 3px 10px; font-size: 12px; font-weight: 700; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; }
 button.snd[aria-pressed="true"] { color: var(--navy); border-color: var(--navy); }
@@ -271,14 +271,14 @@ function shard(kind, k) {
 async function loadBazar() {
   const d = await (await fetch("bazar.json?t=" + Date.now(), { cache: "no-store" })).json();
   BZ = d.bz; TOTAL = d.total; CAT_V = d.v || String(TOTAL);
-  // Porcentajes vigentes según las categorías de Odoo (ej. 60%, 75%, 90%)
+  // Porcentajes vigentes según las categorías (ej. 60%, 75%, 90%)
   const pcts = [...new Set(BZ.map(p => p[8]))].sort((a, b) => a - b);
   MAXPCT = pcts.length ? pcts[pcts.length - 1] : 0;
   const list = pcts.map(x => `<b>${x}%</b>`);
   $("ribbonT").innerHTML = "Bazar de Descuentos " + (list.length > 1 ? list.slice(0, -1).join(", ") + " y " + list[list.length - 1] : list.join(""));
   for (const p of BZ) if (p[6]) { if (!TEMA_BZ.has(p[6])) TEMA_BZ.set(p[6], []); TEMA_BZ.get(p[6]).push(p); }
   bzReady = true;
-  $("count").textContent = TOTAL.toLocaleString("es-GT") + " productos · " + BZ.length.toLocaleString("es-GT") + " en bazar" + (d.v ? " · Actualizado desde Odoo: " + fechaLocal(d.v) : "");
+  $("count").textContent = codigoVersion(d.v, TOTAL, BZ.length);
   if (!input.value.trim()) showIdle();
 }
 
@@ -314,6 +314,13 @@ async function loadCatalog() {
   if (pendingName != null) { const q = pendingName; pendingName = null; if (input.value.trim() === q) search(q, false); }
 }
 
+// Código de versión camuflado: vAA.MMDD.HHMM · r<productos>-b<en bazar> (hora de Guatemala)
+function codigoVersion(v, total, bazar) {
+  const d = new Date(String(v).replace(" ", "T") + ":00Z");
+  if (isNaN(d)) return "";
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guatemala", year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).map(x => [x.type, x.value]));
+  return `v${p.year}.${p.month}${p.day}.${p.hour}${p.minute}` + (total != null ? ` · r${total}-b${bazar}` : "");
+}
 // Fecha de la última sincronización (viene en UTC) en hora de Guatemala
 function fechaLocal(v) {
   const d = new Date(v.replace(" ", "T") + ":00Z");

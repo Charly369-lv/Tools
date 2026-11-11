@@ -111,9 +111,9 @@ tr.r-rev td { background: var(--amber-bg); }
   <section class="card" id="stepLoad">
     <div style="display:grid;gap:6px">
       <h2>¿Este pedido trae libros que ya están en bazar?</h2>
-      <p class="muted">Sube el pedido en Excel o CSV. Se revisa cada línea contra el catálogo de Odoo por ISBN, referencia interna o nombre. El archivo no sale de este equipo.</p>
+      <p class="muted">Sube el pedido en Excel o CSV. Se revisa cada línea contra el catálogo por ISBN, referencia interna o nombre. El archivo no sale de este equipo.</p>
     </div>
-    <div id="catStatus" class="muted"><span id="catMsg">Cargando catálogo de Odoo…</span><div class="loadbar" style="margin-top:6px"><i id="catBar"></i></div></div>
+    <div id="catStatus" class="muted"><span id="catMsg">Cargando catálogo…</span><div class="loadbar" style="margin-top:6px"><i id="catBar"></i></div></div>
     <label class="drop" id="drop" for="file">
       <b>Arrastra aquí el pedido o toca para elegirlo</b>
       <span class="muted">Excel (.xlsx, .xls) o CSV. Debe tener una columna con ISBN, referencia interna o título.</span>
@@ -155,7 +155,7 @@ tr.r-rev td { background: var(--amber-bg); }
     <div id="bigAlert"></div>
     <div class="sum" id="sum"></div>
     <div class="tbl"><table>
-      <thead><tr><th>#</th><th>Revisión</th><th>En el pedido</th><th>Producto en Odoo</th><th class="num">Cant.</th><th class="num">Precio</th></tr></thead>
+      <thead><tr><th>#</th><th>Revisión</th><th>En el pedido</th><th>Producto en el sistema</th><th class="num">Cant.</th><th class="num">Precio</th></tr></thead>
       <tbody id="tb"></tbody>
     </table></div>
     <p class="muted">Las líneas en amarillo se encontraron solo por el nombre o tienen varias opciones: elige la correcta en la lista y la revisión se actualiza.</p>
@@ -164,7 +164,7 @@ tr.r-rev td { background: var(--amber-bg); }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// Catálogo: el mismo que usa el checador (../checador/), sincronizado cada noche con Odoo.
+// Catálogo: el mismo que usa el checador (../checador/), sincronizado cada noche.
 // Producto: [código, referencia, título, autor, editorial, precio, tema, precioBazar?, %descuento?]
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -211,14 +211,20 @@ async function loadCatalog() {
     if (r.ok) { const x = await r.json(); for (const p of x.p) { if (p[0]) INAC_C.set(p[0], p); if (p[1]) INAC_R.set(norm(p[1]), p); } }
   } catch (e) {}
   catReady = true;
-  const f = new Date(String(b.v).replace(" ", "T") + ":00Z");
-  $("catMsg").textContent = `Catálogo listo: ${n0(CAT.length)} productos, ${n0(b.bz.length)} en bazar${isNaN(f) ? "" : " · actualizado " + f.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`;
+  $("catMsg").textContent = "Catálogo listo · " + codigoVersion(b.v, CAT.length, b.bz.length);
   $("catBar").parentElement.hidden = true;
   if (pendingRun) { const f2 = pendingRun; pendingRun = null; f2(); }
 }
 let pendingRun = null;
 loadCatalog().catch(() => { $("catMsg").textContent = "No se pudo cargar el catálogo. Revisa la conexión y recarga la página."; });
 
+// Código de versión camuflado: vAA.MMDD.HHMM · r<productos>-b<en bazar> (hora de Guatemala)
+function codigoVersion(v, total, bazar) {
+  const d = new Date(String(v).replace(" ", "T") + ":00Z");
+  if (isNaN(d)) return "";
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guatemala", year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).map(x => [x.type, x.value]));
+  return `v${p.year}.${p.month}${p.day}.${p.hour}${p.minute}` + (total != null ? ` · r${total}-b${bazar}` : "");
+}
 // ---------- búsqueda ----------
 function isbn10to13(s) {
   const b = "978" + s.slice(0, 9); let sum = 0;
@@ -414,8 +420,8 @@ const ST = {
   bazar: { chip: "c-bazar", label: "En bazar · No pedir", tile: "t-bazar", tl: "En bazar" },
   rev: { chip: "c-rev", label: "Revisar", tile: "t-rev", tl: "Revisar" },
   ok: { chip: "c-ok", label: "OK · Precio normal", tile: "t-ok", tl: "OK" },
-  inac: { chip: "c-inac", label: "Inactivo en Odoo", tile: "t-inac", tl: "Inactivos" },
-  new: { chip: "c-new", label: "Nuevo · No está en Odoo", tile: "t-new", tl: "Nuevos" },
+  inac: { chip: "c-inac", label: "Inactivo en el sistema", tile: "t-inac", tl: "Inactivos" },
+  new: { chip: "c-new", label: "Nuevo · No está en el sistema", tile: "t-new", tl: "Nuevos" },
 };
 function render() {
   const cnt = { all: RES.length, bazar: 0, rev: 0, ok: 0, inac: 0, new: 0, rep: 0 };
@@ -433,7 +439,7 @@ function render() {
     const p = L.p, s = ST[L.st];
     const entrada = [L.code && `<span class="mono">${esc(L.code)}</span>`, L.ref && `Ref. <span class="mono">${esc(L.ref)}</span>`, L.name && (L.name !== L.code) && esc(L.name)].filter(Boolean).join("<br>");
     let prod = p ? `<span class="pname">${esc(p[2])}</span><br><span class="how">${esc([p[3], p[4]].filter(Boolean).join(" · "))}</span><br><span class="mono how">${esc(p[0] || "")}${p[1] ? " · Ref. " + esc(p[1]) : ""}</span>`
-      : L.inac ? `<span class="pname">${esc(L.inac[2])}</span><br><span class="how">Archivado en Odoo · ${esc(L.inac[0] || "")} ${L.inac[1] ? "Ref. " + esc(L.inac[1]) : ""}</span>` : `<span class="how">No se encontró en el catálogo.</span>`;
+      : L.inac ? `<span class="pname">${esc(L.inac[2])}</span><br><span class="how">Archivado · ${esc(L.inac[0] || "")} ${L.inac[1] ? "Ref. " + esc(L.inac[1]) : ""}</span>` : `<span class="how">No se encontró en el catálogo.</span>`;
     if (L.how) prod += `<br><span class="how">Encontrado por: ${esc(L.how)}</span>`;
     if (L.cands.length && (L.approx || L.multi)) {
       prod += `<div class="cands"><select data-r="${L.r}" aria-label="Elegir producto">
@@ -454,10 +460,10 @@ $("tb").addEventListener("change", e => {
 });
 
 // ---------- descargas ----------
-const STX = { bazar: "EN BAZAR - NO PEDIR", rev: "REVISAR", ok: "OK", inac: "INACTIVO EN ODOO", new: "NUEVO (no está en Odoo)" };
+const STX = { bazar: "EN BAZAR - NO PEDIR", rev: "REVISAR", ok: "OK", inac: "INACTIVO EN EL SISTEMA", new: "NUEVO (no está en el sistema)" };
 function outRows(skipBazar) {
   const width = Math.max(0, ...rows.map(r => r.length));
-  const extra = ["Revisión", "En bazar", "% bazar", "Precio bazar", "Precio normal Odoo", "Producto en Odoo", "Ref. Odoo", "Código Odoo", "Cómo se encontró", "Repetido"];
+  const extra = ["Revisión", "En bazar", "% bazar", "Precio bazar", "Precio normal sistema", "Producto en el sistema", "Ref. sistema", "Código sistema", "Cómo se encontró", "Repetido"];
   const head = headerRow >= 0 ? [...Array.from({ length: width }, (_, c) => rows[headerRow][c] ?? ""), ...extra] : [...Array.from({ length: width }, (_, c) => "Columna " + XLSX.utils.encode_col(c)), ...extra];
   const byR = new Map(RES.map(L => [L.r, L]));
   const out = [head];

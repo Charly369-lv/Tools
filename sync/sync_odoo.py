@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sincroniza el Checador de Bazar y la app de Inventario de De Museo con Odoo.
+Sincroniza los datos de las herramientas.
 
 Lee de Odoo los productos (variantes), sus precios, autor, editorial, tema y
 precio de bazar, y las ubicaciones internas de inventario. Con eso genera los
@@ -9,8 +9,8 @@ archivos de datos que usan las dos apps en la carpeta del sitio.
 No necesita librerías externas (solo Python 3.9+).
 
 Variables de entorno (en GitHub van como "secretos"):
-  ODOO_URL      ej. https://demuseo.odoo.com
-  ODOO_DB       ej. demuseo
+  ODOO_URL      dirección del servidor
+  ODOO_DB       nombre de la base de datos
   ODOO_USER     correo del usuario de Odoo dueño de la clave
   ODOO_API_KEY  clave API generada en Odoo (Preferencias > Seguridad de la cuenta)
 
@@ -45,7 +45,7 @@ class Odoo:
     def __init__(self, url, db, user, key):
         url = url.strip().rstrip("/")
         if not re.match(r"^https?://", url, re.I):
-            url = "https://" + url  # tolera "demuseo.odoo.com" sin https://
+            url = "https://" + url  # tolera la dirección sin https://
         url = re.sub(r"/(web|odoo)(/.*)?$", "", url)  # tolera ".../web" o ".../odoo"
         self.url, self.db, self.user, self.key = url, db.strip(), user.strip(), key.strip()
         self.mode = None
@@ -55,7 +55,7 @@ class Odoo:
         """Devuelve (estado_http, respuesta). Si Odoo responde con una página web en vez
         de datos, la respuesta es {"_html": True, ...} para poder dar un mensaje claro."""
         data = json.dumps(body).encode()
-        h = {"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "demuseo-sync/1.1"}
+        h = {"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "sync/1.1"}
         h.update(headers or {})
 
         def parse(txt, final_url, ctype):
@@ -98,7 +98,7 @@ class Odoo:
         if isinstance(res, dict) and res.get("_html"):
             raise SystemExit(
                 f"La dirección {self.url} no respondió como Odoo (devolvió una página web).\n"
-                f"Revisa que ODOO_URL sea exactamente https://demuseo.odoo.com\n"
+                f"Revisa el secreto ODOO_URL (dirección completa, con https://).\n"
                 f"Detalle: estado {st}, terminó en {res.get('url_final')}, tipo {res.get('tipo')}")
         if isinstance(res, dict) and res.get("result") is False:
             raise SystemExit(
