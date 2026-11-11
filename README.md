@@ -59,8 +59,8 @@ En el repositorio: **Settings → Secrets and variables → Actions → New repo
 
 | Nombre (exacto) | Valor |
 |---|---|
-| `ODOO_URL` | `https://demuseo.odoo.com` |
-| `ODOO_DB` | `demuseo` |
+| `ODOO_URL` | `https://.odoo.com` |
+| `ODOO_DB` | `` |
 | `ODOO_USER` | el correo del usuario del paso 1 |
 | `ODOO_API_KEY` | la clave del paso 2 |
 
