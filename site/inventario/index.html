@@ -149,6 +149,9 @@ tr.diff td { background: var(--bad-bg); }
 .notice.ok { background: var(--ok-bg); }
 .notice.bad { background: var(--bad-bg); }
 textarea { width: 100%; min-height: 160px; font: 13px var(--f-mono); padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.reset { display: grid; gap: 10px; justify-items: start; border-top: 1px solid var(--line); padding-top: 16px; }
+.reset .confirm { justify-self: stretch; }
+button.danger-outline { background: transparent; color: var(--bad); border-color: var(--bad); }
 .confirm { display: grid; gap: 10px; padding: 14px; border: 2px solid var(--bad); border-radius: 10px; background: var(--bad-bg); }
 
 @media (prefers-reduced-motion: reduce) { .last.flash { animation: none; } .last { transition: none; } }
@@ -235,6 +238,19 @@ textarea { width: 100%; min-height: 160px; font: 13px var(--f-mono); padding: 10
         <h3 style="margin-bottom:8px">Últimos escaneos en esta zona</h3>
         <ol id="recent"></ol>
       </div>
+
+      <div class="reset">
+        <button type="button" class="ghost small danger-outline" id="btnReset">Reiniciar conteo</button>
+        <div class="confirm" id="resetConfirm" hidden>
+          <b id="resetTxt"></b>
+          <p class="notice bad" id="resetWarn" hidden>⚠ Todavía no exportaste los últimos escaneos. Si borras ahora, se pierden.</p>
+          <div class="row">
+            <button type="button" id="btnResetExport">Exportar CSV primero</button>
+            <button type="button" class="danger" id="btnResetYes">Sí, borrar todo y empezar de nuevo</button>
+            <button type="button" class="ghost" id="btnResetNo">Cancelar</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 3. Revisión -->
@@ -306,9 +322,10 @@ textarea { width: 100%; min-height: 160px; font: 13px var(--f-mono); padding: 10
               <h3>Terminar el conteo</h3>
               <p class="muted">Cuando ya exportaste e importaste el archivo, borra el conteo de este equipo para empezar uno nuevo.</p>
             </div>
-            <button type="button" class="danger" id="btnClear">Borrar conteo de este equipo</button>
+            <button type="button" class="danger" id="btnClear">Borrar conteo y empezar de nuevo</button>
             <div class="confirm" id="clearConfirm" hidden>
-              <b>¿Seguro? Se borrarán <span id="clearN"></span> escaneos de este equipo. Esto no se puede deshacer.</b>
+              <b>¿Seguro? Se borrarán <span id="clearN"></span> escaneos, la localidad, la zona y el operador de este equipo. Esto no se puede deshacer.</b>
+              <p class="notice bad" id="clearWarn" hidden>⚠ Todavía no exportaste los últimos escaneos. Si borras ahora, se pierden.</p>
               <div class="row"><button type="button" class="danger" id="btnClearYes">Sí, borrar todo</button><button type="button" class="ghost" id="btnClearNo">Cancelar</button></div>
             </div>
           </div>
@@ -651,12 +668,12 @@ async function offer(filename, text) {
       const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
       const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
-      say(msg, "ok", `Descargado: ${filename}`); return;
+      say(msg, "ok", `Descargado: ${filename}`); markExported(); return;
     }
     if (!dl) { msg.hidden = true; showFallback(filename, text, "Este equipo no permite descargar archivos desde la página."); return; }
     const r = await Promise.race([dl.save({ filename, data: new Blob([text], { type: "text/csv" }) }), wait(10000)]);
     if (r === "timeout") { say(msg, "", "La ventana de descarga no apareció. Abajo tienes el CSV para copiar."); showFallback(filename, text, "La ventana de descarga no se abrió en este equipo."); return; }
-    say(msg, "ok", `Listo: ${filename}`);
+    say(msg, "ok", `Listo: ${filename}`); markExported();
   } catch (e) {
     const code = (e && e.code) || "error";
     if (code === "declined") say(msg, "", "Descarga cancelada. Toca Exportar de nuevo para intentarlo.");
@@ -674,14 +691,39 @@ $("btnCopy").addEventListener("click", async () => {
   setTimeout(() => { $("btnCopy").textContent = "Copiar texto"; }, 2500);
 });
 
-// Borrar conteo
-$("btnClear").addEventListener("click", () => { $("clearN").textContent = n0(scans.length); $("clearConfirm").hidden = false; });
-$("btnClearNo").addEventListener("click", () => { $("clearConfirm").hidden = true; });
-$("btnClearYes").addEventListener("click", async () => {
-  scans = []; await clearScans(); $("clearConfirm").hidden = true;
+// ---------- Reiniciar conteo ----------
+// Se recuerda qué se exportó por última vez, para avisar antes de borrar algo sin exportar
+const firma = () => scans.length + ":" + (scans.length ? scans[scans.length - 1].id : "");
+function markExported() { ls.set("dm-inv-exportado", firma()); }
+const sinExportar = () => scans.length > 0 && ls.get("dm-inv-exportado") !== firma();
+async function resetAll() {
+  scans = [];
+  await clearScans();
+  S = { loc: "", zona: "", op: "", conteo: "1" };
+  ls.set("dm-inv-sesion", JSON.stringify(S));
+  ls.set("dm-inv-exportado", "");
+  $("resetConfirm").hidden = true; $("clearConfirm").hidden = true; $("expMsg").hidden = true; $("expMsg2").hidden = true; $("expFallback").hidden = true;
   $("last").className = "last"; $("last").innerHTML = `<span class="st">Listo para escanear</span><span class="nm">Pasa el lector por el primer producto.</span>`;
-  renderReview();
+  fillSetup(); show("vSetup");
+}
+$("btnReset").addEventListener("click", () => {
+  $("resetTxt").textContent = scans.length
+    ? `¿Reiniciar el conteo? Se borrarán ${n0(scans.length)} escaneos, la localidad, la zona y el operador de este equipo. Esto no se puede deshacer.`
+    : "¿Reiniciar? Se borrarán la localidad, la zona y el operador para empezar un conteo nuevo.";
+  $("resetWarn").hidden = !sinExportar();
+  $("btnResetExport").hidden = !sinExportar();
+  $("resetConfirm").hidden = false;
+  $("resetConfirm").scrollIntoView({ block: "center" });
 });
+$("btnResetNo").addEventListener("click", () => { $("resetConfirm").hidden = true; focusScan(); });
+$("btnResetExport").addEventListener("click", async () => {
+  await exportImport();
+  $("resetWarn").hidden = !sinExportar(); $("btnResetExport").hidden = !sinExportar();
+});
+$("btnResetYes").addEventListener("click", resetAll);
+$("btnClear").addEventListener("click", () => { $("clearN").textContent = n0(scans.length); $("clearWarn").hidden = !sinExportar(); $("clearConfirm").hidden = false; });
+$("btnClearNo").addEventListener("click", () => { $("clearConfirm").hidden = true; });
+$("btnClearYes").addEventListener("click", resetAll);
 
 // ---------- Comparar conteos ----------
 function parseCSV(text) {
