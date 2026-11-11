@@ -238,7 +238,7 @@ def main():
         print("\nCampos propios (x_) disponibles:\n  " + "\n  ".join(extra or ["(ninguno)"]))
         return
 
-    fields = ["id", "default_code", "barcode", "name", "display_name", price_field, "categ_id", "active"]
+    fields = ["id", "default_code", "barcode", "name", "display_name", price_field, "categ_id", "active", "product_tmpl_id"]
     for v in F.values():
         fields += [x for x in v if x in pf]
     fields = list(dict.fromkeys(fields))
@@ -246,6 +246,9 @@ def main():
     print("\nDescargando productos…")
     domain = cfg.get("dominio_productos", [["active", "=", True]])
     prods = o.search_read_all("product.product", domain, fields)
+
+    print("Descargando códigos de barras adicionales (Multi barcodes)…")
+    multi = leer_multibarcodes(o, cfg)
 
     print("Descargando productos archivados (para el revisor de pedidos)…")
     try:
@@ -275,6 +278,7 @@ def main():
     por_cat = collections.Counter()
     ejemplos = collections.defaultdict(list)
     rows, seen = [], set()
+    fila_de = {}  # id de producto → fila del catálogo
     stats = collections.Counter()
     for p in prods:
         code = re.sub(r"\D", "", str(p.get("barcode") or ""))
@@ -326,14 +330,30 @@ def main():
             if len(ejemplos[pct]) < 3:
                 ejemplos[pct].append(f"{code or ref}  Q{precio} − {pct}% = Q{pb:.2f} → Q{pbr}  ({titulo[:40]})")
         rows.append(row)
+        fila_de[p["id"]] = row
         stats["productos"] += 1
 
     if stats["productos"] < 1000:
         raise SystemExit(f"Solo llegaron {stats['productos']} productos: parece un error. No se publica nada para no borrar el catálogo.")
 
+    # Códigos adicionales → producto principal (si la plantilla tiene varias variantes, la primera)
+    por_tmpl = {}
+    for p in prods:
+        t = p.get("product_tmpl_id")
+        if t and p["id"] in fila_de:
+            por_tmpl.setdefault(t[0] if isinstance(t, list) else t, p["id"])
+    alternos = {}
+    for code, kind, rid in multi:
+        pid = rid if kind == "product.product" else por_tmpl.get(rid)
+        row = fila_de.get(pid)
+        if row and code not in seen and code != row[0]:
+            alternos[code] = row
+    if multi:
+        print(f"  {len(alternos):,} códigos adicionales enlazados a su libro principal")
+
     version = time.strftime("%Y-%m-%d %H:%M", time.gmtime())
-    write_checador(os.path.join(a.out, "checador"), rows, version)
-    write_inventario(os.path.join(a.out, "inventario"), prods, locations, version)
+    write_checador(os.path.join(a.out, "checador"), rows, version, alternos)
+    write_inventario(os.path.join(a.out, "inventario"), prods, locations, version, alternos)
     if inactivos is not None:
         activos_c = {r[0] for r in rows if r[0]}
         activos_r = {r[1] for r in rows if r[1]}
@@ -372,11 +392,58 @@ def dump(path, obj):
         json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
 
 
-def write_checador(out, rows, version):
+def leer_multibarcodes(o, cfg):
+    """Busca la lista de códigos adicionales ("Multi barcodes") del producto.
+    Devuelve [(código, "product.product" | "product.template", id)]. Si no existe, devuelve []."""
+    try:
+        modelo, campo_cod, campo_prod = cfg.get("multibarcode_modelo"), cfg.get("multibarcode_campo"), cfg.get("multibarcode_producto")
+        if not modelo:
+            for base in ("product.template", "product.product"):
+                fg = o.call(base, "fields_get", [], {"attributes": ["string", "type", "relation"]})
+                for n, f in fg.items():
+                    etiqueta = norm(f.get("string")) + " " + n.upper().replace("_", " ")
+                    if f.get("type") in ("one2many", "many2many") and "BARCODE" in etiqueta and f.get("relation") not in (None, "", base):
+                        modelo = f["relation"]
+                        break
+                if modelo:
+                    break
+        if not modelo:
+            print("  No se encontró la lista de códigos adicionales; se usan solo los códigos principales.")
+            return []
+        rf = o.call(modelo, "fields_get", [], {"attributes": ["string", "type", "relation"]})
+        if not campo_cod:
+            chars = [n for n, f in rf.items() if f.get("type") == "char" and ("BARCODE" in norm(f.get("string")) or "barcode" in n or "CODIGO" in norm(f.get("string")))]
+            campo_cod = next((n for n in chars if n in ("barcode", "product_barcode", "multi_barcode", "name")), chars[0] if chars else None)
+        if not campo_prod:
+            m2o = [n for n, f in rf.items() if f.get("type") == "many2one" and f.get("relation") in ("product.product", "product.template")]
+            campo_prod = next((n for n in m2o if rf[n]["relation"] == "product.product"), m2o[0] if m2o else None)
+        if not (campo_cod and campo_prod):
+            print(f"  La lista de códigos adicionales ({modelo}) no tiene los campos esperados; se omite.")
+            return []
+        rel = rf[campo_prod]["relation"]
+        regs = o.search_read_all(modelo, [], [campo_cod, campo_prod])
+        out = []
+        for r in regs:
+            code = re.sub(r"\D", "", str(r.get(campo_cod) or ""))
+            prod = r.get(campo_prod)
+            if code and prod:
+                out.append((code, rel, prod[0] if isinstance(prod, list) else prod))
+        print(f"  {modelo}.{campo_cod} → {rel}: {len(out):,} códigos adicionales")
+        return out
+    except SystemExit as e:
+        print("  Aviso: no se pudieron leer los códigos adicionales; se usan solo los principales.", str(e)[:200])
+        return []
+
+
+def write_checador(out, rows, version, alternos=None):
+    alternos = alternos or {}
     C, R = collections.defaultdict(dict), collections.defaultdict(dict)
     for r in rows:
         if r[0]:
             C[key2(r[0])][r[0]] = r
+    # Códigos adicionales: apuntan a la misma ficha del libro principal
+    for code, r in alternos.items():
+        C[key2(code)].setdefault(code, r)
         if r[1]:
             R[key2(re.sub(r"\D", "", r[1]) or "00")][r[1]] = r
     for i in range(100):
@@ -393,10 +460,12 @@ def write_checador(out, rows, version):
     E, Ei = dic(4)
     T, Ti = dic(6)
     comp = [[r[0], r[1], r[2], Ai[r[3]], Ei[r[4]], r[5], Ti[r[6]]] + r[7:] for r in rows]
-    dump(f"{out}/catalogo.json", {"v": version, "a": A, "e": E, "t": T, "p": comp})
+    idx = {id(r): i for i, r in enumerate(rows)}
+    x = {code: idx[id(r)] for code, r in alternos.items() if id(r) in idx}
+    dump(f"{out}/catalogo.json", {"v": version, "a": A, "e": E, "t": T, "p": comp, "x": x})
 
 
-def write_inventario(out, prods, locations, version):
+def write_inventario(out, prods, locations, version, alternos=None):
     C, R = collections.defaultdict(dict), collections.defaultdict(dict)
     for p in prods:
         code = re.sub(r"\D", "", str(p.get("barcode") or ""))
@@ -410,6 +479,12 @@ def write_inventario(out, prods, locations, version):
             C[key2(code)][code] = [ref, name]
         if ref:
             R[key2(re.sub(r"\D", "", ref) or "00")][ref] = [code, name]
+    # Código adicional → [ref, nombre, código principal] (el conteo se suma al producto principal)
+    for code, r in (alternos or {}).items():
+        if r[1] in R[key2(re.sub(r"\D", "", r[1]) or "00")] or r[0]:
+            ref = r[1]
+            name = (R[key2(re.sub(r"\D", "", ref) or "00")].get(ref) or [None, r[2]])[1] if ref else r[2]
+            C[key2(code)].setdefault(code, [ref, name, r[0]])
     for i in range(100):
         k = f"{i:02d}"
         dump(f"{out}/c/{k}.json", C.get(k, {}))

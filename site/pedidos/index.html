@@ -206,6 +206,8 @@ async function loadCatalog() {
     CTOK[i] = ts;
     for (const t of ts) { let a = TOK.get(t); if (!a) TOK.set(t, a = []); a.push(i); }
   });
+  // Códigos adicionales (Multi barcodes) → mismo libro
+  if (d.x) for (const [alt, i] of Object.entries(d.x)) if (!BYCODE.has(alt)) BYCODE.set(alt, i);
   try {
     const r = await fetch("inactivos.json?v=" + encodeURIComponent(CAT_V));
     if (r.ok) { const x = await r.json(); for (const p of x.p) { if (p[0]) INAC_C.set(p[0], p); if (p[1]) INAC_R.set(norm(p[1]), p); } }

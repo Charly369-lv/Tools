@@ -340,7 +340,7 @@ async function lookup(raw) {
   const d = t.replace(/\D/g, "");
   if (/^\d+$/.test(t)) {
     const tries = [...new Set([d, d.replace(/^0+/, ""), "0" + d])].filter(Boolean);
-    for (const c of tries) { const s = await shard("c", key2(c)); if (s[c]) return { code: c, ref: s[c][0], name: s[c][1] }; }
+    for (const c of tries) { const s = await shard("c", key2(c)); if (s[c]) return { code: s[c][2] || c, ref: s[c][0], name: s[c][1], alt: s[c][2] ? c : "" }; }
     for (const r of tries) { const s = await shard("r", key2(r)); if (s[r]) return { code: s[r][0], ref: r, name: s[r][1] }; }
     return null;
   }
