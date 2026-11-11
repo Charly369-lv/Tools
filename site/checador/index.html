@@ -341,8 +341,9 @@ bazarReady.then(() => setTimeout(() => loadCatalog().catch(() => {}), 400)).catc
 async function byDigits(d) {
   try { await bazarReady; } catch (e) {} // la versión de los datos llega con bazar.json
   const tries = [...new Set([d, d.replace(/^0+/, ""), "0" + d])].filter(Boolean);
-  for (const t of tries) { const s = await shard("c", key2(t)); if (s[t]) return s[t]; }
-  for (const t of tries) { const s = await shard("r", key2(t)); if (s[t]) return s[t]; }
+  // Números cortos (referencias internas, 8 dígitos o menos): primero la referencia; largos: primero el código de barras
+  const orden = d.length <= 8 ? ["r", "c"] : ["c", "r"];
+  for (const k of orden) for (const t of tries) { const s = await shard(k, key2(t)); if (s[t]) return s[t]; }
   return null;
 }
 
@@ -518,7 +519,7 @@ function showList(ps, q) {
 }
 
 let seq = 0;
-async function search(raw, fromEnter) {
+async function search(raw, fromEnter, quiet) {
   const q = raw.trim();
   const my = ++seq;
   if (!q) { showIdle(); return; }
@@ -528,7 +529,7 @@ async function search(raw, fromEnter) {
     try { p = await byDigits(d); }
     catch (e) { if (my === seq) result.innerHTML = `<div class="loading">No se pudo consultar. Revisa la conexión a internet e intenta de nuevo.</div>`; return; }
     if (my !== seq) return;
-    if (p) showItem(p); else showMiss(d, d.length >= 8 ? "Código" : "Referencia");
+    if (p) showItem(p); else if (!quiet) showMiss(d, d.length >= 8 ? "Código" : "Referencia");
     if (fromEnter) input.select();
     return;
   }
@@ -565,6 +566,8 @@ input.addEventListener("input", () => {
   if (/^[\d\s-]+$/.test(v)) {
     const d = v.replace(/\D/g, "");
     if (d.length >= 13) t = setTimeout(() => search(input.value, true), 250);
+    // Referencia interna: busca sola al dejar de escribir (sin mostrar "no encontrado" mientras se escribe)
+    else if (d.length >= 4) t = setTimeout(() => search(input.value, false, true), 700);
   } else if (v.length >= 3) {
     t = setTimeout(() => search(input.value, false), 300);
   } else if (!v) { pendingName = null; showIdle(); }

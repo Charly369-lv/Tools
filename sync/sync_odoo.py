@@ -288,7 +288,7 @@ def main():
             continue
         if code and code in seen:
             stats["codigo_repetido"] += 1
-            continue
+            code = ""  # el código ya es de otro producto: este se sigue encontrando por su referencia
         if code:
             seen.add(code)
         name = clean(p.get("name") or p.get("display_name") or "")
@@ -343,11 +343,14 @@ def main():
         if t and p["id"] in fila_de:
             por_tmpl.setdefault(t[0] if isinstance(t, list) else t, p["id"])
     alternos = {}
+    refs_activas = {r[1] for r in rows if r[1]}
     for code, kind, rid in multi:
         pid = rid if kind == "product.product" else por_tmpl.get(rid)
         row = fila_de.get(pid)
-        if row and code not in seen and code != row[0]:
+        if row and code not in seen and code != row[0] and code not in refs_activas:
             alternos[code] = row
+        elif row and code in refs_activas:
+            stats["alterno_choca_con_referencia"] += 1
     if multi:
         print(f"  {len(alternos):,} códigos adicionales enlazados a su libro principal")
 
@@ -451,11 +454,17 @@ def write_checador(out, rows, version, alternos=None):
     for r in rows:
         if r[0]:
             C[key2(r[0])][r[0]] = r
+        if r[1]:
+            R[key2(re.sub(r"\D", "", r[1]) or "00")][r[1]] = r
     # Códigos adicionales: apuntan a la misma ficha del libro principal
     for code, r in alternos.items():
         C[key2(code)].setdefault(code, r)
-        if r[1]:
-            R[key2(re.sub(r"\D", "", r[1]) or "00")][r[1]] = r
+    # Protección: si los índices salen casi vacíos, algo falló; no se publica para no dañar el checador
+    n_cod, n_ref = sum(len(v) for v in C.values()), sum(len(v) for v in R.values())
+    con_ref = sum(1 for r in rows if r[1])
+    if n_ref < con_ref * 0.9 or n_cod < 1000:
+        raise SystemExit(f"Error interno: índice incompleto (códigos {n_cod:,}, referencias {n_ref:,} de {con_ref:,}). No se publica.")
+    print(f"  Índices del checador: {n_cod:,} códigos de barras y {n_ref:,} referencias internas")
     for i in range(100):
         k = f"{i:02d}"
         dump(f"{out}/c/{k}.json", C.get(k, {}))

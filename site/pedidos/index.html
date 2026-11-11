@@ -244,6 +244,8 @@ function codeVariants(raw) {
   return [...new Set(out.filter(Boolean))];
 }
 function byCode(raw) {
+  const dd = String(raw ?? "").replace(/\D/g, "");
+  if (dd && dd.length <= 8 && BYREF.has(dd)) return { i: BYREF.get(dd), how: "Referencia interna" };
   for (const v of codeVariants(raw)) { if (BYCODE.has(v)) return { i: BYCODE.get(v), how: v === String(raw).replace(/[^0-9X]/gi, "") ? "ISBN / código de barras" : "ISBN convertido (10→13 o ceros)" }; }
   for (const v of codeVariants(raw)) { if (BYREF.has(v)) return { i: BYREF.get(v), how: "Referencia interna (en la columna de código)" }; }
   return null;
