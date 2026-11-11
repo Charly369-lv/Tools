@@ -414,21 +414,31 @@ def leer_multibarcodes(o, cfg):
         if not campo_cod:
             chars = [n for n, f in rf.items() if f.get("type") == "char" and ("BARCODE" in norm(f.get("string")) or "barcode" in n or "CODIGO" in norm(f.get("string")))]
             campo_cod = next((n for n in chars if n in ("barcode", "product_barcode", "multi_barcode", "name")), chars[0] if chars else None)
-        if not campo_prod:
-            m2o = [n for n, f in rf.items() if f.get("type") == "many2one" and f.get("relation") in ("product.product", "product.template")]
-            campo_prod = next((n for n in m2o if rf[n]["relation"] == "product.product"), m2o[0] if m2o else None)
-        if not (campo_cod and campo_prod):
+        # Puede enlazar al producto, a la plantilla o a ambos: se leen todos y se usa el que tenga dato
+        if campo_prod:
+            enlaces = [campo_prod]
+        else:
+            enlaces = sorted((n for n, f in rf.items() if f.get("type") == "many2one" and f.get("relation") in ("product.product", "product.template")),
+                             key=lambda n: rf[n]["relation"] != "product.product")
+        if not (campo_cod and enlaces):
             print(f"  La lista de códigos adicionales ({modelo}) no tiene los campos esperados; se omite.")
             return []
-        rel = rf[campo_prod]["relation"]
-        regs = o.search_read_all(modelo, [], [campo_cod, campo_prod])
-        out = []
+        regs = o.search_read_all(modelo, [], [campo_cod] + enlaces)
+        out, por_campo, sin_enlace = [], collections.Counter(), 0
         for r in regs:
             code = re.sub(r"\D", "", str(r.get(campo_cod) or ""))
-            prod = r.get(campo_prod)
-            if code and prod:
-                out.append((code, rel, prod[0] if isinstance(prod, list) else prod))
-        print(f"  {modelo}.{campo_cod} → {rel}: {len(out):,} códigos adicionales")
+            if not code:
+                continue
+            for n in enlaces:
+                prod = r.get(n)
+                if prod:
+                    out.append((code, rf[n]["relation"], prod[0] if isinstance(prod, list) else prod))
+                    por_campo[n] += 1
+                    break
+            else:
+                sin_enlace += 1
+        detalle = ", ".join(f"{n}: {c:,}" for n, c in por_campo.items()) or "ninguno"
+        print(f"  {modelo}.{campo_cod}: {len(out):,} códigos adicionales ({detalle}; sin libro: {sin_enlace:,})")
         return out
     except SystemExit as e:
         print("  Aviso: no se pudieron leer los códigos adicionales; se usan solo los principales.", str(e)[:200])
