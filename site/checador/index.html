@@ -149,6 +149,12 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .pick .pr { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .pick .pr b { font-family: var(--f-display); font-weight: 900; font-size: 26px; line-height: 1; background: var(--gold); color: var(--gold-ink); padding: 2px 7px; border-radius: 4px; }
 .pick .pr s { font-size: 13px; color: var(--muted); text-decoration-color: var(--sale-bg); }
+.advice.more { background: var(--surface); }
+.picks.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pick.reg { background: var(--soft); }
+.pick.reg .pp { background: var(--navy); color: var(--on-navy); }
+.pick.reg .pr b { background: var(--surface); color: var(--navy); border: 1px solid var(--line); }
+@media (max-width: 700px) { .picks.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* Sin precio / no encontrado */
 .miss { padding: 26px 22px; background: var(--soft); display: grid; gap: 10px; }
@@ -310,6 +316,7 @@ async function loadCatalog() {
   const A = d.a, E = d.e, T = d.t;
   CAT = d.p.map(r => { const p = [r[0], r[1], r[2], A[r[3]], E[r[4]], r[5], T[r[6]]]; if (r.length > 7) p.push(r[7], r[8]); return p; });
   TXT = CAT.map(p => norm(p[2] + " " + p[3] + " " + p[4] + " " + p[1]));
+  for (const q of CAT) if (q[6] && q[5] > 0 && !isBz(q)) { if (!TEMA_N.has(q[6])) TEMA_N.set(q[6], []); TEMA_N.get(q[6]).push(q); }
   catPct = 100;
   if (pendingName != null) { const q = pendingName; pendingName = null; if (input.value.trim() === q) search(q, false); }
 }
@@ -392,6 +399,35 @@ const descBlock = p => `
     </div>
   </div>`;
 
+// Libros a precio normal del mismo tema: primero del mismo autor, luego de la misma editorial
+const TEMA_N = new Map();
+function normalPicks(p, n) {
+  const pool = (p[6] && TEMA_N.get(p[6])) || [];
+  if (!pool.length) return [];
+  let h = 0; for (const ch of String(p[0] || p[1])) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const sc = q => (p[3] && q[3] === p[3] ? 2 : 0) + (p[4] && q[4] === p[4] ? 1 : 0);
+  const best = pool.filter(q => sc(q) > 0 && q[0] !== p[0]).sort((a, b) => sc(b) - sc(a)).slice(0, n);
+  const out = [...best];
+  for (let k = 0; out.length < n && k < pool.length * 2; k++) {
+    const q = pool[(h + k * 7919) % pool.length];
+    if (q[0] !== p[0] && !out.includes(q)) out.push(q);
+  }
+  return out;
+}
+function moreBlock(p) {
+  const out = normalPicks(p, 4);
+  if (!out.length) return "";
+  return `<div class="advice more">
+    <h3>Del mismo tema: ${esc(p[6].toLowerCase())}</h3>
+    <div class="picks four">${out.map(q => `
+      <button type="button" class="pick reg" data-i="${reg(q)}">
+        <span class="pp">${q[3] && q[3] === p[3] ? "Mismo autor" : q[4] && q[4] === p[4] ? "Misma editorial" : "Recomendado"}</span>
+        <span class="pt">${esc(q[2])}</span>
+        <span class="pr"><b>${fmt(q[5])}</b></span>
+      </button>`).join("")}</div>
+  </div>`;
+}
+
 function picksFor(p) {
   let pool = (p[6] && TEMA_BZ.get(p[6])) || [];
   let from = pool.length ? "tema" : "";
@@ -423,7 +459,8 @@ function showItem(p) {
         </div>
         <div class="burst" aria-label="${pct}% de descuento"><b>−${pct}%</b><span>descuento</span></div>
       </div>
-      <div class="savebar">¡Te ahorras <strong>${fmt(precio - bazar)}</strong> en este libro!<span class="legal">Válido solo en tiendas físicas</span></div>`;
+      <div class="savebar">¡Te ahorras <strong>${fmt(precio - bazar)}</strong> en este libro!<span class="legal">Válido solo en tiendas físicas</span></div>
+      ${moreBlock(p)}`;
   } else if (!p[5]) {
     result.innerHTML = `
       <div class="band reg"><span class="band-t">Precio por confirmar</span><span class="band-c">${idLine(p)}</span></div>
@@ -449,7 +486,8 @@ function showItem(p) {
             <span class="pt">${esc(b[2])}</span>
             <span class="pr"><b>${fmt(b[7])}</b><s>${fmt(b[5])}</s></span>
           </button>`).join("")}</div>
-      </div>` : ""}`;
+      </div>` : ""}
+      ${moreBlock(p)}`;
   }
   addHistory(p[0] || p[1], p);
 }
