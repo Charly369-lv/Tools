@@ -115,6 +115,8 @@ input[type="text"]:focus, select:focus { border-color: var(--navy); }
 .last .plus { font-family: var(--f-display); font-weight: 900; font-size: 44px; line-height: 1; }
 .last.ok .plus { color: var(--ok); }
 .last .tot { font-size: 15px; font-weight: 600; }
+.last .chipadd { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: var(--ok); color: var(--surface); font-weight: 800; font-size: 14px; }
+.last .plus { font-size: 56px; }
 
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 2px; }
@@ -477,19 +479,34 @@ $("btnKb").addEventListener("click", () => {
 });
 
 let queue = Promise.resolve();
+// Detección de lector: los lectores escriben muy rápido (menos de ~40 ms entre teclas).
+// Si un lector no manda Enter al final, el escaneo se registra solo al terminar la ráfaga.
+let teclas = [], autoT = null;
 scan.addEventListener("keydown", e => {
-  if (e.key !== "Enter") return;
-  e.preventDefault();
+  if (e.key.length === 1) { teclas.push(performance.now()); if (teclas.length > 40) teclas.shift(); }
+  if (e.key !== "Enter" && !(e.key === "Tab" && scan.value.trim())) return;
+  e.preventDefault(); // Enter o Tab (algunos lectores terminan con Tab): registrar sin perder el foco
+  registrar();
+});
+scan.addEventListener("input", () => {
+  clearTimeout(autoT);
+  const v = scan.value.trim(), n = teclas.length;
+  const rapido = n >= 8 && (teclas[n - 1] - teclas[n - 8]) / 7 < 40;
+  if (rapido && /^(\d{1,4}\s*[*xX]\s*)?\d{8,14}$/.test(v)) autoT = setTimeout(registrar, 250);
+});
+function registrar() {
+  clearTimeout(autoT);
   const v = scan.value.trim();
-  scan.value = "";
+  scan.value = ""; teclas = [];
   if (!v) return;
   const m = v.match(/^(\d{1,4})\s*[*xX]\s*(.+)$/);
   const qty = m ? Math.max(1, parseInt(m[1], 10)) : 1;
   const code = (m ? m[2] : v).trim();
   if (/^\d{1,4}\s*[*xX]$/.test(v)) { scan.value = v; return; } // cantidad escrita, falta escanear
   const ctx = { ...S };
-  queue = queue.then(() => handleScan(code, qty, ctx));
-});
+  // Cada escaneo se procesa aparte: si uno falla, los siguientes se siguen registrando
+  queue = queue.then(() => handleScan(code, qty, ctx)).catch(err => { console.error("Escaneo", code, err); });
+}
 
 async function handleScan(code, qty, ctx) {
   let p = null, netErr = false;
@@ -513,7 +530,7 @@ function showLast(s, netErr) {
     el.innerHTML = `<span class="st">Encontrado</span>
       <span class="nm">${esc(s.name)}</span>
       <span class="id">${esc(s.code || "Sin código")}${s.ref ? " · Ref. " + esc(s.ref) : ""}</span>
-      <span class="qty"><span class="plus">+${n0(s.qty)}</span><span class="tot">Total de este producto en la zona: ${n0(tot)}</span></span>`;
+      <span class="qty"><span class="plus">${n0(tot)}</span><span class="tot">en total en esta zona <span class="chipadd">+${n0(s.qty)}</span></span></span>`;
   } else {
     el.innerHTML = `<span class="st">${netErr ? "Sin conexión" : "No encontrado"}</span>
       <span class="nm">${netErr ? "No se pudo consultar la base. El código se guardó para revisarlo." : "Este código no está en la base de productos. Se guardó para revisión."}</span>
