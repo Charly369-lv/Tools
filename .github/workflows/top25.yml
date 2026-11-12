@@ -1,0 +1,36 @@
+name: Correos semanales - vista previa
+
+on:
+  # Botón "Run workflow". Por ahora solo genera la vista previa; no envía correos.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vista-previa:
+    runs-on: ubuntu-latest
+    env:
+      ODOO_URL: ${{ secrets.ODOO_URL }}
+      ODOO_DB: ${{ secrets.ODOO_DB }}
+      ODOO_USER: ${{ secrets.ODOO_USER }}
+      ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Top 25 más vendidos (datos reales)
+        run: python sync/top25.py --vista-previa vista-previa/top25
+
+      - name: Lista de remarcaje (datos reales)
+        run: python sync/remarcaje.py --vista-previa vista-previa/remarcaje
+
+      - name: Guardar vista previa para descargar
+        uses: actions/upload-artifact@v4
+        with:
+          name: vista-previa-correos
+          path: vista-previa
+          retention-days: 1
