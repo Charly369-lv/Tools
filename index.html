@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Números (precios, porcentajes, contadores) en Archivo: el 4 de Bodoni se confunde con 1 */
+:root { --f-num: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+.stat b, .last .plus { font-family: var(--f-num) !important; font-weight: 800 !important; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+
+</style>
+</head>
+<body>
+<title>Inventario De Museo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: banda azul De Museo con la sesión de conteo fija; abajo una sola columna operable con una mano: campo de escaneo, tarjeta de último escaneo, contadores y acciones */
+:root {
+  --navy: #112369;
+  --navy-deep: #0b1748;
+  --on-navy: #ffffff;
+  --bg: #f3f4f9;
+  --surface: #ffffff;
+  --ink: #111a3d;
+  --muted: #5b6386;
+  --line: #d9dcea;
+  --soft: #e9ecf6;
+  --ok: #157a3d;
+  --ok-bg: #e3f4e8;
+  --bad: #c42318;
+  --bad-bg: #fde8e6;
+  --warn-bg: #fff3d1;
+  --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --navy: #2a40a0; --navy-deep: #0b1748; --on-navy: #ffffff;
+    --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --ok: #4fd383; --ok-bg: #10331f; --bad: #ff7a6b; --bad-bg: #3a1512; --warn-bg: #3a2f10; --gold: #f2bd3c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --navy: #2a40a0; --navy-deep: #0b1748; --on-navy: #ffffff;
+  --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+  --ok: #4fd383; --ok-bg: #10331f; --bad: #ff7a6b; --bad-bg: #3a1512; --warn-bg: #3a2f10; --gold: #f2bd3c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.45; }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 720px; margin: 0 auto; }
+
+/* Encabezado */
+.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 16px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.logo { display: block; width: min(220px, 56vw); height: auto; }
+.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; letter-spacing: .01em; }
+
+.session { background: var(--navy); color: var(--on-navy); padding-block: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.session .inner { display: flex; align-items: center; justify-content: space-between; gap: 8px 14px; flex-wrap: wrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; min-width: 0; }
+.chips b { font-family: var(--f-mono); font-weight: 600; }
+.chips .lc { font-family: var(--f-mono); font-weight: 600; font-size: 17px; background: var(--gold); color: var(--navy-deep); padding: 0 8px; border-radius: 4px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--navy); }
+
+main.pad { padding-block: 20px 56px; }
+main .inner { display: grid; gap: 18px; }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(24px, 5vw, 30px); line-height: 1.1; }
+h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+
+/* Controles */
+button, .btn { font: 700 16px var(--f-body); border-radius: 8px; cursor: pointer; padding: 12px 18px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 48px; }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.light { background: #ffffff; color: #0b1748; border-color: #ffffff; }
+button.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+button.small { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+label.f { display: grid; gap: 6px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+input[type="text"], select { font: 500 18px var(--f-body); padding: 12px 14px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); width: 100%; min-height: 52px; }
+input[type="text"]:focus, select:focus { border-color: var(--navy); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg button { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.seg button[aria-pressed="true"] { background: var(--navy); color: var(--on-navy); border-color: var(--navy); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 16px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > * { flex: 1 1 160px; }
+
+/* Escaneo */
+.scanbox { display: grid; gap: 6px; }
+#scan { font: 600 clamp(22px, 5.4vw, 30px) var(--f-mono); letter-spacing: .04em; padding: 14px 16px; border: 3px solid var(--navy); border-radius: 10px; background: var(--surface); color: var(--ink); width: 100%; min-height: 64px; }
+#scan:focus { outline: 4px solid var(--gold); outline-offset: 2px; }
+.lost { font-size: 14px; font-weight: 700; color: var(--bad); }
+
+.last { border-radius: 12px; padding: 18px 20px; display: grid; gap: 6px; border: 3px solid var(--line); background: var(--surface); min-height: 128px; align-content: center; transition: background-color .25s; }
+.last.ok { border-color: var(--ok); background: var(--ok-bg); }
+.last.bad { border-color: var(--bad); background: var(--bad-bg); }
+.last.flash { animation: flash .35s ease-out; }
+@keyframes flash { from { transform: scale(.97); } to { transform: scale(1); } }
+.last .st { font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.last.ok .st { color: var(--ok); }
+.last.bad .st { color: var(--bad); }
+.last .nm { font-size: clamp(18px, 4.4vw, 22px); font-weight: 700; line-height: 1.2; }
+.last .id { font-family: var(--f-mono); font-size: 14px; color: var(--muted); }
+.last .qty { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.last .plus { font-family: var(--f-display); font-weight: 900; font-size: 44px; line-height: 1; }
+.last.ok .plus { color: var(--ok); }
+.last .tot { font-size: 15px; font-weight: 600; }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 2px; }
+.stat b { font-family: var(--f-display); font-weight: 900; font-size: 30px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+.stat span { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.stat.bad b { color: var(--bad); }
+
+.recent ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.recent li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.recent .q { font-weight: 800; font-variant-numeric: tabular-nums; min-width: 3ch; }
+.recent .n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent .c { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.recent li.nf .n { color: var(--bad); font-weight: 600; }
+
+/* Revisión */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { min-height: 40px; padding: 6px 14px; font-size: 14px; background: var(--surface); color: var(--ink); border-color: var(--line); }
+.tabs button[aria-pressed="true"] { background: var(--navy); color: var(--on-navy); border-color: var(--navy); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--soft); position: sticky; top: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.mono { font-family: var(--f-mono); font-size: 13px; white-space: nowrap; }
+td .qin { width: 76px; min-height: 38px; padding: 4px 8px; font: 700 16px var(--f-body); text-align: right; border: 2px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+tr.nf td { color: var(--bad); }
+tr.diff td { background: var(--bad-bg); }
+.empty { padding: 20px; color: var(--muted); text-align: center; }
+.filter { max-width: 340px; }
+
+.notice { border-radius: 10px; padding: 12px 14px; font-size: 14px; background: var(--warn-bg); }
+.notice.ok { background: var(--ok-bg); }
+.notice.bad { background: var(--bad-bg); }
+textarea { width: 100%; min-height: 160px; font: 13px var(--f-mono); padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.cmpdrop { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 18px 14px; border: 3px dashed var(--line); border-radius: 10px; cursor: pointer; background: var(--surface); }
+.cmpdrop.over { border-color: var(--navy); background: var(--soft); }
+.cmpst { display: grid; gap: 6px; font-size: 14px; }
+.cmpst div { padding: 8px 12px; border-radius: 8px; background: var(--soft); }
+.cmpst .ok { background: var(--ok-bg); }
+.reset { display: grid; gap: 10px; justify-items: start; border-top: 1px solid var(--line); padding-top: 16px; }
+.reset .confirm { justify-self: stretch; }
+button.danger-outline { background: transparent; color: var(--bad); border-color: var(--bad); }
+.confirm { display: grid; gap: 10px; padding: 14px; border: 2px solid var(--bad); border-radius: 10px; background: var(--bad-bg); }
+
+@media (prefers-reduced-motion: reduce) { .last.flash { animation: none; } .last { transition: none; } }
+@media (max-width: 560px) { .hide-sm { display: none; } td .qin { width: 64px; } }
+@media (max-width: 420px) { .stat b { font-size: 24px; } .card { padding: 16px; } }
+</style>
+
+<header class="mast pad">
+  <div class="inner">
+    <img class="logo" src="logo.png" alt="De Museo" width="800" height="144">
+    <span class="mast-t">Inventario</span>
+  </div>
+</header>
+
+<div class="session pad" id="sessionBar" hidden>
+  <div class="inner">
+    <div class="chips">
+      <span class="lc" id="sLoc"></span>
+      <span>Zona: <b id="sZona"></b></span>
+      <span>Conteo <b id="sConteo"></b></span>
+      <span>Operador: <b id="sOp"></b></span>
+    </div>
+    <button type="button" class="light small" id="btnCambiar">Cambiar</button>
+  </div>
+</div>
+
+<main class="pad">
+  <div class="inner">
+    <div class="notice bad" id="noStore" hidden>Este navegador no está guardando el conteo en el equipo. No cierres ni recargues la página hasta exportar.</div>
+
+    <!-- 1. Inicio -->
+    <section id="vSetup" class="card" hidden>
+      <div style="display:grid;gap:6px">
+        <h2>¿Dónde vas a contar?</h2>
+        <p class="muted">Elige la ubicación y escribe la zona o estante. Puedes cambiarla en cualquier momento sin perder lo contado.</p>
+      </div>
+      <label class="f" for="fLoc">Localidad (ubicación del sistema)
+        <select id="fLoc"><option value="">Selecciona…</option></select>
+      </label>
+      <label class="f" for="fZona">Zona o estante
+        <input type="text" id="fZona" placeholder="Ej. Pasillo 3, Bodega, Vitrina" autocomplete="off">
+      </label>
+      <label class="f" for="fOp">Nombre del operador
+        <input type="text" id="fOp" placeholder="Ej. Ana López" autocomplete="off">
+      </label>
+      <div class="f" style="display:grid;gap:6px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Número de conteo
+        <div class="seg" id="fConteo">
+          <button type="button" data-c="1" aria-pressed="true">Conteo 1</button>
+          <button type="button" data-c="2" aria-pressed="false">Conteo 2</button>
+        </div>
+      </div>
+      <p class="lost" id="setupErr" hidden></p>
+      <button type="button" id="btnStart">Empezar a contar</button>
+    </section>
+
+    <!-- 2. Conteo -->
+    <section id="vCount" hidden style="display:grid;gap:16px">
+      <div class="scanbox">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:8px;flex-wrap:wrap"><label class="f" for="scan">Escanea el código de barras</label><button type="button" class="ghost small" id="btnKb" aria-pressed="false">Mostrar teclado</button></div>
+        <input type="text" id="scan" inputmode="none" autocomplete="off" spellcheck="false" placeholder="Escanea aquí">
+        <p class="muted">Para varias unidades escribe la cantidad y un asterisco, y luego escanea: <b>12*</b>. También puedes escribir la referencia interna y presionar Enter.</p>
+        <p class="lost" id="lostFocus" hidden>Toca aquí para seguir escaneando</p>
+      </div>
+
+      <div class="last" id="last">
+        <span class="st">Listo para escanear</span>
+        <span class="nm">Pasa el lector por el primer producto.</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b id="kUnits">0</b><span>Unidades en esta zona</span></div>
+        <div class="stat"><b id="kProds">0</b><span>Productos distintos</span></div>
+        <div class="stat bad"><b id="kNf">0</b><span>No encontrados</span></div>
+      </div>
+
+      <div class="row">
+        <button type="button" class="ghost" id="btnUndo">Deshacer último</button>
+        <button type="button" id="btnReview">Revisar</button>
+        <button type="button" id="btnExportNow">Exportar CSV</button>
+      </div>
+      <div class="notice" id="expMsg2" hidden></div>
+
+      <div class="recent">
+        <h3 style="margin-bottom:8px">Últimos escaneos en esta zona</h3>
+        <ol id="recent"></ol>
+      </div>
+
+      <div class="reset">
+        <button type="button" class="ghost small danger-outline" id="btnReset">Reiniciar conteo</button>
+        <div class="confirm" id="resetConfirm" hidden>
+          <b id="resetTxt"></b>
+          <p class="notice bad" id="resetWarn" hidden>⚠ Todavía no exportaste los últimos escaneos. Si borras ahora, se pierden.</p>
+          <div class="row">
+            <button type="button" id="btnResetExport">Exportar CSV primero</button>
+            <button type="button" class="danger" id="btnResetYes">Sí, borrar todo y empezar de nuevo</button>
+            <button type="button" class="ghost" id="btnResetNo">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Revisión -->
+    <section id="vReview" hidden style="display:grid;gap:16px">
+      <div class="row" style="align-items:center">
+        <h2 style="flex:2 1 220px">Revisión del conteo</h2>
+        <button type="button" class="ghost" id="btnBack" style="flex:0 0 auto">Volver a escanear</button>
+      </div>
+      <p class="muted" id="revSummary"></p>
+      <div class="tabs" id="tabs">
+        <button type="button" data-t="prod" aria-pressed="true">Por producto</button>
+        <button type="button" data-t="nf" aria-pressed="false">No encontrados</button>
+        <button type="button" data-t="cmp" aria-pressed="false">Comparar conteos</button>
+        <button type="button" data-t="exp" aria-pressed="false">Exportar</button>
+      </div>
+
+      <div id="tProd">
+        <div style="display:grid;gap:10px">
+          <input type="text" class="filter" id="filter" placeholder="Filtrar por nombre, referencia o zona" autocomplete="off">
+          <div class="tbl"><table><thead><tr><th class="hide-sm">Localidad</th><th>Zona</th><th>Producto</th><th>Ref.</th><th class="num">Cantidad</th><th></th></tr></thead><tbody id="tbProd"></tbody></table></div>
+          <p class="muted">Cambia la cantidad escribiendo el número correcto. Pon 0 para quitar la línea.</p>
+        </div>
+      </div>
+
+      <div id="tNf" hidden>
+        <div style="display:grid;gap:10px">
+          <p class="muted">Estos códigos no están en la base de productos. No van en el archivo para importar, pero sí en el detalle, para que los revises.</p>
+          <div class="tbl"><table><thead><tr><th>Código leído</th><th>Localidad</th><th>Zona</th><th class="num">Veces</th><th></th></tr></thead><tbody id="tbNf"></tbody></table></div>
+        </div>
+      </div>
+
+      <div id="tCmp" hidden>
+        <div class="card">
+          <div style="display:grid;gap:6px">
+            <h3>Comparar conteo 1 y conteo 2</h3>
+            <p class="muted">Si los dos conteos se hicieron en este equipo, se comparan solos. Si uno se hizo en otro equipo, carga su archivo: sirve cualquiera de los dos CSV que descarga la app.</p>
+          </div>
+          <div id="cmpStatus"></div>
+          <label class="cmpdrop" id="cmpDrop" for="cmpFile">
+            <b id="cmpDropT">Cargar el archivo del otro conteo</b>
+            <span class="muted">El que termina en <span class="mono">_importar.csv</span> o en <span class="mono">_detalle.csv</span>. Toca aquí o arrástralo.</span>
+            <input type="file" id="cmpFile" accept=".csv,.txt,text/csv" hidden>
+          </label>
+          <div id="cmpOut"></div>
+        </div>
+      </div>
+
+      <div id="tExp" hidden>
+        <div style="display:grid;gap:14px">
+          <div class="card">
+            <div style="display:grid;gap:6px">
+              <h3>1 · Archivo para importar en el sistema</h3>
+              <p class="muted">CSV con <b>Ubicación, Producto, Cantidad contada</b>. Suma todas las zonas por localidad y lleva solo el conteo en curso. Se importa en Inventario → Operaciones → Inventario físico → Importar.</p>
+            </div>
+            <button type="button" id="btnImport">Descargar archivo para importar</button>
+          </div>
+          <div class="card">
+            <div style="display:grid;gap:6px">
+              <h3>2 · Detalle por zona</h3>
+              <p class="muted">CSV con localidad, zona, conteo, operador, producto, cantidad y los no encontrados. Sirve para revisar en Excel y para comparar el conteo 1 con el 2.</p>
+            </div>
+            <button type="button" id="btnDet" class="ghost">Descargar detalle</button>
+          </div>
+          <div class="notice" id="expMsg" hidden></div>
+          <div id="expFallback" hidden style="display:grid;gap:8px">
+            <p class="notice bad" id="fbWhy"></p>
+            <p class="muted">Copia el texto y pégalo en un archivo nuevo (Bloc de notas) guardado con este nombre:</p>
+            <p><b id="fbName"></b></p>
+            <textarea id="fbText" readonly></textarea>
+            <button type="button" class="ghost" id="btnCopy">Copiar texto</button>
+          </div>
+          <div class="card">
+            <div style="display:grid;gap:6px">
+              <h3>Terminar el conteo</h3>
+              <p class="muted">Cuando ya exportaste e importaste el archivo, borra el conteo de este equipo para empezar uno nuevo.</p>
+            </div>
+            <button type="button" class="danger" id="btnClear">Borrar conteo y empezar de nuevo</button>
+            <div class="confirm" id="clearConfirm" hidden>
+              <b>¿Seguro? Se borrarán <span id="clearN"></span> escaneos, la localidad, la zona y el operador de este equipo. Esto no se puede deshacer.</b>
+              <p class="notice bad" id="clearWarn" hidden>⚠ Todavía no exportaste los últimos escaneos. Si borras ahora, se pierden.</p>
+              <div class="row"><button type="button" class="danger" id="btnClearYes">Sí, borrar todo</button><button type="button" class="ghost" id="btnClearNo">Cancelar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+// ---------- Utilidades ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const n0 = n => Number(n).toLocaleString("es-GT");
+let LOCS = ["ALDIS/Stock", "AMERI/Stock", "ANTIG/Stock", "BDAÑA/Stock", "BDCS/Stock", "BDSA/Stock", "BOD/Stock", "CAFMJ/Stock", "CAFVD/Stock", "CDV/Stock", "CENTY/Stock", "COBAN/Stock", "CONCE/Stock", "DPROV/Stock", "FLYS/Stock", "INTER/Stock", "MAJAD/Stock", "MIRAF/Stock", "MOVIL/Stock", "NARAN/Stock", "OLYD/Stock", "PORTA/Stock", "PRADE/Stock", "REVIS/Stock", "SANC/Stock", "SG/Stock", "TEL/Stock", "TEMBS/Stock", "TEMPS/Stock", "VIDER/Stock", "WALLM/Stock", "ZONA1/Stock"];
+const key2 = s => String(s).slice(-2).padStart(2, "0");
+const nombreSistema = (ref, name) => ref ? `[${ref}] ${name}` : name;
+const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+// ---------- Base de productos (fragmentos pequeños por código y referencia) ----------
+const shards = new Map();
+function shard(kind, k) {
+  const id = kind + "/" + k;
+  if (!shards.has(id)) shards.set(id, fetch(id + ".json").then(r => { if (!r.ok) throw new Error("red"); return r.json(); }).catch(e => { shards.delete(id); throw e; }));
+  return shards.get(id);
+}
+async function lookup(raw) {
+  const t = raw.trim();
+  const d = t.replace(/\D/g, "");
+  if (/^\d+$/.test(t)) {
+    const tries = [...new Set([d, d.replace(/^0+/, ""), "0" + d])].filter(Boolean);
+    const porCodigo = async () => { for (const c of tries) { const s = await shard("c", key2(c)); if (s[c]) return { code: s[c][2] || c, ref: s[c][0], name: s[c][1], alt: s[c][2] ? c : "" }; } return null; };
+    const porRef = async () => { for (const r of tries) { const s = await shard("r", key2(r)); if (s[r]) return { code: s[r][0], ref: r, name: s[r][1] }; } return null; };
+    // Números cortos (referencias internas): primero la referencia; largos: primero el código de barras
+    if (d.length <= 8) return (await porRef()) || (await porCodigo());
+    return (await porCodigo()) || (await porRef());
+    return null;
+  }
+  const s = await shard("r", key2(d || "00"));
+  const k = Object.keys(s).find(x => x.toUpperCase() === t.toUpperCase());
+  return k ? { code: s[k][0], ref: k, name: s[k][1] } : null;
+}
+// Descarga en segundo plano los fragmentos por código para que cada escaneo sea instantáneo
+async function prefetch() {
+  for (let i = 0; i < 100; i++) {
+    try { await shard("c", String(i).padStart(2, "0")); } catch (e) {}
+    await new Promise(r => setTimeout(r, 120));
+  }
+}
+
+// ---------- Guardado en el equipo (IndexedDB) ----------
+let db = null, scans = [];
+function openDB() {
+  return new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open("demuseo-inventario", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("scans", { keyPath: "id" });
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+}
+function tx(mode, fn) {
+  if (!db) return Promise.resolve();
+  return new Promise((res, rej) => { const t = db.transaction("scans", mode); fn(t.objectStore("scans")); t.oncomplete = res; t.onerror = () => rej(t.error); }).catch(() => { $("noStore").hidden = false; });
+}
+const putScan = s => tx("readwrite", st => st.put(s));
+const delScans = ids => tx("readwrite", st => ids.forEach(id => st.delete(id)));
+const clearScans = () => tx("readwrite", st => st.clear());
+async function loadScans() {
+  try {
+    db = await openDB();
+    scans = await new Promise((res, rej) => { const q = db.transaction("scans").objectStore("scans").getAll(); q.onsuccess = () => res(q.result || []); q.onerror = () => rej(q.error); });
+    scans.sort((a, b) => a.id < b.id ? -1 : 1);
+  } catch (e) { db = null; scans = []; $("noStore").hidden = false; }
+}
+let seqN = 0;
+const newId = () => Date.now().toString(36).padStart(9, "0") + "-" + (seqN++).toString(36).padStart(4, "0") + Math.random().toString(36).slice(2, 5);
+
+// ---------- Sonidos ----------
+let soundUnlocked = false;
+const SND = { ok: new Audio("ok.wav"), bad: new Audio("error.wav") };
+Object.values(SND).forEach(a => { a.preload = "auto"; });
+function unlockAudio() {
+  if (soundUnlocked) return; soundUnlocked = true;
+  for (const a of Object.values(SND)) {
+    try { a.muted = true; const p = a.play(); if (p) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; soundUnlocked = false; }); } catch (e) { a.muted = false; soundUnlocked = false; }
+  }
+}
+["pointerdown", "touchend", "click", "keydown"].forEach(ev => document.addEventListener(ev, unlockAudio, { capture: true, passive: true }));
+function play(k) { const a = SND[k]; try { a.muted = false; a.currentTime = 0; const p = a.play(); if (p) p.catch(() => {}); } catch (e) {} }
+
+// ---------- Sesión ----------
+let S = { loc: "", zona: "", op: "", conteo: "1" };
+try { S = Object.assign(S, JSON.parse(ls.get("dm-inv-sesion") || "{}")); } catch (e) {}
+const inZone = s => s.loc === S.loc && s.zona === S.zona && s.conteo === S.conteo;
+
+function show(v) {
+  for (const id of ["vSetup", "vCount", "vReview"]) $(id).hidden = id !== v;
+  $("sessionBar").hidden = v === "vSetup";
+  if (v === "vCount") { renderCount(); focusScan(); wake(); }
+  if (v === "vReview") renderReview();
+  window.scrollTo(0, 0);
+}
+function paintSession() {
+  $("sLoc").textContent = S.loc; $("sZona").textContent = S.zona; $("sConteo").textContent = S.conteo; $("sOp").textContent = S.op;
+}
+
+// Inicio
+LOCS.forEach(l => { const o = document.createElement("option"); o.value = l; o.textContent = l; $("fLoc").appendChild(o); });
+function fillSetup() {
+  $("fLoc").value = S.loc; $("fZona").value = S.zona; $("fOp").value = S.op;
+  [...$("fConteo").children].forEach(b => b.setAttribute("aria-pressed", b.dataset.c === S.conteo));
+}
+$("fConteo").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; [...$("fConteo").children].forEach(x => x.setAttribute("aria-pressed", x === b)); });
+$("btnStart").addEventListener("click", () => {
+  const loc = $("fLoc").value, zona = $("fZona").value.trim(), op = $("fOp").value.trim();
+  const conteo = [...$("fConteo").children].find(b => b.getAttribute("aria-pressed") === "true").dataset.c;
+  const miss = [!loc && "la localidad", !zona && "la zona", !op && "tu nombre"].filter(Boolean);
+  if (miss.length) { $("setupErr").textContent = "Falta " + miss.join(", ") + "."; $("setupErr").hidden = false; return; }
+  $("setupErr").hidden = true;
+  S = { loc, zona, op, conteo };
+  ls.set("dm-inv-sesion", JSON.stringify(S));
+  paintSession(); show("vCount");
+});
+$("btnCambiar").addEventListener("click", () => { fillSetup(); show("vSetup"); });
+
+// ---------- Escaneo ----------
+const scan = $("scan");
+function focusScan() { setTimeout(() => scan.focus(), 0); }
+scan.addEventListener("blur", () => { setTimeout(() => { if (!$("vCount").hidden && document.activeElement !== scan) $("lostFocus").hidden = false; }, 200); });
+scan.addEventListener("focus", () => { $("lostFocus").hidden = true; });
+$("lostFocus").addEventListener("click", focusScan);
+// En terminales con lector se oculta el teclado en pantalla; este botón lo muestra para escribir referencias
+$("btnKb").addEventListener("click", () => {
+  const on = scan.getAttribute("inputmode") === "none";
+  scan.setAttribute("inputmode", on ? "text" : "none");
+  $("btnKb").setAttribute("aria-pressed", on); $("btnKb").textContent = on ? "Ocultar teclado" : "Mostrar teclado";
+  scan.blur(); focusScan();
+});
+
+let queue = Promise.resolve();
+scan.addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const v = scan.value.trim();
+  scan.value = "";
+  if (!v) return;
+  const m = v.match(/^(\d{1,4})\s*[*xX]\s*(.+)$/);
+  const qty = m ? Math.max(1, parseInt(m[1], 10)) : 1;
+  const code = (m ? m[2] : v).trim();
+  if (/^\d{1,4}\s*[*xX]$/.test(v)) { scan.value = v; return; } // cantidad escrita, falta escanear
+  const ctx = { ...S };
+  queue = queue.then(() => handleScan(code, qty, ctx));
+});
+
+async function handleScan(code, qty, ctx) {
+  let p = null, netErr = false;
+  try { p = await lookup(code); } catch (e) { netErr = true; }
+  const s = { id: newId(), t: new Date().toISOString(), loc: ctx.loc, zona: ctx.zona, conteo: ctx.conteo, op: ctx.op, read: code, qty,
+    found: !!p, code: p ? p.code : code.replace(/\D/g, "") || code, ref: p ? p.ref : "", name: p ? p.name : "" };
+  if (netErr) s.check = true; // sin conexión: se guarda y se revisa después
+  scans.push(s);
+  putScan(s);
+  play(p ? "ok" : "bad");
+  showLast(s, netErr);
+  renderCount();
+}
+
+function showLast(s, netErr) {
+  const el = $("last");
+  el.className = "last " + (s.found ? "ok" : "bad");
+  void el.offsetWidth; el.classList.add("flash");
+  if (s.found) {
+    const tot = scans.filter(x => inZone(x) && x.found && x.code === s.code && x.ref === s.ref).reduce((a, x) => a + x.qty, 0);
+    el.innerHTML = `<span class="st">Encontrado</span>
+      <span class="nm">${esc(s.name)}</span>
+      <span class="id">${esc(s.code || "Sin código")}${s.ref ? " · Ref. " + esc(s.ref) : ""}</span>
+      <span class="qty"><span class="plus">+${n0(s.qty)}</span><span class="tot">Total de este producto en la zona: ${n0(tot)}</span></span>`;
+  } else {
+    el.innerHTML = `<span class="st">${netErr ? "Sin conexión" : "No encontrado"}</span>
+      <span class="nm">${netErr ? "No se pudo consultar la base. El código se guardó para revisarlo." : "Este código no está en la base de productos. Se guardó para revisión."}</span>
+      <span class="id">${esc(s.read)}${s.qty > 1 ? " · ×" + n0(s.qty) : ""}</span>`;
+  }
+}
+
+function renderCount() {
+  const z = scans.filter(inZone);
+  $("kUnits").textContent = n0(z.filter(s => s.found).reduce((a, s) => a + s.qty, 0));
+  $("kProds").textContent = n0(new Set(z.filter(s => s.found).map(s => s.code + "|" + s.ref)).size);
+  $("kNf").textContent = n0(z.filter(s => !s.found).length);
+  $("btnUndo").disabled = !z.length;
+  $("recent").innerHTML = z.slice(-8).reverse().map(s => `
+    <li class="${s.found ? "" : "nf"}"><span class="q">+${n0(s.qty)}</span><span class="n">${s.found ? esc(s.name) : "No encontrado: " + esc(s.read)}</span><span class="c">${esc(s.ref || s.code)}</span></li>`).join("") || `<li><span></span><span class="n muted">Aún no hay escaneos en esta zona.</span><span></span></li>`;
+}
+
+$("btnUndo").addEventListener("click", () => {
+  const z = scans.filter(inZone);
+  const s = z[z.length - 1];
+  if (!s) return;
+  scans = scans.filter(x => x.id !== s.id);
+  delScans([s.id]);
+  const el = $("last");
+  el.className = "last";
+  el.innerHTML = `<span class="st">Deshecho</span><span class="nm">Se quitó ${s.qty > 1 ? n0(s.qty) + " unidades de " : ""}${esc(s.found ? s.name : s.read)}</span>`;
+  renderCount(); focusScan();
+});
+$("btnReview").addEventListener("click", () => show("vReview"));
+$("btnBack").addEventListener("click", () => show("vCount"));
+
+// Mantener la pantalla encendida mientras se cuenta (si el equipo lo permite)
+let wakeLock = null;
+async function wake() { try { if ("wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); } } catch (e) {} }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !$("vCount").hidden) wake(); });
+
+// ---------- Revisión ----------
+function groupProducts() {
+  const g = new Map();
+  for (const s of scans) {
+    if (!s.found) continue;
+    const k = [s.loc, s.zona, s.conteo, s.code, s.ref].join("|");
+    if (!g.has(k)) g.set(k, { k, loc: s.loc, zona: s.zona, conteo: s.conteo, code: s.code, ref: s.ref, name: s.name, qty: 0, ids: [] });
+    const r = g.get(k); r.qty += s.qty; r.ids.push(s.id);
+  }
+  return [...g.values()].sort((a, b) => a.loc.localeCompare(b.loc) || a.zona.localeCompare(b.zona, "es") || a.name.localeCompare(b.name, "es"));
+}
+function groupNf() {
+  const g = new Map();
+  for (const s of scans) {
+    if (s.found) continue;
+    const k = [s.loc, s.zona, s.conteo, s.read].join("|");
+    if (!g.has(k)) g.set(k, { k, loc: s.loc, zona: s.zona, conteo: s.conteo, read: s.read, qty: 0, ids: [] });
+    const r = g.get(k); r.qty += s.qty; r.ids.push(s.id);
+  }
+  return [...g.values()];
+}
+let tab = "prod";
+function setTab(t, quiet) {
+  tab = t;
+  [...$("tabs").children].forEach(x => x.setAttribute("aria-pressed", x.dataset.t === t));
+  $("tProd").hidden = t !== "prod"; $("tNf").hidden = t !== "nf"; $("tCmp").hidden = t !== "cmp"; $("tExp").hidden = t !== "exp";
+  if (t === "exp" && !quiet) exportImport(); // al tocar Exportar se genera el CSV de inmediato
+  if (t === "cmp") renderCompare();
+}
+$("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTab(b.dataset.t); });
+function renderReview() {
+  const prods = groupProducts(), nfs = groupNf();
+  const units = prods.reduce((a, r) => a + r.qty, 0);
+  const locs = [...new Set(scans.map(s => s.loc))];
+  $("revSummary").textContent = scans.length
+    ? `${n0(units)} unidades de ${n0(new Set(prods.map(r => r.loc + r.code + r.ref)).size)} productos en ${locs.length === 1 ? locs[0] : locs.length + " localidades"}, ${n0(new Set(prods.map(r => r.loc + r.zona)).size)} zonas. ${n0(nfs.reduce((a, r) => a + r.qty, 0))} lecturas no encontradas.`
+    : "Todavía no hay escaneos en este equipo.";
+  const f = $("filter").value.trim().toUpperCase();
+  const rows = prods.filter(r => !f || (r.name + " " + r.ref + " " + r.code + " " + r.zona + " " + r.loc).toUpperCase().includes(f));
+  $("tbProd").innerHTML = rows.map(r => `
+    <tr><td class="mono hide-sm">${esc(r.loc)}</td><td>${esc(r.zona)}${r.conteo !== S.conteo ? ` <span class="muted">(C${esc(r.conteo)})</span>` : ""}</td><td>${esc(r.name)}<br><span class="muted mono">${esc(r.code)}</span></td><td class="mono">${esc(r.ref)}</td>
+    <td class="num"><input class="qin" type="text" inputmode="numeric" value="${r.qty}" data-k="${esc(r.k)}" aria-label="Cantidad"></td>
+    <td><button type="button" class="ghost small" data-del="${esc(r.k)}">Quitar</button></td></tr>`).join("") || `<tr><td colspan="6" class="empty">${scans.length ? "Nada coincide con el filtro." : "Sin escaneos."}</td></tr>`;
+  $("tbNf").innerHTML = nfs.map(r => `
+    <tr class="nf"><td class="mono">${esc(r.read)}</td><td class="mono">${esc(r.loc)}</td><td>${esc(r.zona)}</td><td class="num">${n0(r.qty)}</td>
+    <td><button type="button" class="ghost small" data-delnf="${esc(r.k)}">Quitar</button></td></tr>`).join("") || `<tr><td colspan="5" class="empty">No hay códigos sin encontrar.</td></tr>`;
+}
+$("filter").addEventListener("input", renderReview);
+
+// Cambiar cantidad de una línea: se reemplazan sus escaneos por un ajuste con la cantidad correcta
+function setLineQty(k, qty) {
+  const r = groupProducts().find(x => x.k === k); if (!r) return;
+  const base = scans.find(s => s.id === r.ids[0]);
+  scans = scans.filter(s => !r.ids.includes(s.id));
+  delScans(r.ids);
+  if (qty > 0) {
+    const s = { ...base, id: newId(), t: new Date().toISOString(), qty, adj: true };
+    scans.push(s); putScan(s);
+  }
+  renderReview();
+}
+$("tbProd").addEventListener("change", e => {
+  const i = e.target.closest(".qin"); if (!i) return;
+  const q = parseInt(i.value.replace(/\D/g, ""), 10);
+  if (isNaN(q)) { renderReview(); return; }
+  setLineQty(i.dataset.k, q);
+});
+$("tbProd").addEventListener("click", e => { const b = e.target.closest("[data-del]"); if (b) setLineQty(b.dataset.del, 0); });
+$("tbNf").addEventListener("click", e => {
+  const b = e.target.closest("[data-delnf]"); if (!b) return;
+  const r = groupNf().find(x => x.k === b.dataset.delnf); if (!r) return;
+  scans = scans.filter(s => !r.ids.includes(s.id)); delScans(r.ids); renderReview();
+});
+
+// ---------- Exportar ----------
+const csvCell = v => { const s = String(v ?? ""); return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+const csv = rows => rows.map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+const stamp = () => { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`; };
+const slug = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "");
+// El archivo para importar lleva solo el conteo en curso (si no tiene escaneos, el último conteo hecho)
+function scansImport() {
+  const act = scans.filter(s => s.conteo === S.conteo);
+  if (act.length) return act;
+  const ult = scans.length ? scans[scans.length - 1].conteo : S.conteo;
+  return scans.filter(s => s.conteo === ult);
+}
+function baseName(lista) {
+  lista = lista || scans;
+  const locs = [...new Set(lista.map(s => s.loc))], cs = [...new Set(lista.map(s => s.conteo))], ops = [...new Set(lista.map(s => s.op))];
+  return `Inventario_${locs.length === 1 ? slug(locs[0].split("/")[0]) : "Varias"}_Conteo${cs.length === 1 ? cs[0] : "s"}_${ops.length === 1 ? slug(ops[0]) : "Varios"}_${stamp()}`;
+}
+function buildImport() {
+  const g = new Map();
+  for (const s of scansImport()) {
+    if (!s.found) continue;
+    const k = s.loc + "|" + s.code + "|" + s.ref;
+    if (!g.has(k)) g.set(k, [s.loc, nombreSistema(s.ref, s.name), 0]);
+    g.get(k)[2] += s.qty;
+  }
+  const rows = [...g.values()].filter(r => r[2] > 0).sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1], "es"));
+  return csv([["Ubicación", "Producto", "Cantidad contada"], ...rows]);
+}
+function buildDetail() {
+  const head = ["Localidad", "Zona", "Conteo", "Operador", "Referencia interna", "Código de barras", "Producto", "Cantidad", "Estado"];
+  const rows = groupProducts().map(r => [r.loc, r.zona, r.conteo, opFor(r.ids), r.ref, r.code, nombreSistema(r.ref, r.name), r.qty, "Encontrado"])
+    .concat(groupNf().map(r => [r.loc, r.zona, r.conteo, opFor(r.ids), "", r.read, "", r.qty, "No encontrado"]));
+  return "﻿" + csv([head, ...rows]);
+}
+function opFor(ids) { return [...new Set(scans.filter(s => ids.includes(s.id)).map(s => s.op))].join(" / "); }
+
+let downloads = null, dlTried = false;
+const wait = ms => new Promise(r => setTimeout(() => r("timeout"), ms));
+async function getDownloads() {
+  if (downloads || dlTried) return downloads;
+  try { if (window.claude && window.claude.use) { const r = await Promise.race([window.claude.use("downloads"), wait(4000)]); if (r && r !== "timeout") downloads = r; else if (r === null) dlTried = true; } } catch (e) { dlTried = true; }
+  return downloads;
+}
+getDownloads();
+const exportImport = () => offer(baseName(scansImport()) + "_importar.csv", buildImport());
+let exporting = false;
+function say(msg, cls, text) { msg.className = "notice " + (cls || ""); msg.textContent = text; msg.hidden = false; }
+function showFallback(filename, text, why) {
+  $("fbName").textContent = filename; $("fbText").value = text.replace(/^\ufeff/, "");
+  $("fbWhy").textContent = why; $("expFallback").hidden = false;
+  if ($("vReview").hidden || tab !== "exp") { show("vReview"); setTab("exp", true); }
+  $("expFallback").scrollIntoView({ block: "start" });
+}
+async function offer(filename, text) {
+  const msg = !$("vCount").hidden ? $("expMsg2") : $("expMsg");
+  if (!scans.some(s => s.found)) { say(msg, "bad", "No hay productos contados para exportar."); return; }
+  if (exporting) return;
+  exporting = true;
+  $("expFallback").hidden = true;
+  say(msg, "", window.claude ? `Generando ${filename}… Acepta la ventana de descarga.` : `Generando ${filename}…`);
+  try {
+    const dl = await getDownloads();
+    if (!dl && !window.claude) { // versión en hosting propio: descarga directa, sin confirmación
+      const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+      const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      say(msg, "ok", `Descargado: ${filename}`); markExported(); return;
+    }
+    if (!dl) { msg.hidden = true; showFallback(filename, text, "Este equipo no permite descargar archivos desde la página."); return; }
+    const r = await Promise.race([dl.save({ filename, data: new Blob([text], { type: "text/csv" }) }), wait(10000)]);
+    if (r === "timeout") { say(msg, "", "La ventana de descarga no apareció. Abajo tienes el CSV para copiar."); showFallback(filename, text, "La ventana de descarga no se abrió en este equipo."); return; }
+    say(msg, "ok", `Listo: ${filename}`); markExported();
+  } catch (e) {
+    const code = (e && e.code) || "error";
+    if (code === "declined") say(msg, "", "Descarga cancelada. Toca Exportar de nuevo para intentarlo.");
+    else if (code === "rate_limited") say(msg, "", "Ya hay una descarga esperando confirmación. Acéptala o espera unos segundos.");
+    else { msg.hidden = true; showFallback(filename, text, `La descarga no se pudo hacer en este equipo (${code}).`); }
+  } finally { exporting = false; }
+}
+$("btnImport").addEventListener("click", exportImport);
+$("btnExportNow").addEventListener("click", async () => { await exportImport(); if (!$("vCount").hidden) focusScan(); });
+$("btnDet").addEventListener("click", () => offer(baseName() + "_detalle.csv", buildDetail()));
+$("btnCopy").addEventListener("click", async () => {
+  const ta = $("fbText");
+  try { await navigator.clipboard.writeText(ta.value); $("btnCopy").textContent = "Copiado"; }
+  catch (e) { ta.focus(); ta.select(); $("btnCopy").textContent = "Texto seleccionado: usa Copiar"; }
+  setTimeout(() => { $("btnCopy").textContent = "Copiar texto"; }, 2500);
+});
+
+// ---------- Reiniciar conteo ----------
+// Se recuerda qué se exportó por última vez, para avisar antes de borrar algo sin exportar
+const firma = () => scans.length + ":" + (scans.length ? scans[scans.length - 1].id : "");
+function markExported() { ls.set("dm-inv-exportado", firma()); }
+const sinExportar = () => scans.length > 0 && ls.get("dm-inv-exportado") !== firma();
+async function resetAll() {
+  scans = [];
+  await clearScans();
+  S = { loc: "", zona: "", op: "", conteo: "1" };
+  ls.set("dm-inv-sesion", JSON.stringify(S));
+  ls.set("dm-inv-exportado", "");
+  $("resetConfirm").hidden = true; $("clearConfirm").hidden = true; $("expMsg").hidden = true; $("expMsg2").hidden = true; $("expFallback").hidden = true;
+  $("last").className = "last"; $("last").innerHTML = `<span class="st">Listo para escanear</span><span class="nm">Pasa el lector por el primer producto.</span>`;
+  fillSetup(); show("vSetup");
+}
+$("btnReset").addEventListener("click", () => {
+  $("resetTxt").textContent = scans.length
+    ? `¿Reiniciar el conteo? Se borrarán ${n0(scans.length)} escaneos, la localidad, la zona y el operador de este equipo. Esto no se puede deshacer.`
+    : "¿Reiniciar? Se borrarán la localidad, la zona y el operador para empezar un conteo nuevo.";
+  $("resetWarn").hidden = !sinExportar();
+  $("btnResetExport").hidden = !sinExportar();
+  $("resetConfirm").hidden = false;
+  $("resetConfirm").scrollIntoView({ block: "center" });
+});
+$("btnResetNo").addEventListener("click", () => { $("resetConfirm").hidden = true; focusScan(); });
+$("btnResetExport").addEventListener("click", async () => {
+  await exportImport();
+  $("resetWarn").hidden = !sinExportar(); $("btnResetExport").hidden = !sinExportar();
+});
+$("btnResetYes").addEventListener("click", resetAll);
+$("btnClear").addEventListener("click", () => { $("clearN").textContent = n0(scans.length); $("clearWarn").hidden = !sinExportar(); $("clearConfirm").hidden = false; });
+$("btnClearNo").addEventListener("click", () => { $("clearConfirm").hidden = true; });
+$("btnClearYes").addEventListener("click", resetAll);
+
+// ---------- Comparar conteos ----------
+function parseCSV(text) {
+  text = text.replace(/^﻿/, "");
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === "," || c === ";") { row.push(cell); cell = ""; }
+    else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+    else if (c !== "\r") cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+// Clave de producto: referencia interna; si no tiene, código de barras; si no, nombre
+const normK = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toUpperCase();
+const keyOf = (ref, code, name) => ref ? "R:" + normK(ref) : code ? "C:" + String(code).replace(/\D/g, "") : "N:" + normK(name);
+function partirNombre(p) { const m = String(p || "").match(/^\[([^\]]+)\]\s*(.*)$/); return m ? { ref: m[1].trim(), name: m[2] } : { ref: "", name: String(p || "") }; }
+
+// Datos de un conteo: Map(localidad → Map(clave → {qty, name, ref, code}))
+function agrupar(lista) {
+  const m = new Map();
+  for (const s of lista) {
+    if (!s.found) continue;
+    if (!m.has(s.loc)) m.set(s.loc, new Map());
+    const k = keyOf(s.ref, s.code, s.name), g = m.get(s.loc);
+    if (!g.has(k)) g.set(k, { qty: 0, name: nombreSistema(s.ref, s.name), ref: s.ref, code: s.code });
+    g.get(k).qty += s.qty;
+  }
+  return m;
+}
+function resumen(lista) {
+  const f = lista.filter(s => s.found);
+  const ops = [...new Set(lista.map(s => s.op))].join(", ");
+  const ult = lista.length ? new Date(lista[lista.length - 1].t).toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+  return `${n0(new Set(f.map(s => s.loc + keyOf(s.ref, s.code, s.name))).size)} productos, ${n0(f.reduce((a, s) => a + s.qty, 0))} unidades · ${esc(ops)} · ${ult}`;
+}
+
+let archivo = null; // {conteos: {"1": Map, ...} o {"?": Map}, nombre}
+function leerArchivo(text, nombre) {
+  const rows = parseCSV(text).filter(r => r.some(c => String(c).trim()));
+  const h = (rows[0] || []).map(x => normK(x));
+  const ix = (...ns) => h.findIndex(x => ns.includes(x));
+  const iUb = ix("UBICACION", "LOCALIDAD"), iP = ix("PRODUCTO"), iQ = ix("CANTIDAD CONTADA", "CANTIDAD"), iR = ix("REFERENCIA INTERNA"), iC = ix("CODIGO DE BARRAS"), iE = ix("ESTADO"), iN = ix("CONTEO");
+  if (iUb < 0 || iQ < 0 || (iP < 0 && iR < 0 && iC < 0)) return null;
+  const conteoNombre = (String(nombre).match(/Conteo\s*([12])/i) || [])[1] || "?";
+  const conteos = {};
+  for (const r of rows.slice(1)) {
+    const loc = String(r[iUb] || "").trim(); if (!loc) continue;
+    if (iE > -1 && normK(r[iE]) === "NO ENCONTRADO") continue;
+    const c = iN > -1 && String(r[iN]).trim() ? String(r[iN]).trim() : conteoNombre;
+    let ref = iR > -1 ? String(r[iR] || "").trim() : "", name = iP > -1 ? String(r[iP] || "") : "";
+    if (!ref) { const x = partirNombre(name); ref = x.ref; }
+    const code = iC > -1 ? String(r[iC] || "").trim() : "";
+    const q = parseFloat(String(r[iQ]).replace(",", ".")) || 0;
+    if (!conteos[c]) conteos[c] = new Map();
+    const m = conteos[c]; if (!m.has(loc)) m.set(loc, new Map());
+    const k = keyOf(ref, code, partirNombre(name).name || name), g = m.get(loc);
+    if (!g.has(k)) g.set(k, { qty: 0, name, ref, code });
+    g.get(k).qty += q;
+  }
+  return { conteos, nombre };
+}
+
+function renderCompare() {
+  const loc1 = scans.filter(s => s.conteo === "1"), loc2 = scans.filter(s => s.conteo === "2");
+  const st = [];
+  st.push(loc1.length ? `<div class="ok">✓ <b>Conteo 1</b> en este equipo: ${resumen(loc1)}</div>` : `<div>Conteo 1: no está en este equipo</div>`);
+  st.push(loc2.length ? `<div class="ok">✓ <b>Conteo 2</b> en este equipo: ${resumen(loc2)}</div>` : `<div>Conteo 2: no está en este equipo</div>`);
+  if (archivo) st.push(`<div class="ok">✓ <b>Archivo cargado:</b> ${esc(archivo.nombre)} (${Object.keys(archivo.conteos).map(c => c === "?" ? "conteo sin número" : "conteo " + c).join(" y ")})</div>`);
+  $("cmpStatus").innerHTML = `<div class="cmpst">${st.join("")}</div>`;
+
+  // Qué comparar: primero lo que hay en el equipo; el archivo completa lo que falta
+  let A = null, B = null, la = "", lb = "";
+  if (archivo) {
+    const fc = Object.keys(archivo.conteos);
+    if (fc.length >= 2) { A = archivo.conteos[fc[0]]; B = archivo.conteos[fc[1]]; la = "Conteo " + fc[0]; lb = "Conteo " + fc[1]; }
+    else {
+      const c = fc[0];
+      const local = c === "1" ? (loc2.length ? loc2 : null) : c === "2" ? (loc1.length ? loc1 : null) : (scans.filter(s => s.conteo === S.conteo).length ? scans.filter(s => s.conteo === S.conteo) : (loc2.length ? loc2 : loc1));
+      if (local && local.length) {
+        const lc = local[0].conteo;
+        if (c !== "?" && c === lc) { $("cmpOut").innerHTML = `<p class="notice bad">El archivo es del conteo ${c}, igual que el de este equipo. Carga el archivo del <b>otro</b> conteo.</p>`; return; }
+        A = archivo.conteos[c]; B = agrupar(local); la = c === "?" ? "Archivo" : "Conteo " + c + " (archivo)"; lb = "Conteo " + lc + " (este equipo)";
+        if (lc === "1") { [A, B, la, lb] = [B, A, lb, la]; }
+      }
+    }
+  } else if (loc1.length && loc2.length) { A = agrupar(loc1); B = agrupar(loc2); la = "Conteo 1"; lb = "Conteo 2"; }
+
+  $("cmpDropT").textContent = archivo ? "Cargar otro archivo" : "Cargar el archivo del otro conteo";
+  if (!A || !B) {
+    $("cmpOut").innerHTML = scans.length || archivo
+      ? `<p class="notice">Para comparar falta el otro conteo. ${loc1.length || loc2.length ? "Haz el otro conteo en este equipo o carga su archivo." : "Haz un conteo en este equipo o carga los dos archivos."}</p>`
+      : `<p class="notice">Todavía no hay conteos en este equipo.</p>`;
+    return;
+  }
+  const locs = [...A.keys()].filter(l => B.has(l));
+  if (!locs.length) { $("cmpOut").innerHTML = `<p class="notice bad">Los dos conteos son de localidades distintas (${esc([...A.keys()].join(", "))} y ${esc([...B.keys()].join(", "))}). Revisa que sea el archivo correcto.</p>`; return; }
+  const diffs = []; let total = 0;
+  for (const l of locs) {
+    const a = A.get(l), b = B.get(l);
+    for (const k of new Set([...a.keys(), ...b.keys()])) {
+      total++;
+      const qa = a.get(k)?.qty || 0, qb = b.get(k)?.qty || 0;
+      if (qa !== qb) { const it = a.get(k) || b.get(k); diffs.push({ loc: l, name: it.name, ref: it.ref, code: it.code, qa, qb }); }
+    }
+  }
+  diffs.sort((x, y) => Math.abs(y.qb - y.qa) - Math.abs(x.qb - x.qa));
+  compareDiffs = { diffs, la, lb };
+  $("cmpOut").innerHTML = `
+    <p class="notice ${diffs.length ? "bad" : "ok"}">${diffs.length ? `<b>${n0(diffs.length)} productos no coinciden</b> de ${n0(total)} comparados en ${esc(locs.join(", "))}. Recuenta estos productos.` : `✓ Los ${n0(total)} productos coinciden en los dos conteos.`}</p>
+    ${diffs.length ? `<div class="row"><button type="button" class="ghost small" id="btnDiffCsv">Descargar diferencias (CSV)</button></div>
+    <div class="tbl"><table><thead><tr><th>Localidad</th><th>Producto</th><th class="num">${esc(la)}</th><th class="num">${esc(lb)}</th><th class="num">Diferencia</th></tr></thead><tbody>
+      ${diffs.map(d => `<tr class="diff"><td class="mono">${esc(d.loc)}</td><td>${esc(d.name)}<br><span class="muted mono">${esc(d.code || "")}</span></td><td class="num">${n0(d.qa)}</td><td class="num">${n0(d.qb)}</td><td class="num"><b>${d.qb - d.qa > 0 ? "+" : ""}${n0(d.qb - d.qa)}</b></td></tr>`).join("")}
+    </tbody></table></div>` : ""}`;
+}
+let compareDiffs = null;
+async function cargarCmp(f) {
+  if (!f) return;
+  const r = leerArchivo(await f.text(), f.name);
+  if (!r) { archivo = null; renderCompare(); $("cmpOut").innerHTML = `<p class="notice bad">Este archivo no parece de la app de inventario. Usa uno de los CSV que descargaste con <b>Exportar</b> (termina en _importar.csv o _detalle.csv).</p>`; return; }
+  archivo = r; renderCompare();
+}
+$("cmpFile").addEventListener("change", e => { cargarCmp(e.target.files[0]); e.target.value = ""; });
+$("cmpDrop").addEventListener("dragover", e => { e.preventDefault(); $("cmpDrop").classList.add("over"); });
+$("cmpDrop").addEventListener("dragleave", () => $("cmpDrop").classList.remove("over"));
+$("cmpDrop").addEventListener("drop", e => { e.preventDefault(); $("cmpDrop").classList.remove("over"); cargarCmp(e.dataTransfer.files[0]); });
+document.addEventListener("click", e => {
+  if (!e.target.closest("#btnDiffCsv") || !compareDiffs) return;
+  const { diffs, la, lb } = compareDiffs;
+  offer(`Diferencias_${slug((diffs[0] || {}).loc ? diffs[0].loc.split("/")[0] : "inventario")}_${stamp()}.csv`,
+    "﻿" + csv([["Localidad", "Referencia interna", "Código de barras", "Producto", la, lb, "Diferencia"], ...diffs.map(d => [d.loc, d.ref, d.code, d.name, d.qa, d.qb, d.qb - d.qa])]));
+});
+
+// ---------- Arranque ----------
+(async () => {
+  // Ubicaciones actualizadas desde el sistema (si existe locs.json); si no, se usan las de respaldo
+  try {
+    const r = await fetch("locs.json", { cache: "no-cache" });
+    if (r.ok) { const d = await r.json(); if (d.locs && d.locs.length) { LOCS = d.locs; $("fLoc").length = 1; LOCS.forEach(l => { const o = document.createElement("option"); o.value = l; o.textContent = l; $("fLoc").appendChild(o); }); } }
+  } catch (e) {}
+  await loadScans();
+  fillSetup(); paintSession();
+  if (S.loc && S.zona && S.op) show("vCount"); else show("vSetup");
+  setTimeout(prefetch, 800);
+})();
+</script>
+
+</body>
+</html>
