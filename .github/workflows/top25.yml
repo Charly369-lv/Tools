@@ -23,12 +23,19 @@ jobs:
           python-version: "3.12"
 
       - name: Top 25 más vendidos (datos reales)
+        continue-on-error: true
         run: python sync/top25.py --vista-previa vista-previa/top25
 
       - name: Lista de remarcaje (datos reales)
+        continue-on-error: true
         run: python sync/remarcaje.py --vista-previa vista-previa/remarcaje
 
+      - name: Ranking mensual del bazar (datos reales)
+        continue-on-error: true
+        run: python sync/ranking_bazar.py --vista-previa vista-previa/ranking-bazar
+
       - name: Guardar vista previa para descargar
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: vista-previa-correos
