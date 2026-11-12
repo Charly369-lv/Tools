@@ -149,6 +149,11 @@ tr.diff td { background: var(--bad-bg); }
 .notice.ok { background: var(--ok-bg); }
 .notice.bad { background: var(--bad-bg); }
 textarea { width: 100%; min-height: 160px; font: 13px var(--f-mono); padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.cmpdrop { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 18px 14px; border: 3px dashed var(--line); border-radius: 10px; cursor: pointer; background: var(--surface); }
+.cmpdrop.over { border-color: var(--navy); background: var(--soft); }
+.cmpst { display: grid; gap: 6px; font-size: 14px; }
+.cmpst div { padding: 8px 12px; border-radius: 8px; background: var(--soft); }
+.cmpst .ok { background: var(--ok-bg); }
 .reset { display: grid; gap: 10px; justify-items: start; border-top: 1px solid var(--line); padding-top: 16px; }
 .reset .confirm { justify-self: stretch; }
 button.danger-outline { background: transparent; color: var(--bad); border-color: var(--bad); }
@@ -285,10 +290,15 @@ button.danger-outline { background: transparent; color: var(--bad); border-color
       <div id="tCmp" hidden>
         <div class="card">
           <div style="display:grid;gap:6px">
-            <h3>Comparar con el otro conteo</h3>
-            <p class="muted">Carga el archivo de <b>detalle</b> exportado en el otro equipo (por ejemplo, el del conteo 1). Verás en rojo los productos donde las cantidades no coinciden, para recontarlos.</p>
+            <h3>Comparar conteo 1 y conteo 2</h3>
+            <p class="muted">Si los dos conteos se hicieron en este equipo, se comparan solos. Si uno se hizo en otro equipo, carga su archivo: sirve cualquiera de los dos CSV que descarga la app.</p>
           </div>
-          <input type="file" id="cmpFile" accept=".csv,.txt,text/csv">
+          <div id="cmpStatus"></div>
+          <label class="cmpdrop" id="cmpDrop" for="cmpFile">
+            <b id="cmpDropT">Cargar el archivo del otro conteo</b>
+            <span class="muted">El que termina en <span class="mono">_importar.csv</span> o en <span class="mono">_detalle.csv</span>. Toca aquí o arrástralo.</span>
+            <input type="file" id="cmpFile" accept=".csv,.txt,text/csv" hidden>
+          </label>
           <div id="cmpOut"></div>
         </div>
       </div>
@@ -298,7 +308,7 @@ button.danger-outline { background: transparent; color: var(--bad); border-color
           <div class="card">
             <div style="display:grid;gap:6px">
               <h3>1 · Archivo para importar en el sistema</h3>
-              <p class="muted">CSV con <b>Ubicación, Producto, Cantidad contada</b>. Suma todas las zonas por localidad. Se importa en Inventario → Operaciones → Inventario físico → Importar.</p>
+              <p class="muted">CSV con <b>Ubicación, Producto, Cantidad contada</b>. Suma todas las zonas por localidad y lleva solo el conteo en curso. Se importa en Inventario → Operaciones → Inventario físico → Importar.</p>
             </div>
             <button type="button" id="btnImport">Descargar archivo para importar</button>
           </div>
@@ -567,6 +577,7 @@ function setTab(t, quiet) {
   [...$("tabs").children].forEach(x => x.setAttribute("aria-pressed", x.dataset.t === t));
   $("tProd").hidden = t !== "prod"; $("tNf").hidden = t !== "nf"; $("tCmp").hidden = t !== "cmp"; $("tExp").hidden = t !== "exp";
   if (t === "exp" && !quiet) exportImport(); // al tocar Exportar se genera el CSV de inmediato
+  if (t === "cmp") renderCompare();
 }
 $("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTab(b.dataset.t); });
 function renderReview() {
@@ -618,13 +629,21 @@ const csvCell = v => { const s = String(v ?? ""); return /[",\n\r;]/.test(s) ? '
 const csv = rows => rows.map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
 const stamp = () => { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`; };
 const slug = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "");
-function baseName() {
-  const locs = [...new Set(scans.map(s => s.loc))], cs = [...new Set(scans.map(s => s.conteo))], ops = [...new Set(scans.map(s => s.op))];
+// El archivo para importar lleva solo el conteo en curso (si no tiene escaneos, el último conteo hecho)
+function scansImport() {
+  const act = scans.filter(s => s.conteo === S.conteo);
+  if (act.length) return act;
+  const ult = scans.length ? scans[scans.length - 1].conteo : S.conteo;
+  return scans.filter(s => s.conteo === ult);
+}
+function baseName(lista) {
+  lista = lista || scans;
+  const locs = [...new Set(lista.map(s => s.loc))], cs = [...new Set(lista.map(s => s.conteo))], ops = [...new Set(lista.map(s => s.op))];
   return `Inventario_${locs.length === 1 ? slug(locs[0].split("/")[0]) : "Varias"}_Conteo${cs.length === 1 ? cs[0] : "s"}_${ops.length === 1 ? slug(ops[0]) : "Varios"}_${stamp()}`;
 }
 function buildImport() {
   const g = new Map();
-  for (const s of scans) {
+  for (const s of scansImport()) {
     if (!s.found) continue;
     const k = s.loc + "|" + s.code + "|" + s.ref;
     if (!g.has(k)) g.set(k, [s.loc, nombreSistema(s.ref, s.name), 0]);
@@ -649,7 +668,7 @@ async function getDownloads() {
   return downloads;
 }
 getDownloads();
-const exportImport = () => offer(baseName() + "_importar.csv", buildImport());
+const exportImport = () => offer(baseName(scansImport()) + "_importar.csv", buildImport());
 let exporting = false;
 function say(msg, cls, text) { msg.className = "notice " + (cls || ""); msg.textContent = text; msg.hidden = false; }
 function showFallback(filename, text, why) {
@@ -743,33 +762,124 @@ function parseCSV(text) {
   if (cell || row.length) { row.push(cell); rows.push(row); }
   return rows;
 }
-$("cmpFile").addEventListener("change", async e => {
-  const f = e.target.files[0]; if (!f) return;
-  const out = $("cmpOut");
-  const rows = parseCSV(await f.text());
-  const h = rows[0] || [];
-  const ix = n => h.findIndex(x => x.trim().toLowerCase() === n);
-  const iL = ix("localidad"), iR = ix("referencia interna"), iC = ix("código de barras"), iP = ix("producto"), iQ = ix("cantidad"), iE = ix("estado"), iN = ix("conteo");
-  if ([iL, iR, iC, iQ].some(i => i < 0)) { out.innerHTML = `<p class="notice bad">Este archivo no es un detalle de inventario. Usa el archivo que termina en "_detalle.csv".</p>`; return; }
-  const other = new Map(), names = new Map(); let otherConteo = new Set();
-  for (const r of rows.slice(1)) {
-    if (!r[iL] || (iE > -1 && r[iE] === "No encontrado")) continue;
-    const k = r[iL] + "|" + r[iC] + "|" + r[iR];
-    other.set(k, (other.get(k) || 0) + (parseInt(r[iQ], 10) || 0));
-    names.set(k, r[iP]); if (iN > -1) otherConteo.add(r[iN]);
+// Clave de producto: referencia interna; si no tiene, código de barras; si no, nombre
+const normK = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toUpperCase();
+const keyOf = (ref, code, name) => ref ? "R:" + normK(ref) : code ? "C:" + String(code).replace(/\D/g, "") : "N:" + normK(name);
+function partirNombre(p) { const m = String(p || "").match(/^\[([^\]]+)\]\s*(.*)$/); return m ? { ref: m[1].trim(), name: m[2] } : { ref: "", name: String(p || "") }; }
+
+// Datos de un conteo: Map(localidad → Map(clave → {qty, name, ref, code}))
+function agrupar(lista) {
+  const m = new Map();
+  for (const s of lista) {
+    if (!s.found) continue;
+    if (!m.has(s.loc)) m.set(s.loc, new Map());
+    const k = keyOf(s.ref, s.code, s.name), g = m.get(s.loc);
+    if (!g.has(k)) g.set(k, { qty: 0, name: nombreSistema(s.ref, s.name), ref: s.ref, code: s.code });
+    g.get(k).qty += s.qty;
   }
-  const mine = new Map();
-  for (const s of scans) { if (!s.found) continue; const k = s.loc + "|" + s.code + "|" + s.ref; mine.set(k, (mine.get(k) || 0) + s.qty); names.set(k, names.get(k) || nombreSistema(s.ref, s.name)); }
-  const locsOther = new Set([...other.keys()].map(k => k.split("|")[0]));
-  const keys = [...new Set([...other.keys(), ...mine.keys()])].filter(k => locsOther.has(k.split("|")[0]));
-  const diffs = keys.map(k => ({ k, a: other.get(k) || 0, b: mine.get(k) || 0 })).filter(d => d.a !== d.b)
-    .sort((x, y) => Math.abs(y.a - y.b) - Math.abs(x.a - x.b));
-  const oc = [...otherConteo].join("/") || "del archivo";
-  out.innerHTML = `
-    <p class="notice ${diffs.length ? "bad" : "ok"}">${diffs.length ? `${n0(diffs.length)} productos no coinciden de ${n0(keys.length)} comparados. Recuenta estos productos.` : `Los ${n0(keys.length)} productos coinciden en los dos conteos.`}</p>
-    ${diffs.length ? `<div class="tbl"><table><thead><tr><th>Localidad</th><th>Producto</th><th class="num">Conteo ${esc(oc)}</th><th class="num">Este equipo</th><th class="num">Diferencia</th></tr></thead><tbody>
-      ${diffs.map(d => `<tr class="diff"><td class="mono">${esc(d.k.split("|")[0])}</td><td>${esc(names.get(d.k))}<br><span class="muted mono">${esc(d.k.split("|")[1])}</span></td><td class="num">${n0(d.a)}</td><td class="num">${n0(d.b)}</td><td class="num"><b>${d.b - d.a > 0 ? "+" : ""}${n0(d.b - d.a)}</b></td></tr>`).join("")}
+  return m;
+}
+function resumen(lista) {
+  const f = lista.filter(s => s.found);
+  const ops = [...new Set(lista.map(s => s.op))].join(", ");
+  const ult = lista.length ? new Date(lista[lista.length - 1].t).toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+  return `${n0(new Set(f.map(s => s.loc + keyOf(s.ref, s.code, s.name))).size)} productos, ${n0(f.reduce((a, s) => a + s.qty, 0))} unidades · ${esc(ops)} · ${ult}`;
+}
+
+let archivo = null; // {conteos: {"1": Map, ...} o {"?": Map}, nombre}
+function leerArchivo(text, nombre) {
+  const rows = parseCSV(text).filter(r => r.some(c => String(c).trim()));
+  const h = (rows[0] || []).map(x => normK(x));
+  const ix = (...ns) => h.findIndex(x => ns.includes(x));
+  const iUb = ix("UBICACION", "LOCALIDAD"), iP = ix("PRODUCTO"), iQ = ix("CANTIDAD CONTADA", "CANTIDAD"), iR = ix("REFERENCIA INTERNA"), iC = ix("CODIGO DE BARRAS"), iE = ix("ESTADO"), iN = ix("CONTEO");
+  if (iUb < 0 || iQ < 0 || (iP < 0 && iR < 0 && iC < 0)) return null;
+  const conteoNombre = (String(nombre).match(/Conteo\s*([12])/i) || [])[1] || "?";
+  const conteos = {};
+  for (const r of rows.slice(1)) {
+    const loc = String(r[iUb] || "").trim(); if (!loc) continue;
+    if (iE > -1 && normK(r[iE]) === "NO ENCONTRADO") continue;
+    const c = iN > -1 && String(r[iN]).trim() ? String(r[iN]).trim() : conteoNombre;
+    let ref = iR > -1 ? String(r[iR] || "").trim() : "", name = iP > -1 ? String(r[iP] || "") : "";
+    if (!ref) { const x = partirNombre(name); ref = x.ref; }
+    const code = iC > -1 ? String(r[iC] || "").trim() : "";
+    const q = parseFloat(String(r[iQ]).replace(",", ".")) || 0;
+    if (!conteos[c]) conteos[c] = new Map();
+    const m = conteos[c]; if (!m.has(loc)) m.set(loc, new Map());
+    const k = keyOf(ref, code, partirNombre(name).name || name), g = m.get(loc);
+    if (!g.has(k)) g.set(k, { qty: 0, name, ref, code });
+    g.get(k).qty += q;
+  }
+  return { conteos, nombre };
+}
+
+function renderCompare() {
+  const loc1 = scans.filter(s => s.conteo === "1"), loc2 = scans.filter(s => s.conteo === "2");
+  const st = [];
+  st.push(loc1.length ? `<div class="ok">✓ <b>Conteo 1</b> en este equipo: ${resumen(loc1)}</div>` : `<div>Conteo 1: no está en este equipo</div>`);
+  st.push(loc2.length ? `<div class="ok">✓ <b>Conteo 2</b> en este equipo: ${resumen(loc2)}</div>` : `<div>Conteo 2: no está en este equipo</div>`);
+  if (archivo) st.push(`<div class="ok">✓ <b>Archivo cargado:</b> ${esc(archivo.nombre)} (${Object.keys(archivo.conteos).map(c => c === "?" ? "conteo sin número" : "conteo " + c).join(" y ")})</div>`);
+  $("cmpStatus").innerHTML = `<div class="cmpst">${st.join("")}</div>`;
+
+  // Qué comparar: primero lo que hay en el equipo; el archivo completa lo que falta
+  let A = null, B = null, la = "", lb = "";
+  if (archivo) {
+    const fc = Object.keys(archivo.conteos);
+    if (fc.length >= 2) { A = archivo.conteos[fc[0]]; B = archivo.conteos[fc[1]]; la = "Conteo " + fc[0]; lb = "Conteo " + fc[1]; }
+    else {
+      const c = fc[0];
+      const local = c === "1" ? (loc2.length ? loc2 : null) : c === "2" ? (loc1.length ? loc1 : null) : (scans.filter(s => s.conteo === S.conteo).length ? scans.filter(s => s.conteo === S.conteo) : (loc2.length ? loc2 : loc1));
+      if (local && local.length) {
+        const lc = local[0].conteo;
+        if (c !== "?" && c === lc) { $("cmpOut").innerHTML = `<p class="notice bad">El archivo es del conteo ${c}, igual que el de este equipo. Carga el archivo del <b>otro</b> conteo.</p>`; return; }
+        A = archivo.conteos[c]; B = agrupar(local); la = c === "?" ? "Archivo" : "Conteo " + c + " (archivo)"; lb = "Conteo " + lc + " (este equipo)";
+        if (lc === "1") { [A, B, la, lb] = [B, A, lb, la]; }
+      }
+    }
+  } else if (loc1.length && loc2.length) { A = agrupar(loc1); B = agrupar(loc2); la = "Conteo 1"; lb = "Conteo 2"; }
+
+  $("cmpDropT").textContent = archivo ? "Cargar otro archivo" : "Cargar el archivo del otro conteo";
+  if (!A || !B) {
+    $("cmpOut").innerHTML = scans.length || archivo
+      ? `<p class="notice">Para comparar falta el otro conteo. ${loc1.length || loc2.length ? "Haz el otro conteo en este equipo o carga su archivo." : "Haz un conteo en este equipo o carga los dos archivos."}</p>`
+      : `<p class="notice">Todavía no hay conteos en este equipo.</p>`;
+    return;
+  }
+  const locs = [...A.keys()].filter(l => B.has(l));
+  if (!locs.length) { $("cmpOut").innerHTML = `<p class="notice bad">Los dos conteos son de localidades distintas (${esc([...A.keys()].join(", "))} y ${esc([...B.keys()].join(", "))}). Revisa que sea el archivo correcto.</p>`; return; }
+  const diffs = []; let total = 0;
+  for (const l of locs) {
+    const a = A.get(l), b = B.get(l);
+    for (const k of new Set([...a.keys(), ...b.keys()])) {
+      total++;
+      const qa = a.get(k)?.qty || 0, qb = b.get(k)?.qty || 0;
+      if (qa !== qb) { const it = a.get(k) || b.get(k); diffs.push({ loc: l, name: it.name, ref: it.ref, code: it.code, qa, qb }); }
+    }
+  }
+  diffs.sort((x, y) => Math.abs(y.qb - y.qa) - Math.abs(x.qb - x.qa));
+  compareDiffs = { diffs, la, lb };
+  $("cmpOut").innerHTML = `
+    <p class="notice ${diffs.length ? "bad" : "ok"}">${diffs.length ? `<b>${n0(diffs.length)} productos no coinciden</b> de ${n0(total)} comparados en ${esc(locs.join(", "))}. Recuenta estos productos.` : `✓ Los ${n0(total)} productos coinciden en los dos conteos.`}</p>
+    ${diffs.length ? `<div class="row"><button type="button" class="ghost small" id="btnDiffCsv">Descargar diferencias (CSV)</button></div>
+    <div class="tbl"><table><thead><tr><th>Localidad</th><th>Producto</th><th class="num">${esc(la)}</th><th class="num">${esc(lb)}</th><th class="num">Diferencia</th></tr></thead><tbody>
+      ${diffs.map(d => `<tr class="diff"><td class="mono">${esc(d.loc)}</td><td>${esc(d.name)}<br><span class="muted mono">${esc(d.code || "")}</span></td><td class="num">${n0(d.qa)}</td><td class="num">${n0(d.qb)}</td><td class="num"><b>${d.qb - d.qa > 0 ? "+" : ""}${n0(d.qb - d.qa)}</b></td></tr>`).join("")}
     </tbody></table></div>` : ""}`;
+}
+let compareDiffs = null;
+async function cargarCmp(f) {
+  if (!f) return;
+  const r = leerArchivo(await f.text(), f.name);
+  if (!r) { archivo = null; renderCompare(); $("cmpOut").innerHTML = `<p class="notice bad">Este archivo no parece de la app de inventario. Usa uno de los CSV que descargaste con <b>Exportar</b> (termina en _importar.csv o _detalle.csv).</p>`; return; }
+  archivo = r; renderCompare();
+}
+$("cmpFile").addEventListener("change", e => { cargarCmp(e.target.files[0]); e.target.value = ""; });
+$("cmpDrop").addEventListener("dragover", e => { e.preventDefault(); $("cmpDrop").classList.add("over"); });
+$("cmpDrop").addEventListener("dragleave", () => $("cmpDrop").classList.remove("over"));
+$("cmpDrop").addEventListener("drop", e => { e.preventDefault(); $("cmpDrop").classList.remove("over"); cargarCmp(e.dataTransfer.files[0]); });
+document.addEventListener("click", e => {
+  if (!e.target.closest("#btnDiffCsv") || !compareDiffs) return;
+  const { diffs, la, lb } = compareDiffs;
+  offer(`Diferencias_${slug((diffs[0] || {}).loc ? diffs[0].loc.split("/")[0] : "inventario")}_${stamp()}.csv`,
+    "﻿" + csv([["Localidad", "Referencia interna", "Código de barras", "Producto", la, lb, "Diferencia"], ...diffs.map(d => [d.loc, d.ref, d.code, d.name, d.qa, d.qb, d.qb - d.qa])]));
 });
 
 // ---------- Arranque ----------
