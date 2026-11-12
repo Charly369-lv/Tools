@@ -1,4 +1,4 @@
-name: Sincronizar con Odoo
+name: Actualizar datos
 
 on:
   # Todos los días a las 2:00 a. m. de Guatemala (8:00 UTC)
@@ -33,7 +33,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Descargar datos de Odoo
+      - name: Descargar datos
         env:
           ODOO_URL: ${{ secrets.ODOO_URL }}
           ODOO_DB: ${{ secrets.ODOO_DB }}
@@ -56,8 +56,8 @@ jobs:
       - name: Registrar sincronización
         run: |
           cp site/ultima-sincronizacion.json sync/ultima-sincronizacion.json
-          git config user.name "Sincronizacion Odoo"
+          git config user.name "Actualizador"
           git config user.email "actions@users.noreply.github.com"
           git add sync/ultima-sincronizacion.json
-          git commit -m "Sincronización con Odoo" || echo "Sin cambios"
+          git commit -m "Actualización de datos" || echo "Sin cambios"
           git push || echo "No se pudo registrar (no afecta la publicación)"
