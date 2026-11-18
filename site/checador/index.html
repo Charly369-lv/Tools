@@ -3,631 +3,655 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
-/* Números (precios, porcentajes, contadores) en Archivo: el 4 de Bodoni se confunde con 1 */
-:root { --f-num: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
-.now-a, .savebar strong, .ribbon-t b, .reg-price .amt, .pick .pr b, .matches .mp b { font-family: var(--f-num) !important; font-weight: 800 !important; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
-.now-a { font-size: clamp(64px, 16vw, 112px); }
-.reg-price .amt { font-size: clamp(52px, 13vw, 84px); }
-.ribbon-t b { font-size: .95em; }
-</style>
-</head>
-<body>
-<title>Checador De Museo</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Surtido de Tiendas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: banda azul De Museo con logo arriba, campo de búsqueda, ficha de producto tipo cartel de museo, historial al pie */
+/* Surtido: 1 existencias propias (con clave), 2 aprobados, 3 reportes de tiendas, 4 por confirmar, 5 sugerido por tienda */
 :root {
-  --navy: #112369;        /* Pantone 2757 C */
-  --navy-deep: #0b1748;
-  --on-navy: #ffffff;
-  --bg: #f3f4f9;
-  --surface: #ffffff;
-  --ink: #111a3d;
-  --muted: #5b6386;
-  --line: #d9dcea;
-  --gold: #f2bd3c;
-  --gold-ink: #0b1748;
-  --sale-bg: #d62818;
-  --on-sale: #ffffff;
-  --sale: #c4271b;
-  --soft: #e9ecf6;
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8;
+  --gray: #5b6386; --gray-bg: #eceef4; --gold: #f2bd3c;
   --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
   --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --navy: #1a2f85; --navy-deep: #0b1748; --on-navy: #ffffff;
-    --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e;
-    --gold: #f2bd3c; --gold-ink: #0b1748; --sale-bg: #e3392a; --on-sale: #ffffff; --sale: #ff7a6b; --soft: #18224c;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --navy: #1a2f85; --navy-deep: #0b1748; --on-navy: #ffffff;
-  --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e;
-  --gold: #f2bd3c; --gold-ink: #0b1748; --sale-bg: #e3392a; --on-sale: #ffffff; --sale: #ff7a6b; --soft: #18224c;
-  color-scheme: dark;
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; --gray: #9da6c9; --gray-bg: #1c2650; color-scheme: dark; }
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.45; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
 .pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.inner { max-width: 760px; margin: 0 auto; }
+.inner { max-width: 1180px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 18px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.mast img { display: block; width: min(220px, 56vw); height: auto; }
+.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; }
+main { padding-block: 22px 56px; }
+main .inner { display: grid; gap: 18px; }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
+h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
+.step { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); color: var(--ink); font-weight: 800; }
+.step.done .num { background: var(--green-bg); color: var(--green); }
+.step-b { display: grid; gap: 10px; min-width: 0; }
+.status { font-size: 15px; font-weight: 600; }
+.status.ok { color: var(--green); }
+button, .btn { font: 700 15px var(--f-body); border-radius: 8px; cursor: pointer; padding: 9px 15px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 42px; display: inline-flex; align-items: center; }
+button.ghost, .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.small { min-height: 34px; padding: 5px 10px; font-size: 13px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, input:focus-visible, .btn:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
+input[type=password], input[type=number], input[type=search], select { font: 15px var(--f-body); padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+input[type=number] { width: 90px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.drop { border: 3px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; display: grid; gap: 4px; justify-items: center; cursor: pointer; }
+.drop.over { border-color: var(--navy); background: var(--soft); }
+.drop b { font-size: 16px; }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.ok { background: var(--green-bg); }
+.stores { display: flex; flex-wrap: wrap; gap: 6px; }
+.stores span { font-size: 13px; background: var(--soft); border-radius: 6px; padding: 4px 8px; }
+.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.sets label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.locs { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.locs label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; color: var(--ink); }
+details > summary { cursor: pointer; font-weight: 700; }
 
-/* Encabezado de marca */
-.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 22px 0; }
-.mast .inner { display: grid; gap: 14px; }
-.mast-top { display: flex; justify-content: space-between; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
-.logo { display: block; width: min(320px, 72vw); height: auto; }
-.tagline { font-family: var(--f-display); font-style: italic; font-size: 17px; opacity: .85; }
-.ribbon { display: flex; justify-content: space-between; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding: 10px 16px; margin-bottom: -22px; position: relative; z-index: 1;
-  background: var(--sale-bg); color: var(--on-sale); border-radius: 6px; box-shadow: 0 6px 18px rgba(11,23,72,.28); }
-.ribbon-t { font-family: var(--f-display); font-weight: 900; font-size: clamp(20px, 4.6vw, 28px); line-height: 1.05; letter-spacing: .01em; }
-.ribbon-t b { color: var(--gold); }
-.ribbon-s { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
-
-main.pad { padding-block: 44px 48px; }
-main .inner { display: grid; gap: 22px; }
-
-form.scan { display: grid; gap: 8px; }
-.scan-head { display: flex; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; align-items: baseline; }
-label[for="codigo"] { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.count { font-size: 12px; color: var(--muted); font-family: var(--f-mono); letter-spacing: .02em; opacity: .75; font-variant-numeric: tabular-nums; }
-.scan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-button.snd { padding: 3px 10px; font-size: 12px; font-weight: 700; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; }
-button.snd[aria-pressed="true"] { color: var(--navy); border-color: var(--navy); }
-:root:not([data-theme="light"]) button.snd[aria-pressed="true"] { color: var(--ink); }
-:root[data-theme="light"] button.snd[aria-pressed="true"] { color: var(--navy); }
-.field { display: flex; gap: 8px; }
-#codigo { flex: 1; min-width: 0; font-family: var(--f-mono); font-size: clamp(19px, 4.4vw, 26px); letter-spacing: .05em; padding: 14px 16px;
-  border: 2px solid var(--navy); border-radius: 6px; background: var(--surface); color: var(--ink); }
-#codigo:focus { outline: 3px solid var(--gold); outline-offset: 2px; }
-button { font: 700 16px var(--f-body); border-radius: 6px; cursor: pointer; padding: 0 20px; background: var(--navy); color: var(--on-navy); border: 2px solid var(--navy); }
-button:hover { filter: brightness(1.15); }
-button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-.hint { font-size: 13px; color: var(--muted); margin: 0; }
-
-.result { border-radius: 10px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
-.result.flash { animation: pop .28s ease-out; }
-@keyframes pop { from { transform: scale(.985); } to { transform: scale(1); } }
-
-.idle, .loading { padding: 22px 20px; color: var(--muted); font-size: 15px; display: grid; gap: 8px; }
-.idle code { font-family: var(--f-mono); background: var(--soft); padding: 1px 6px; border-radius: 4px; color: var(--ink); cursor: pointer; }
-.bar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden; }
-.bar i { display: block; height: 100%; width: 0; background: var(--navy); transition: width .2s; }
-
-/* Ficha común */
-.band { display: flex; justify-content: space-between; align-items: center; gap: 6px 12px; flex-wrap: wrap; padding: 10px 20px; }
-.band-t { font-family: var(--f-display); font-weight: 900; font-size: 24px; letter-spacing: .01em; }
-.band-c { font-family: var(--f-mono); font-size: 13px; opacity: .9; }
-.desc { padding: 18px 20px 16px; }
-.desc h2 { margin: 0 0 6px; font-size: clamp(19px, 4vw, 24px); line-height: 1.2; font-weight: 700; text-wrap: balance; }
-.meta { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 14px; color: var(--muted); }
-.meta b { font-weight: 600; color: var(--ink); }
-
-/* Oferta bazar */
-.band.sale { background: var(--sale-bg); color: var(--on-sale); }
-.hero { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 20px 22px; background: var(--gold); color: var(--gold-ink); overflow: hidden; }
-.hero::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, transparent 0 22px, rgba(255,255,255,.2) 22px 44px); pointer-events: none; }
-.now { position: relative; display: grid; gap: 6px; min-width: 0; }
-.now-l { font-size: 14px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
-.now-a { font-family: var(--f-display); font-weight: 900; font-size: clamp(76px, 19vw, 128px); line-height: .85; font-variant-numeric: lining-nums; }
-.now-a small { font-size: .42em; vertical-align: .95em; margin-right: 4px; }
-.was { font-size: 17px; font-weight: 600; }
-.was s { text-decoration-thickness: 2.5px; text-decoration-color: var(--sale-bg); }
-.burst { position: relative; flex: none; width: clamp(104px, 26vw, 140px); aspect-ratio: 1; max-width: 100%;
-  display: grid; place-content: center; gap: 2px; text-align: center; background: var(--sale-bg); color: var(--on-sale); transform: rotate(12deg);
-  clip-path: polygon(50.0% 0.0%, 59.3% 9.1%, 71.7% 5.0%, 76.2% 17.2%, 89.1% 18.8%, 87.8% 31.8%, 98.7% 38.9%, 92.0% 50.0%, 98.7% 61.1%, 87.8% 68.2%, 89.1% 81.2%, 76.2% 82.8%, 71.7% 95.0%, 59.3% 90.9%, 50.0% 100.0%, 40.7% 90.9%, 28.3% 95.0%, 23.8% 82.8%, 10.9% 81.2%, 12.2% 68.2%, 1.3% 61.1%, 8.0% 50.0%, 1.3% 38.9%, 12.2% 31.8%, 10.9% 18.8%, 23.8% 17.2%, 28.3% 5.0%, 40.7% 9.1%); }
-.burst b { font-family: var(--f-body); font-weight: 800; font-size: clamp(26px, 6.6vw, 36px); line-height: .9; }
-.burst span { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.savebar { padding: 14px 20px; text-align: center; font-size: 18px; font-weight: 600; background: var(--navy-deep); color: var(--on-navy); }
-.savebar strong { font-family: var(--f-display); font-weight: 900; font-size: 1.45em; color: var(--gold); }
-.savebar .legal { display: block; margin-top: 4px; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
-.advice .legal-s { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-
-/* Precio normal */
-.band.reg { background: var(--navy); color: var(--on-navy); }
-.reg-price { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; padding: 4px 20px 20px; }
-.reg-price .lbl { font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
-.reg-price .amt { font-family: var(--f-display); font-weight: 900; font-size: clamp(60px, 15vw, 96px); line-height: .85; color: var(--navy); }
-.reg-price .amt small { font-size: .42em; vertical-align: .95em; margin-right: 4px; }
-.reg-note { font-size: 15px; font-weight: 600; color: var(--muted); max-width: 30ch; }
-.advice { background: var(--soft); padding: 18px 20px 20px; display: grid; gap: 12px; border-top: 1px solid var(--line); }
-.advice h3 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.6vw, 27px); line-height: 1.15; color: var(--ink); text-wrap: balance; }
-.advice h3 em { font-style: normal; background: var(--sale-bg); color: var(--on-sale); padding: 0 .2em; }
-.advice p { margin: 0; font-size: 14px; color: var(--muted); }
-.picks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.pick { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; text-align: left; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line);
-  border-radius: 8px; padding: 12px; cursor: pointer; position: relative; }
-.pick:hover { border-color: var(--navy); }
-.pick:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-.pick .pp { font-size: 11px; font-weight: 800; letter-spacing: .06em; justify-self: start; background: var(--sale-bg); color: var(--on-sale); padding: 2px 7px; border-radius: 3px; }
-.pick .pt { font-size: 14px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.pick .pr { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.pick .pr b { font-family: var(--f-display); font-weight: 900; font-size: 26px; line-height: 1; background: var(--gold); color: var(--gold-ink); padding: 2px 7px; border-radius: 4px; }
-.pick .pr s { font-size: 13px; color: var(--muted); text-decoration-color: var(--sale-bg); }
-.advice.more { background: var(--surface); }
-.picks.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.pick.reg { background: var(--soft); }
-.pick.reg .pp { background: var(--navy); color: var(--on-navy); }
-.pick.reg .pr b { background: var(--surface); color: var(--navy); border: 1px solid var(--line); }
-@media (max-width: 700px) { .picks.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-/* Sin precio / no encontrado */
-.miss { padding: 26px 22px; background: var(--soft); display: grid; gap: 10px; }
-.miss .chip { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.miss h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(22px, 4.8vw, 30px); line-height: 1.15; text-wrap: balance; }
-.miss p { margin: 0; font-size: 15px; }
-
-/* Lista de resultados */
-.list-top { display: flex; justify-content: space-between; gap: 6px 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-.list-top b { font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.matches { list-style: none; margin: 0; padding: 0; max-height: 62vh; overflow-y: auto; }
-.matches li { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); cursor: pointer; }
-.matches li:last-child { border-bottom: 0; }
-.matches li:hover, .matches li:focus-visible { background: var(--soft); outline: none; }
-.matches .mt { font-weight: 600; min-width: 0; }
-.matches .ms { grid-column: 1; font-size: 13px; color: var(--muted); min-width: 0; }
-.matches .mono { font-family: var(--f-mono); }
-.matches .mp { grid-row: 1 / span 2; grid-column: 2; text-align: right; align-self: center; display: grid; justify-items: end; gap: 2px; }
-.matches .mp em { font-style: normal; font-size: 11px; font-weight: 800; background: var(--sale-bg); color: var(--on-sale); padding: 1px 6px; border-radius: 3px; }
-.matches .mp b { font-family: var(--f-display); font-weight: 900; font-size: 24px; line-height: 1; padding: 3px 8px; border-radius: 4px; }
-.matches .sale .mp b { background: var(--gold); color: var(--gold-ink); }
-.matches .mp s { font-size: 13px; color: var(--muted); text-decoration-color: var(--sale-bg); }
-.matches .mp .n { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
-mark { background: var(--gold); color: var(--gold-ink); padding: 0 1px; border-radius: 2px; }
-
-/* Historial */
-.history h3 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.history ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.history li { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; cursor: pointer; }
-.history li:hover .t { text-decoration: underline; }
-.history .c { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
-.history .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.history .p { font-weight: 700; font-variant-numeric: tabular-nums; }
-.history .p.s { color: var(--sale); }
-
-.result.flash .now-a { animation: slam .42s cubic-bezier(.2,1.6,.4,1); }
-.result.flash .burst { animation: spin .5s cubic-bezier(.2,1.4,.4,1); }
-@keyframes slam { from { transform: scale(.7); } to { transform: scale(1); } }
-@keyframes spin { from { transform: rotate(-40deg) scale(.5); } to { transform: rotate(12deg) scale(1); } }
-@media (prefers-reduced-motion: reduce) { .result.flash, .result.flash .now-a, .result.flash .burst { animation: none; } }
-
-@media (max-width: 560px) {
-  .picks { grid-template-columns: 1fr; }
-  .pick { grid-template-columns: auto 1fr; grid-template-rows: auto auto; align-items: center; }
-  .pick .pt { grid-column: 1 / -1; }
-}
-@media (max-width: 420px) {
-  .hero { padding-inline: 16px; }
-  .savebar { font-size: 16px; }
-  button { padding: 0 14px; }
-}
+.tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 70vh; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.big { font-weight: 800; font-size: 16px; }
+.mono { font-family: var(--f-mono); font-size: 13px; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.c-rep { background: var(--navy); color: #fff; }
+.c-new { background: var(--green-bg); color: var(--green); }
+.c-sin { background: var(--gray-bg); color: var(--gray); }
+.c-quieto { background: var(--red); color: #fff; }
+.pill-red { display: inline-block; min-width: 28px; text-align: center; font-weight: 800; background: var(--red); color: #fff; border-radius: 999px; padding: 2px 9px; }
+tr.alerta td { background: var(--red-bg); }
+.alerta-box { border-radius: 10px; padding: 12px 14px; background: var(--red-bg); border-left: 6px solid var(--red); display: grid; gap: 2px; }
+.alerta-box b { color: var(--red); font-size: 17px; }
+.tabs button.t-red[aria-pressed="false"] { color: var(--red); border-color: var(--red); }
+.tabs button.t-red[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+select.rev { font-size: 13px; padding: 5px 6px; }
+select.rev.hecho { border-color: var(--green); }
+.from { font-size: 13px; }
+.from b { font-family: var(--f-mono); }
+.small-t { font-size: 12px; color: var(--muted); }
+tr.click { cursor: pointer; }
+tr.click:hover td, tr.sel td { background: var(--soft); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.tabs button[aria-pressed="false"] { background: transparent; color: var(--ink); border-color: var(--line); }
+.cand { display: grid; gap: 6px; }
+.cand select { max-width: 100%; width: 100%; font-size: 13px; }
+.show-sm { display: none; }
+@media (max-width: 640px) { .show-sm { display: block; margin-top: 6px; } .hide-sm { display: none; } .step { grid-template-columns: 1fr; } .num { display: none; } }
 </style>
+</head>
+<body>
+<header class="mast pad"><div class="inner">
+  <img src="../checador/logo.png" alt="De Museo" width="800" height="144">
+  <span class="mast-t">Surtido de tiendas</span>
+</div></header>
 
-<header class="mast pad">
-  <div class="inner">
-    <div class="mast-top">
-      <img class="logo" src="logo.png" alt="De Museo" width="800" height="144">
-      <span class="tagline">Un mundo por descubrir</span>
+<main class="pad"><div class="inner">
+  <p class="muted">Sube los reportes de existencias de las tiendas y la lista de títulos aprobados. La página sugiere qué mandar a cada tienda y de qué bodega sacarlo. Los archivos se revisan en este equipo y no se suben a internet.</p>
+
+  <!-- 1. Existencias propias -->
+  <section class="card step" id="s1">
+    <span class="num">1</span>
+    <div class="step-b">
+      <h3>Nuestras existencias por bodega</h3>
+      <p class="status" id="stStatus">Cargando…</p>
+      <form class="row" id="claveForm" hidden autocomplete="off">
+        <input type="password" id="clave" placeholder="Clave de existencias" autocomplete="current-password" style="flex:1;max-width:320px">
+        <button type="submit">Abrir</button>
+      </form>
+      <p class="notice bad" id="stErr" hidden></p>
+      <div class="row" id="stTools" hidden><button type="button" class="ghost small" id="olvidar">Olvidar clave en este equipo</button></div>
     </div>
-    <div class="ribbon">
-      <span class="ribbon-t" id="ribbonT">Bazar de Descuentos</span>
-      <span class="ribbon-s">Válido solo en tiendas físicas</span>
+  </section>
+
+  <!-- 2. Aprobados -->
+  <section class="card step" id="s2">
+    <span class="num">2</span>
+    <div class="step-b">
+      <h3>Títulos aprobados</h3>
+      <p class="status" id="apStatus">Aún no hay lista de aprobados.</p>
+      <label class="drop" id="apDrop"><b>Sube la lista de aprobados</b><span class="muted">Excel o CSV con BARRA, PLU y DESCRIPCION. Queda guardada en este equipo.</span><input type="file" id="apFile" accept=".xlsx,.xls,.csv" hidden></label>
     </div>
-  </div>
-</header>
+  </section>
 
-<main class="pad">
-  <div class="inner">
-    <form class="scan" id="scanForm" autocomplete="off">
-      <div class="scan-head">
-        <label for="codigo">Código de barras, referencia interna o nombre</label>
-        <span class="scan-tools"><span class="count" id="count"></span><button type="button" class="snd" id="snd" aria-pressed="true">🔊 Sonido</button></span>
+  <!-- 3. Reportes de tiendas -->
+  <section class="card step" id="s3">
+    <span class="num">3</span>
+    <div class="step-b">
+      <h3>Existencias de las tiendas</h3>
+      <p class="status" id="wmStatus">Aún no hay reportes de tiendas.</p>
+      <div class="stores" id="wmStores"></div>
+      <label class="drop" id="wmDrop"><b>Sube uno o varios reportes de tiendas</b><span class="muted">CSV o Excel con Tienda, Item Nbr, Descripción, On hand, En camino y Días sin venta. Puede venir una tienda por archivo o todas juntas.</span><input type="file" id="wmFile" accept=".xlsx,.xls,.csv,.txt" multiple hidden></label>
+      <div class="row" id="wmTools" hidden><button type="button" class="ghost small" id="wmClear">Quitar todos los reportes</button></div>
+    </div>
+  </section>
+
+  <!-- Ajustes -->
+  <section class="card">
+    <details id="ajustes">
+      <summary>Ajustes del sugerido</summary>
+      <div style="display:grid;gap:14px;margin-top:12px">
+        <div class="sets">
+          <label>Mínimo de unidades por título en tienda<input type="number" id="cfMin" min="1" max="20" value="2"></label>
+          <label>Días sin venta para "no se mueve"<input type="number" id="cfDias" min="15" max="365" value="90"></label>
+          <label>Títulos nuevos por tienda (máximo)<input type="number" id="cfNuevos" min="0" max="200" value="25"></label>
+          <label>Unidades por título nuevo<input type="number" id="cfUN" min="1" max="20" value="2"></label>
+        </div>
+        <div style="display:grid;gap:6px"><h3>Bodegas de donde se puede surtir</h3><div class="locs" id="cfLocs"><span class="muted">Se muestran al abrir las existencias.</span></div></div>
       </div>
-      <div class="field">
-        <input id="codigo" name="codigo" placeholder="Escanea o escribe aquí" autofocus spellcheck="false">
-        <button type="submit" id="buscar">Buscar</button>
+    </details>
+  </section>
+
+  <!-- 4. Por confirmar -->
+  <section class="card" id="s4" hidden>
+    <div class="row" style="justify-content:space-between">
+      <div style="display:grid;gap:4px"><h2 id="pcTitle">Por confirmar</h2>
+        <p class="muted">El reporte de la tienda no trae el código de barras completo, así que se identifican por el nombre. Estos tienen varias opciones o no se encontraron: elige la correcta una sola vez y queda guardada para todas las tiendas.</p></div>
+    </div>
+    <div class="tbl" style="max-height:50vh"><table>
+      <thead><tr><th>Artículo en la tienda</th><th>Es este título aprobado</th></tr></thead>
+      <tbody id="pcBody"></tbody>
+    </table></div>
+  </section>
+
+  <!-- 5. Resultado -->
+  <section id="s5" hidden style="display:grid;gap:14px">
+    <div class="row" style="justify-content:space-between">
+      <h2>Sugerido por tienda</h2>
+      <div class="row"><button type="button" id="xlsAll">Descargar Excel de todas las tiendas</button></div>
+    </div>
+    <p class="notice" id="resNote" hidden></p>
+    <div class="tbl" style="max-height:none"><table>
+      <thead><tr><th>Tienda</th><th class="n">Reponer</th><th class="n">Nuevos</th><th class="n">Unidades</th><th class="n">Alerta +<span class="umbral">90</span> días</th><th class="n hide-sm">Datos al</th></tr></thead>
+      <tbody id="sumBody"></tbody>
+    </table></div>
+
+    <section class="card" id="det" hidden>
+      <div class="row" style="justify-content:space-between">
+        <h2 id="detTitle"></h2>
+        <button type="button" class="ghost" id="xlsOne">Descargar Excel de esta tienda</button>
       </div>
-      <p class="hint">Escanea el código, escribe la referencia interna y presiona Enter, o escribe parte del título o del autor.</p>
-    </form>
-
-    <section class="result" id="result" aria-live="polite">
-      <div class="loading"><span id="loadMsg">Cargando ofertas del Bazar…</span><div class="bar"><i id="loadBar"></i></div></div>
+      <div class="alerta-box" id="detAlert" hidden></div>
+      <div class="tabs" id="detTabs"></div>
+      <div class="tbl"><table>
+        <thead id="detHead"></thead>
+        <tbody id="detBody"></tbody>
+      </table></div>
     </section>
+  </section>
+</div></main>
 
-    <section class="history" id="history" hidden>
-      <h3>Últimas consultas</h3>
-      <ol id="histList"></ol>
-    </section>
-  </div>
-</main>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// Producto: [código, referencia, título, autor, editorial, precio, tema, precioBazar?, %descuento?]
-// Carga por partes: los códigos y referencias se buscan en archivos pequeños (c/NN.json, r/NN.json);
-// las ofertas del bazar llegan primero (bazar.json); el catálogo completo para buscar por nombre se descarga
-// en segundo plano y se guarda en el equipo para que la próxima vez abra al instante.
-let CAT_V = "", MAXPCT = 75;
-const num = n => Math.round(n).toLocaleString("es-GT", { maximumFractionDigits: 0 });
-const fmt = n => "Q" + num(n);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const norm = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
 const $ = id => document.getElementById(id);
-const input = $("codigo"), result = $("result");
-const isBz = p => p.length > 7 && p[7] != null;
-const history = [];
-const REG = []; // productos mostrados en pantalla (data-i apunta aquí)
-const reg = p => { REG.push(p); return REG.length - 1; };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const normTxt = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+const toks = s => normTxt(s).replace(/[^A-Z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const hoy = () => new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short", year: "numeric" });
 
-let BZ = [], TEMA_BZ = new Map(), TOTAL = 0, bzReady = false;
-let CAT = null, TXT = null, catPct = 0, pendingName = null;
-const shardCache = new Map();
-const key2 = s => s.slice(-2).padStart(2, "0");
+// ---------------------------------------------------------------- estado
+let STOCK = null;              // { v, L:[bodegas], p:{barra:[ref,[i,n,...]]}, r:{ref:barra} }
+let APR = lsGet("surtido-aprobados", null);   // { fecha, nombre, items:[[barra, plu, titulo, precio, autor, tema, editorial]] }
+let EQ = lsGet("surtido-equiv", {});          // { itemNbr: barra | "NO" }
+let WM = [];                   // filas de tiendas
+let CF = Object.assign({ min: 2, dias: 90, nuevos: 25, un: 2, sinLocs: [] }, lsGet("surtido-ajustes", {}));
+let RES = null, SEL = null, TAB = "sug";
+let REV = lsGet("surtido-revision", {});   // { "tienda|item": "piso" | "noesta" | "retirar" | "trasladar" }
+const REV_OP = [["", "Sin revisar"], ["piso", "Está en el piso"], ["noesta", "No está: ajustar existencia"], ["retirar", "Retirar de la tienda"], ["trasladar", "Trasladar a otra tienda"]];
 
-function shard(kind, k) {
-  const id = kind + "/" + k;
-  if (!shardCache.has(id)) shardCache.set(id, fetch(id + ".json?v=" + encodeURIComponent(CAT_V)).then(r => { if (!r.ok) throw 0; return r.json(); }).catch(e => { shardCache.delete(id); throw e; }));
-  return shardCache.get(id);
-}
-
-async function loadBazar() {
-  const d = await (await fetch("bazar.json?t=" + Date.now(), { cache: "no-store" })).json();
-  BZ = d.bz; TOTAL = d.total; CAT_V = d.v || String(TOTAL);
-  // Porcentajes vigentes según las categorías (ej. 60%, 75%, 90%)
-  const pcts = [...new Set(BZ.map(p => p[8]))].sort((a, b) => a - b);
-  MAXPCT = pcts.length ? pcts[pcts.length - 1] : 0;
-  const list = pcts.map(x => `<b>${x}%</b>`);
-  $("ribbonT").innerHTML = "Bazar de Descuentos " + (list.length > 1 ? list.slice(0, -1).join(", ") + " y " + list[list.length - 1] : list.join(""));
-  for (const p of BZ) if (p[6]) { if (!TEMA_BZ.has(p[6])) TEMA_BZ.set(p[6], []); TEMA_BZ.get(p[6]).push(p); }
-  bzReady = true;
-  $("count").textContent = codigoVersion(d.v, TOTAL, BZ.length);
-  if (!input.value.trim()) showIdle();
-}
-
-// --- Caché local (IndexedDB) del catálogo para búsquedas por nombre ---
-function idb() {
-  return new Promise((res, rej) => {
-    try {
-      const r = indexedDB.open("demuseo-checador", 1);
-      r.onupgradeneeded = () => r.result.createObjectStore("kv");
-      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
-    } catch (e) { rej(e); }
-  });
-}
-async function idbGet(k) { const db = await idb(); return new Promise((res, rej) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
-async function idbSet(k, v) { const db = await idb(); return new Promise((res, rej) => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); }
-
-async function loadCatalog() {
-  let text = null;
-  try { const c = await idbGet("catalogo"); if (c && c.v === CAT_V) text = c.text; } catch (e) {}
-  if (!text) {
-    const r = await fetch("catalogo.json?v=" + encodeURIComponent(CAT_V));
-    if (!r.ok) throw 0;
-    const total = 10.4e6; let got = 0;
-    const counted = r.body.pipeThrough(new TransformStream({ transform(ch, c) { got += ch.length; catPct = Math.min(99, Math.round(got / total * 100)); paintPending(); c.enqueue(ch); } }));
-    text = await new Response(counted).text();
-    try { await idbSet("catalogo", { v: CAT_V, text }); } catch (e) {}
+// ---------------------------------------------------------------- 1. existencias cifradas
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+let SOBRE = null;
+async function abrirExistencias(clave, silencioso) {
+  $("stErr").hidden = true;
+  try {
+    const salt = b64(SOBRE.s), iv = b64(SOBRE.iv), data = b64(SOBRE.d);
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: SOBRE.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    let plano;
+    try { plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data); }
+    catch (e) { throw new Error("clave"); }
+    const txt = await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    STOCK = JSON.parse(txt);
+    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
+    pintarExistencias();
+    recalcular();
+  } catch (e) {
+    if (!silencioso) { $("stErr").textContent = e.message === "clave" ? "Clave incorrecta. Revísala e intenta de nuevo." : "No se pudieron abrir las existencias en este navegador."; $("stErr").hidden = false; }
+    $("claveForm").hidden = false;
+    if (silencioso) try { localStorage.removeItem("surtido-clave"); } catch (er) {}
   }
-  const d = JSON.parse(text);
-  const A = d.a, E = d.e, T = d.t;
-  CAT = d.p.map(r => { const p = [r[0], r[1], r[2], A[r[3]], E[r[4]], r[5], T[r[6]]]; if (r.length > 7) p.push(r[7], r[8]); return p; });
-  TXT = CAT.map(p => norm(p[2] + " " + p[3] + " " + p[4] + " " + p[1]));
-  for (const q of CAT) if (q[6] && q[5] > 0 && !isBz(q)) { if (!TEMA_N.has(q[6])) TEMA_N.set(q[6], []); TEMA_N.get(q[6]).push(q); }
-  catPct = 100;
-  if (pendingName != null) { const q = pendingName; pendingName = null; if (input.value.trim() === q) search(q, false); }
 }
-
-// Código de versión camuflado: vAA.MMDD.HHMM · r<productos>-b<en bazar> (hora de Guatemala)
-function codigoVersion(v, total, bazar) {
-  const d = new Date(String(v).replace(" ", "T") + ":00Z");
-  if (isNaN(d)) return "";
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guatemala", year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).map(x => [x.type, x.value]));
-  return `v${p.year}.${p.month}${p.day}.${p.hour}${p.minute}` + (total != null ? ` · r${total}-b${bazar}` : "");
-}
-// Fecha de la última sincronización (viene en UTC) en hora de Guatemala
 function fechaLocal(v) {
-  const d = new Date(v.replace(" ", "T") + ":00Z");
+  const d = new Date(String(v).replace(" ", "T") + ":00Z");
   return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
-const bazarReady = loadBazar();
-bazarReady.catch(() => { result.innerHTML = `<div class="loading">No se pudo cargar. Revisa la conexión a internet y recarga la página.</div>`; });
-// El catálogo completo se pide después de que la página ya está lista
-bazarReady.then(() => setTimeout(() => loadCatalog().catch(() => {}), 400)).catch(() => {});
-
-async function byDigits(d) {
-  try { await bazarReady; } catch (e) {} // la versión de los datos llega con bazar.json
-  const tries = [...new Set([d, d.replace(/^0+/, ""), "0" + d])].filter(Boolean);
-  // Números cortos (referencias internas, 8 dígitos o menos): primero la referencia; largos: primero el código de barras
-  const orden = d.length <= 8 ? ["r", "c"] : ["c", "r"];
-  for (const k of orden) for (const t of tries) { const s = await shard(k, key2(t)); if (s[t]) return s[t]; }
-  return null;
+function pintarExistencias() {
+  const n = Object.keys(STOCK.p).length;
+  $("stStatus").textContent = `Listas: ${n.toLocaleString("es-GT")} productos con existencia en ${STOCK.L.length} bodegas (al ${fechaLocal(STOCK.v)}).`;
+  $("stStatus").className = "status ok"; $("s1").classList.add("done");
+  $("claveForm").hidden = true; $("stTools").hidden = false;
+  $("cfLocs").innerHTML = STOCK.L.map(l => `<label><input type="checkbox" data-loc="${esc(l)}" ${CF.sinLocs.includes(l) ? "" : "checked"}> ${esc(l)}</label>`).join("");
 }
-
-function byName(q) {
-  const words = norm(q).split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
-  const out = [];
-  for (let i = 0; i < TXT.length; i++) { const t = TXT[i]; if (words.every(w => t.includes(w))) out.push(i); }
-  const w0 = words[0];
-  const score = i => (isBz(CAT[i]) ? 2 : 0) + (TXT[i].startsWith(w0) ? 1 : 0);
-  out.sort((a, b) => score(b) - score(a) || CAT[a][2].localeCompare(CAT[b][2], "es"));
-  return out.map(i => CAT[i]);
-}
-
-function highlight(text, q) {
-  const words = norm(q).split(/\s+/).filter(w => w.length > 1);
-  const src = String(text), n = norm(src);
-  if (n.length !== src.length) return esc(src);
-  const marks = new Array(src.length).fill(false);
-  for (const w of words) { let i = n.indexOf(w); while (i > -1) { for (let k = i; k < i + w.length; k++) marks[k] = true; i = n.indexOf(w, i + w.length); } }
-  let html = "", open = false;
-  for (let i = 0; i < src.length; i++) {
-    if (marks[i] && !open) { html += "<mark>"; open = true; }
-    if (!marks[i] && open) { html += "</mark>"; open = false; }
-    html += esc(src[i]);
+$("cfLocs").addEventListener("change", e => {
+  const l = e.target.dataset.loc; if (!l) return;
+  CF.sinLocs = CF.sinLocs.filter(x => x !== l); if (!e.target.checked) CF.sinLocs.push(l);
+  lsSet("surtido-ajustes", CF); recalcular();
+});
+$("claveForm").addEventListener("submit", e => { e.preventDefault(); const c = $("clave").value.trim(); if (c) abrirExistencias(c); });
+$("olvidar").addEventListener("click", () => { try { localStorage.removeItem("surtido-clave"); } catch (e) {} location.reload(); });
+(async () => {
+  try {
+    const r = await fetch("existencias.enc?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw 0;
+    SOBRE = await r.json();
+    let c = null; try { c = localStorage.getItem("surtido-clave"); } catch (e) {}
+    $("stStatus").textContent = "Escribe la clave para ver en qué bodegas hay existencia.";
+    if (c) await abrirExistencias(c, true); else $("claveForm").hidden = false;
+  } catch (e) {
+    $("stStatus").textContent = "Todavía no hay existencias publicadas. El sugerido funciona igual, pero sin revisar de qué bodega sacar.";
   }
-  return html + (open ? "</mark>" : "");
-}
+})();
 
-function flash() { result.classList.remove("flash"); void result.offsetWidth; result.classList.add("flash"); }
-
-function showIdle() {
-  if (!bzReady) return;
-  const b = BZ[0];
-  result.innerHTML = `<div class="idle">
-    <span>Escanea un producto o búscalo para ver su precio. Si está en el Bazar de Descuentos, verás su precio de oferta.</span>
-    <span>Prueba: libro en bazar <code data-q="${esc(b[0])}">${esc(b[0])}</code>, precio normal <code data-q="9788427212589">9788427212589</code> o nombre <code data-q="garcia marquez">garcia marquez</code></span>
-  </div>`;
-}
-
-function paintPending() {
-  if (pendingName == null) return;
-  result.innerHTML = `<div class="loading"><span>Preparando la búsqueda por nombre… ${catPct}%. Mientras tanto, puedes escanear códigos o escribir referencias.</span><div class="bar"><i style="width:${catPct}%"></i></div></div>`;
-}
-
-const idLine = p => `${esc(p[0] || "Sin código")}${p[1] ? " · Ref. " + esc(p[1]) : ""}`;
-const descBlock = p => `
-  <div class="desc">
-    <h2>${esc(p[2])}</h2>
-    <div class="meta">
-      ${p[3] ? `<span>Autor: <b>${esc(p[3])}</b></span>` : ""}
-      ${p[4] ? `<span>Editorial: <b>${esc(p[4])}</b></span>` : ""}
-      ${p[6] ? `<span>Tema: <b>${esc(p[6])}</b></span>` : ""}
-    </div>
-  </div>`;
-
-// Libros a precio normal del mismo tema: primero del mismo autor, luego de la misma editorial
-const TEMA_N = new Map();
-function normalPicks(p, n) {
-  const pool = (p[6] && TEMA_N.get(p[6])) || [];
-  if (!pool.length) return [];
-  let h = 0; for (const ch of String(p[0] || p[1])) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const sc = q => (p[3] && q[3] === p[3] ? 2 : 0) + (p[4] && q[4] === p[4] ? 1 : 0);
-  const best = pool.filter(q => sc(q) > 0 && q[0] !== p[0]).sort((a, b) => sc(b) - sc(a)).slice(0, n);
-  const out = [...best];
-  for (let k = 0; out.length < n && k < pool.length * 2; k++) {
-    const q = pool[(h + k * 7919) % pool.length];
-    if (q[0] !== p[0] && !out.includes(q)) out.push(q);
+// ---------------------------------------------------------------- lectura de archivos
+async function leerTabla(file) {
+  const buf = await file.arrayBuffer();
+  if (/\.(csv|txt)$/i.test(file.name)) {
+    let txt = new TextDecoder("utf-8").decode(buf);
+    if (txt.includes("�")) txt = new TextDecoder("windows-1252").decode(buf);
+    txt = txt.replace(/^﻿/, "");
+    const head = txt.split(/\r?\n/)[0];
+    const sep = [";", "\t", ","].sort((a, b) => head.split(b).length - head.split(a).length)[0];
+    const wb = XLSX.read(txt, { type: "string", FS: sep, raw: true });
+    return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" });
   }
+  const wb = XLSX.read(buf, { type: "array" });
+  return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" });
+}
+const hkey = s => normTxt(s).replace(/[^A-Z0-9]/g, "");
+function colIdx(head, ...names) {
+  const h = head.map(hkey);
+  for (const n of names) { const i = h.indexOf(hkey(n)); if (i > -1) return i; }
+  for (const n of names) { const i = h.findIndex(x => x.startsWith(hkey(n))); if (i > -1) return i; }
+  return -1;
+}
+function digitos(v) {
+  if (typeof v === "number") return Number.isFinite(v) && v >= 1e9 ? String(Math.round(v)) : "";
+  const s = String(v ?? "").trim();
+  return /^\d{10,14}$/.test(s) ? s : "";
+}
+// "9.78607E+11": Excel recortó el código y lo redondeó; se revisa si un código completo redondea a lo mismo
+function prefijoUPC(v) {
+  const m = String(v ?? "").trim().match(/^(\d)[.,](\d+)E\+?(\d+)$/i);
+  if (!m) return null;
+  const sig = m[1] + m[2], len = +m[3] + 1;
+  return barra => {
+    if (barra.length < len) return false;
+    return Math.round(Number(barra.slice(0, len)) / 10 ** (len - sig.length)) === Number(sig);
+  };
+}
+function isbnCompleto(d12) {
+  let s = 0; for (let i = 0; i < 12; i++) s += +d12[i] * (i % 2 ? 3 : 1);
+  return d12 + ((10 - s % 10) % 10);
+}
+
+// ---------------------------------------------------------------- 2. aprobados
+function bindDrop(drop, input, fn) {
+  input.addEventListener("change", () => { if (input.files.length) fn([...input.files]); input.value = ""; });
+  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files.length) fn([...e.dataTransfer.files]); });
+}
+bindDrop($("apDrop"), $("apFile"), async files => {
+  try {
+    const rows = await leerTabla(files[0]);
+    const hi = rows.findIndex(r => colIdx(r, "BARRA", "CODIGO DE BARRAS", "ISBN") > -1 && colIdx(r, "DESCRIPCION", "TITULO", "NOMBRE") > -1);
+    if (hi < 0) throw new Error("No encontré las columnas BARRA y DESCRIPCION.");
+    const h = rows[hi];
+    const c = { b: colIdx(h, "BARRA", "CODIGO DE BARRAS", "ISBN"), p: colIdx(h, "PLU", "REFERENCIA"), d: colIdx(h, "DESCRIPCION", "TITULO", "NOMBRE"),
+                $: colIdx(h, "PRECIO"), a: colIdx(h, "AUTOR"), t: colIdx(h, "TEMA"), e: colIdx(h, "EDITORIAL") };
+    const g = (r, i) => i < 0 ? "" : r[i];
+    const items = rows.slice(hi + 1).map(r => [String(digitos(g(r, c.b)) || String(g(r, c.b)).trim()), String(g(r, c.p)).trim(), String(g(r, c.d)).trim(), +g(r, c.$) || 0,
+      String(g(r, c.a) || ""), String(g(r, c.t) || ""), String(g(r, c.e) || "")]).filter(x => x[0] && x[2]);
+    if (!items.length) throw new Error("La lista no trae títulos.");
+    APR = { fecha: hoy(), nombre: files[0].name, items };
+    lsSet("surtido-aprobados", APR);
+    pintarAprobados(); recalcular();
+  } catch (e) { alert(e.message || "No se pudo leer la lista de aprobados."); }
+});
+let APX = [];
+function prepAprobados() {
+  APX = (APR?.items || []).map(a => ({ barra: a[0], plu: a[1], titulo: a[2], precio: a[3], autor: a[4], tema: a[5], editorial: a[6], tw: toks(a[2]), ew: toks(a[6]) }));
+}
+function pintarAprobados() {
+  prepAprobados();
+  if (!APR) return;
+  $("apStatus").textContent = `${APX.length.toLocaleString("es-GT")} títulos aprobados (${APR.nombre}, cargado el ${APR.fecha}). Para cambiarla, sube otra.`;
+  $("apStatus").className = "status ok"; $("s2").classList.add("done");
+  $("apDrop").querySelector("b").textContent = "Subir otra lista de aprobados";
+}
+
+// ---------------------------------------------------------------- 3. reportes de tiendas
+bindDrop($("wmDrop"), $("wmFile"), async files => {
+  const errores = [];
+  for (const f of files) {
+    try {
+      const rows = await leerTabla(f);
+      const hi = rows.findIndex(r => colIdx(r, "Item Nbr", "Item Number", "Articulo") > -1);
+      if (hi < 0) throw new Error("sin columna Item Nbr");
+      const h = rows[hi];
+      const c = { t: colIdx(h, "Tienda", "Store Nbr", "Store"), tn: colIdx(h, "Nombre tienda", "Store Name"), i: colIdx(h, "Item Nbr", "Item Number", "Articulo"),
+        d: colIdx(h, "Descripcion", "Item Desc", "Description"), u: colIdx(h, "UPC"), oh: colIdx(h, "On hand", "Existencia", "OH"), ec: colIdx(h, "En camino", "In transit", "Transito"),
+        pr: colIdx(h, "Precio retail", "Precio", "Retail"), uv: colIdx(h, "Ultima venta", "Last sale"), ds: colIdx(h, "Dias sin venta"), da: colIdx(h, "Datos al") };
+      const g = (r, i) => i < 0 ? "" : r[i];
+      const nuevos = rows.slice(hi + 1).filter(r => String(g(r, c.i)).trim()).map(r => ({
+        tienda: String(g(r, c.t) || f.name.replace(/\.\w+$/, "")).trim(), nombre: String(g(r, c.tn) || "").trim(),
+        item: String(g(r, c.i)).trim(), desc: String(g(r, c.d)).trim(), upc: g(r, c.u), precio: g(r, c.pr),
+        oh: Math.max(0, Math.round(+g(r, c.oh) || 0)), ec: Math.max(0, Math.round(+g(r, c.ec) || 0)),
+        ult: fechaTxt(g(r, c.uv)), dias: String(g(r, c.ds)).trim() === "" ? null : +g(r, c.ds), al: fechaTxt(g(r, c.da)) }));
+      // Si se vuelve a subir una tienda, se reemplaza
+      const ts = new Set(nuevos.map(x => x.tienda));
+      WM = WM.filter(x => !ts.has(x.tienda)).concat(nuevos);
+    } catch (e) { errores.push(f.name); }
+  }
+  if (errores.length) alert("No se pudieron leer: " + errores.join(", ") + ". Revisa que tengan la columna Item Nbr.");
+  pintarTiendas(); recalcular();
+});
+function fechaTxt(v) {
+  if (typeof v === "number" && v > 20000 && v < 80000) { const d = new Date(Math.round((v - 25569) * 864e5)); return d.toLocaleDateString("es-GT", { timeZone: "UTC" }); }
+  return String(v ?? "").trim();
+}
+function tiendas() {
+  const m = new Map();
+  for (const r of WM) { if (!m.has(r.tienda)) m.set(r.tienda, { tienda: r.tienda, nombre: r.nombre, n: 0, u: 0, al: r.al }); const t = m.get(r.tienda); t.n++; t.u += r.oh; }
+  return [...m.values()].sort((a, b) => (a.nombre || a.tienda).localeCompare(b.nombre || b.tienda, "es"));
+}
+function pintarTiendas() {
+  const ts = tiendas();
+  $("wmTools").hidden = !ts.length;
+  if (!ts.length) { $("wmStatus").textContent = "Aún no hay reportes de tiendas."; $("wmStatus").className = "status"; $("wmStores").innerHTML = ""; $("s3").classList.remove("done"); return; }
+  $("wmStatus").textContent = `${ts.length} ${ts.length === 1 ? "tienda cargada" : "tiendas cargadas"}. Puedes subir más.`;
+  $("wmStatus").className = "status ok"; $("s3").classList.add("done");
+  $("wmStores").innerHTML = ts.map(t => `<span>${esc(t.tienda)} ${esc(t.nombre)} · ${t.n} artículos · ${t.u} uds.</span>`).join("");
+}
+$("wmClear").addEventListener("click", () => { WM = []; pintarTiendas(); recalcular(); });
+
+// ---------------------------------------------------------------- identificación por nombre
+function puntaje(t, a) {
+  // Cada palabra del reporte (que viene cortada a 20 letras) debe ser el inicio de una palabra del título.
+  // Se permite que las primeras 1–2 palabras sean la editorial o la colección ("PAIDOS HABITOS ATOMI").
+  let best = 0;
+  for (let skip = 0; skip < Math.min(3, t.length); skip++) {
+    const tt = t.slice(skip);
+    if (!tt.length) break;
+    if (tt.every(w => a.tw.some(x => x.startsWith(w)))) {
+      let s = tt.length / t.length - 0.05 * skip;
+      if (a.tw[0] && a.tw[0].startsWith(tt[0])) s += 0.2;
+      if (skip && t.slice(0, skip).some(w => a.ew.some(x => x.startsWith(w)) || a.tw.some(x => x.startsWith(w)))) s += 0.1;
+      best = Math.max(best, s);
+    }
+  }
+  return best;
+}
+function puntajeSuelto(t, a) { return t.filter(w => a.tw.some(x => x.startsWith(w))).length / t.length; }
+const CACHE_ID = new Map();
+function identificar(r) {
+  const k = r.item;
+  if (EQ[k]) return EQ[k] === "NO" ? { a: null, como: "No aprobado (confirmado)" } : { a: APX.find(x => x.barra === EQ[k]) || null, como: "Confirmado" };
+  if (CACHE_ID.has(k)) return CACHE_ID.get(k);
+  let out;
+  const d = digitos(r.upc);
+  const full = d.length === 12 && /^97[89]/.test(d) ? isbnCompleto(d) : d;
+  const exacto = full && APX.find(x => x.barra === full || x.barra === d);
+  if (exacto) out = { a: exacto, como: "Código de barras" };
+  else {
+    const t = toks(r.desc), pre = prefijoUPC(r.upc);
+    let c = APX.map(a => ({ a, s: puntaje(t, a) })).filter(x => x.s >= 0.6);
+    if (pre) { const c2 = c.filter(x => pre(x.a.barra)); if (c2.length) c = c2; }
+    c.sort((x, y) => y.s - x.s);
+    if (c.length > 1 && c[0].s - c[1].s < 0.15) {
+      // Desempate por precio: el precio de la tienda suele ser ~60% de nuestro precio de lista
+      const pr = +String(r.precio || "").replace(",", ".");
+      if (pr > 0) {
+        const top = c.filter(x => c[0].s - x.s < 0.15).map(x => ({ ...x, d: x.a.precio ? Math.abs(pr / x.a.precio - 0.6) : 9 })).sort((x, y) => x.d - y.d);
+        if (top[0].d < 0.1 && top[1].d - top[0].d > 0.12) c = [top[0]];
+      }
+    }
+    if (c.length === 1 || (c.length > 1 && c[0].s - c[1].s >= 0.15)) out = { a: c[0].a, como: "Por nombre" };
+    else {
+      let cand = c.slice(0, 8).map(x => x.a);
+      if (!cand.length) cand = APX.map(a => ({ a, s: puntajeSuelto(t, a) })).filter(x => x.s >= 0.5).sort((x, y) => y.s - x.s).slice(0, 8).map(x => x.a);
+      out = { a: null, como: cand.length ? "Varias opciones" : "Sin coincidencia", cand, pendiente: true };
+    }
+  }
+  CACHE_ID.set(k, out);
   return out;
 }
-function moreBlock(p) {
-  const out = normalPicks(p, 4);
-  if (!out.length) return "";
-  return `<div class="advice more">
-    <h3>Del mismo tema: ${esc(p[6].toLowerCase())}</h3>
-    <div class="picks four">${out.map(q => `
-      <button type="button" class="pick reg" data-i="${reg(q)}">
-        <span class="pp">${q[3] && q[3] === p[3] ? "Mismo autor" : q[4] && q[4] === p[4] ? "Misma editorial" : "Recomendado"}</span>
-        <span class="pt">${esc(q[2])}</span>
-        <span class="pr"><b>${fmt(q[5])}</b></span>
-      </button>`).join("")}</div>
-  </div>`;
-}
 
-function picksFor(p) {
-  let pool = (p[6] && TEMA_BZ.get(p[6])) || [];
-  let from = pool.length ? "tema" : "";
-  if (!pool.length) { pool = BZ.filter(b => b[4] && b[4] === p[4]); from = pool.length ? "editorial" : ""; }
-  if (!pool.length) pool = BZ;
-  // Selección variada pero estable para cada producto
-  let h = 0; for (const ch of String(p[0] || p[1])) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const out = [];
-  for (let k = 0; out.length < 3 && k < pool.length * 2; k++) {
-    const b = pool[(h + k * 7919) % pool.length];
-    if (b[0] !== p[0] && !out.includes(b)) out.push(b);
+// ---------------------------------------------------------------- existencias propias
+function stockDe(a) {
+  if (!STOCK || !a) return null;
+  const e = STOCK.p[a.barra] || (a.plu && STOCK.r[a.plu] ? STOCK.p[STOCK.r[a.plu]] : null);
+  const m = new Map();
+  if (e) for (let i = 0; i < e[1].length; i += 2) { const l = STOCK.L[e[1][i]]; if (!CF.sinLocs.includes(l)) m.set(l, e[1][i + 1]); }
+  return m;
+}
+const txtBodegas = m => m && m.size ? [...m].sort((a, b) => b[1] - a[1]).map(([l, n]) => `${l} ${n}`).join(" · ") : "";
+
+// ---------------------------------------------------------------- cálculo
+function recalcular() {
+  CACHE_ID.clear();
+  const ok = APX.length && WM.length;
+  $("s5").hidden = !ok; $("s4").hidden = true;
+  if (!ok) return;
+  // Identificación de cada artículo (una vez por Item Nbr)
+  const porItem = new Map();
+  for (const r of WM) if (!porItem.has(r.item)) porItem.set(r.item, { r, id: identificar(r) });
+  const pend = [...porItem.values()].filter(x => x.id.pendiente);
+  pintarPendientes(pend);
+
+  const ts = tiendas();
+  const pool = new Map();           // existencia disponible por barra (se va descontando)
+  const poolDe = a => { if (!STOCK) return null; if (!pool.has(a.barra)) pool.set(a.barra, stockDe(a)); return pool.get(a.barra); };
+  // Popularidad en la cadena: tiendas donde vendió en los últimos 30 días
+  const pop = new Map();
+  for (const r of WM) { const a = porItem.get(r.item).id.a; if (!a) continue; const p = pop.get(a.barra) || { v: 0, t: 0 }; p.t++; if (r.dias != null && r.dias <= 30) p.v++; pop.set(a.barra, p); }
+  const popScore = a => { const p = pop.get(a.barra); return p ? p.v + p.t * 0.1 : 0; };
+
+  // Dónde sí se vende cada artículo (vendió en los últimos 30 días), para sugerir traslados
+  const venden = new Map();
+  for (const r of WM) if (r.dias != null && r.dias <= 30) { if (!venden.has(r.item)) venden.set(r.item, []); venden.get(r.item).push(r.nombre || r.tienda); }
+  const porTienda = new Map(ts.map(t => [t.tienda, { ...t, sug: [], quieto: [], noAp: [], sinEx: [] }]));
+  const tareas = [];
+  for (const t of ts) {
+    const filas = WM.filter(r => r.tienda === t.tienda);
+    const tiene = new Set();
+    const T = porTienda.get(t.tienda);
+    for (const r of filas) {
+      const id = porItem.get(r.item).id;
+      // Alerta roja: todo lo que lleva más días sin venta que el umbral, esté o no en la lista de aprobados
+      const viejo = r.dias != null && r.dias >= CF.dias;
+      if (viejo && r.oh > 0) T.quieto.push({ r, a: id.a, venden: (venden.get(r.item) || []).filter(x => x !== (t.nombre || t.tienda)) });
+      if (!id.a) { if (!id.pendiente) T.noAp.push({ r }); continue; }
+      tiene.add(id.a.barra);
+      const disp = r.oh + r.ec;
+      if (viejo) continue;
+      if (disp < CF.min) tareas.push({ t: T, tipo: "Reponer", r, a: id.a, pide: CF.min - disp, como: id.como, prio: 0, sub: r.dias ?? 999 });
+    }
+    // Nuevos: aprobados que la tienda no tiene (agotados o nunca enviados)
+    let cand = APX.filter(a => !tiene.has(a.barra));
+    if (STOCK) cand = cand.filter(a => { const m = stockDe(a); return m && [...m.values()].some(n => n > 0); });
+    cand.sort((x, y) => popScore(y) - popScore(x) || (STOCK ? total(stockDe(y)) - total(stockDe(x)) : 0));
+    for (const a of cand.slice(0, CF.nuevos)) tareas.push({ t: T, tipo: "Nuevo", r: null, a, pide: CF.un, como: "", prio: 1, sub: -popScore(a) });
   }
-  return { out, from };
-}
-
-function showItem(p) {
-  flash();
-  if (isBz(p)) {
-    chime();
-    const [, , , , , precio, , bazar, pct] = p;
-    result.innerHTML = `
-      <div class="band sale"><span class="band-t">¡Oferta Bazar!</span><span class="band-c">${idLine(p)}</span></div>
-      ${descBlock(p)}
-      <div class="hero">
-        <div class="now">
-          <span class="now-l">Precio bazar</span>
-          <span class="now-a"><small>Q</small>${num(bazar)}</span>
-          <span class="was">Antes <s>${fmt(precio)}</s></span>
-        </div>
-        <div class="burst" aria-label="${pct}% de descuento"><b>−${pct}%</b><span>descuento</span></div>
-      </div>
-      <div class="savebar">¡Te ahorras <strong>${fmt(precio - bazar)}</strong> en este libro!<span class="legal">Válido solo en tiendas físicas</span></div>
-      ${moreBlock(p)}`;
-  } else if (!p[5]) {
-    result.innerHTML = `
-      <div class="band reg"><span class="band-t">Precio por confirmar</span><span class="band-c">${idLine(p)}</span></div>
-      ${descBlock(p)}
-      <div class="miss"><h2>Consulta el precio de este artículo en caja.</h2><p>Este producto no tiene precio registrado en el sistema.</p></div>`;
-  } else {
-    softChime();
-    const { out, from } = bzReady ? picksFor(p) : { out: [], from: "" };
-    const temaTxt = from === "tema" ? `en ${esc(p[6].toLowerCase())}` : from === "editorial" ? `de ${esc(p[4])}` : "para ti";
-    result.innerHTML = `
-      <div class="band reg"><span class="band-t">Precio normal</span><span class="band-c">${idLine(p)}</span></div>
-      ${descBlock(p)}
-      <div class="reg-price">
-        <div><span class="lbl">Precio</span><span class="amt"><small>Q</small>${num(p[5])}</span></div>
-        <span class="reg-note">Este artículo está a precio normal. No forma parte del Bazar de Descuentos.</span>
-      </div>
-      ${out.length ? `<div class="advice">
-        <h3>Te aconsejamos estas ofertas del bazar ${temaTxt}, con <em>hasta ${MAXPCT}% de descuento</em></h3>
-        <p class="legal-s">Ofertas válidas solo en tiendas físicas.</p>
-        <div class="picks">${out.map(b => `
-          <button type="button" class="pick" data-i="${reg(b)}">
-            <span class="pp">−${b[8]}%</span>
-            <span class="pt">${esc(b[2])}</span>
-            <span class="pr"><b>${fmt(b[7])}</b><s>${fmt(b[5])}</s></span>
-          </button>`).join("")}</div>
-      </div>` : ""}
-      ${moreBlock(p)}`;
+  // Asignación: primero reponer (lo que se vende más reciente), luego nuevos (lo más vendido en la cadena)
+  tareas.sort((x, y) => x.prio - y.prio || x.sub - y.sub);
+  for (const k of tareas) {
+    const m = poolDe(k.a);
+    let manda = k.pide, de = [];
+    if (m) {
+      manda = 0;
+      for (const [l, n] of [...m].sort((a, b) => b[1] - a[1])) {
+        if (manda >= k.pide) break;
+        const toma = Math.min(n, k.pide - manda);
+        if (toma > 0) { de.push([l, toma]); m.set(l, n - toma); manda += toma; }
+      }
+    }
+    const item = { ...k, manda, de, bodegas: txtBodegas(stockDe(k.a)) };
+    if (m && manda === 0) { if (k.tipo === "Reponer") k.t.sinEx.push(item); }
+    else k.t.sug.push(item);
   }
-  addHistory(p[0] || p[1], p);
+  for (const T of porTienda.values()) T.sug.sort((x, y) => (x.tipo === y.tipo ? 0 : x.tipo === "Reponer" ? -1 : 1) || (x.a.editorial || "").localeCompare(y.a.editorial || "", "es") || x.a.titulo.localeCompare(y.a.titulo, "es"));
+  RES = { tiendas: [...porTienda.values()], pend: pend.length };
+  document.querySelectorAll(".umbral").forEach(x => x.textContent = CF.dias);
+  pintarResumen();
 }
+const total = m => m ? [...m.values()].reduce((s, n) => s + n, 0) : 0;
 
-function showMiss(q, kind) {
-  flash();
-  result.innerHTML = `
-    <div class="band reg"><span class="band-t">Sin resultados</span><span class="band-c">${esc(kind)} ${esc(q)}</span></div>
-    <div class="miss">
-      <h2>No encontramos este artículo en el inventario de De Museo.</h2>
-      <p>${kind === "Búsqueda" ? "Revisa la ortografía o prueba con menos palabras." : "Revisa que el código o la referencia estén completos, o consulta en caja."}</p>
-    </div>`;
-  addHistory(q, null);
+function pintarPendientes(pend) {
+  $("s4").hidden = !pend.length;
+  $("pcTitle").textContent = `Por confirmar: ${pend.length} ${pend.length === 1 ? "artículo" : "artículos"}`;
+  $("pcBody").innerHTML = pend.slice(0, 200).map(({ r, id }) => `
+    <tr><td><b>${esc(r.desc)}</b><div class="small-t mono">Item ${esc(r.item)}${r.upc ? " · UPC " + esc(r.upc) : ""}</div></td>
+    <td class="cand"><select data-item="${esc(r.item)}">
+      <option value="">— Elegir —</option>
+      ${(id.cand || []).map(a => `<option value="${esc(a.barra)}">${esc(a.titulo)} · ${esc(a.editorial)} · Q${a.precio} · ${esc(a.barra)}</option>`).join("")}
+      <option value="NO">No está en la lista de aprobados</option>
+    </select></td></tr>`).join("");
 }
+$("pcBody").addEventListener("change", e => {
+  const s = e.target.closest("select[data-item]"); if (!s || !s.value) return;
+  EQ[s.dataset.item] = s.value; lsSet("surtido-equiv", EQ); recalcular();
+});
 
-const MAX = 60;
-function showList(ps, q) {
-  const nb = ps.filter(isBz).length;
-  result.innerHTML = `
-    <div class="list-top"><b>${ps.length.toLocaleString("es-GT")} ${ps.length === 1 ? "resultado" : "resultados"} para “${esc(q)}”</b>
-      <span>${nb ? `${nb.toLocaleString("es-GT")} en bazar, primero en la lista` : "Ninguno en bazar"}${ps.length > MAX ? ` · mostrando ${MAX}, agrega palabras para afinar` : ""}</span></div>
-    <ol class="matches">${ps.slice(0, MAX).map(p => { const s = isBz(p); return `
-      <li tabindex="0" data-i="${reg(p)}" class="${s ? "sale" : ""}">
-        <span class="mt">${highlight(p[2], q)}</span>
-        <span class="ms">${highlight([p[3], p[4]].filter(Boolean).join(" · "), q)}${p[0] ? ` · <span class="mono">${esc(p[0])}</span>` : ""}${p[1] ? ` · Ref. <span class="mono">${esc(p[1])}</span>` : ""}</span>
-        <span class="mp">${s ? `<em>−${p[8]}% bazar</em><b>${fmt(p[7])}</b><s>${fmt(p[5])}</s>` : `<b>${p[5] ? fmt(p[5]) : "—"}</b><span class="n">Precio normal</span>`}</span>
-      </li>`; }).join("")}</ol>`;
-}
-
-let seq = 0;
-async function search(raw, fromEnter, quiet) {
-  const q = raw.trim();
-  const my = ++seq;
-  if (!q) { showIdle(); return; }
-  if (/^[\d\s-]+$/.test(q)) {
-    const d = q.replace(/\D/g, "");
-    let p = null;
-    try { p = await byDigits(d); }
-    catch (e) { if (my === seq) result.innerHTML = `<div class="loading">No se pudo consultar. Revisa la conexión a internet e intenta de nuevo.</div>`; return; }
-    if (my !== seq) return;
-    if (p) showItem(p); else if (!quiet) showMiss(d, d.length >= 8 ? "Código" : "Referencia");
-    if (fromEnter) input.select();
-    return;
-  }
-  if (!TXT) { pendingName = q; paintPending(); return; }
-  const ps = byName(q);
-  if (!ps.length) { showMiss(q, "Búsqueda"); return; }
-  if (ps.length === 1 && fromEnter) { showItem(ps[0]); input.select(); return; }
-  showList(ps, q);
-}
-
-function addHistory(key, p) {
-  const k = history.findIndex(h => h.key === key);
-  if (k > -1) history.splice(k, 1);
-  history.unshift({ key, p });
-  history.length = Math.min(history.length, 6);
-  $("history").hidden = false;
-  $("histList").innerHTML = history.map(h => {
-    const p = h.p;
-    const price = !p ? "—" : isBz(p) ? fmt(p[7]) : p[5] ? fmt(p[5]) : "Caja";
-    return `<li ${p ? `data-i="${reg(p)}"` : `data-q="${esc(h.key)}"`}>
-      <span class="c">${esc(h.key)}</span>
-      <span class="t">${p ? esc(p[2]) : "No encontrado"}</span>
-      <span class="p ${p && isBz(p) ? "s" : ""}">${price}</span>
-    </li>`;
+function pintarResumen() {
+  const ts = RES.tiendas;
+  $("resNote").hidden = !(RES.pend || !STOCK);
+  $("resNote").textContent = [RES.pend ? `Hay ${RES.pend} artículos por confirmar: mientras tanto no se toman en cuenta.` : "", !STOCK ? "Sin nuestras existencias abiertas, el sugerido no revisa si hay de dónde sacar." : ""].filter(Boolean).join(" ");
+  $("sumBody").innerHTML = ts.map(t => {
+    const rep = t.sug.filter(x => x.tipo === "Reponer"), nue = t.sug.filter(x => x.tipo === "Nuevo");
+    return `<tr class="click ${SEL === t.tienda ? "sel" : ""}" data-t="${esc(t.tienda)}"><td><b>${esc(t.nombre || t.tienda)}</b><div class="small-t">Tienda ${esc(t.tienda)} · ${t.n} artículos, ${t.u} uds.</div></td>
+      <td class="n">${rep.length}</td><td class="n">${nue.length}</td><td class="n big">${t.sug.reduce((s, x) => s + x.manda, 0)}</td>
+      <td class="n">${t.quieto.length ? `<span class="pill-red">${t.quieto.length}</span><div class="small-t">${t.quieto.reduce((s, x) => s + x.r.oh, 0)} uds.</div>` : "0"}</td><td class="n hide-sm">${esc(t.al)}</td></tr>`;
   }).join("");
+  if (!SEL || !ts.find(t => t.tienda === SEL)) SEL = ts[0]?.tienda;
+  pintarDetalle();
 }
+$("sumBody").addEventListener("click", e => { const tr = e.target.closest("tr[data-t]"); if (!tr) return; SEL = tr.dataset.t; pintarResumen(); $("det").scrollIntoView({ behavior: "smooth", block: "start" }); });
 
-$("scanForm").addEventListener("submit", e => { e.preventDefault(); clearTimeout(t); search(input.value, true); });
-
-let t;
-input.addEventListener("input", () => {
-  clearTimeout(t);
-  const v = input.value.trim();
-  if (/^[\d\s-]+$/.test(v)) {
-    const d = v.replace(/\D/g, "");
-    if (d.length >= 13) t = setTimeout(() => search(input.value, true), 250);
-    // Referencia interna: busca sola al dejar de escribir (sin mostrar "no encontrado" mientras se escribe)
-    else if (d.length >= 4) t = setTimeout(() => search(input.value, false, true), 700);
-  } else if (v.length >= 3) {
-    t = setTimeout(() => search(input.value, false), 300);
-  } else if (!v) { pendingName = null; showIdle(); }
-});
-
-function pick(el) {
-  if (el.dataset.i) { const p = REG[+el.dataset.i]; showItem(p); input.value = p[0] || p[1]; }
-  else { input.value = el.dataset.q; search(el.dataset.q, true); }
-  input.focus(); input.select();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-document.addEventListener("click", e => { const el = e.target.closest("[data-i],[data-q]"); if (el) pick(el); });
-document.addEventListener("keydown", e => {
-  const el = document.activeElement;
-  if (e.key === "Enter" && el && el.matches(".matches li")) { pick(el); return; }
-  if (el !== input && /^\d$/.test(e.key)) { input.value = ""; input.focus(); }
-});
-// Sonidos: archivos .wav publicados junto a la página (más confiables que el sintetizador del navegador)
-let soundOn = true, unlocked = false;
-try { soundOn = localStorage.getItem("dm-sonido") !== "off"; } catch (e) {}
-const SND = { bazar: new Audio("sonido-bazar.wav"), normal: new Audio("sonido-normal.wav") };
-for (const a of Object.values(SND)) { a.preload = "auto"; a.volume = 1; }
-const sndBtn = $("snd");
-function paintSnd() { sndBtn.setAttribute("aria-pressed", soundOn); sndBtn.textContent = soundOn ? "🔊 Sonido" : "🔇 Sin sonido"; }
-paintSnd();
-// El navegador solo deja sonar después de que alguien toca o teclea en la página: se "desbloquea" en el primer gesto
-function unlockAudio() {
-  if (unlocked) return;
-  unlocked = true;
-  for (const a of Object.values(SND)) {
-    try {
-      a.muted = true;
-      const pr = a.play();
-      if (pr) pr.then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; unlocked = false; });
-      else { a.pause(); a.muted = false; }
-    } catch (e) { a.muted = false; unlocked = false; }
+const fromTxt = de => de.map(([l, n]) => `<b>${esc(l)}</b> ${n}`).join(" · ");
+function pintarDetalle() {
+  const t = RES.tiendas.find(x => x.tienda === SEL);
+  $("det").hidden = !t; if (!t) return;
+  $("detTitle").textContent = `${t.nombre || "Tienda " + t.tienda}: ${t.sug.reduce((s, x) => s + x.manda, 0)} unidades sugeridas`;
+  const tabs = [["sug", `Sugerido (${t.sug.length})`], ["sin", `Sin existencia (${t.sinEx.length})`], ["quieto", `+${CF.dias} días sin venta (${t.quieto.length})`], ["noap", `No aprobados (${t.noAp.length})`]];
+  $("detTabs").innerHTML = tabs.map(([k, l]) => `<button type="button" class="small ${k === "quieto" ? "t-red" : ""}" data-tab="${k}" aria-pressed="${TAB === k}">${l}</button>`).join("");
+  let head, body;
+  if (TAB === "sug") {
+    head = `<tr><th>Tipo</th><th>Título</th><th class="n">En tienda</th><th class="n">En camino</th><th class="n">Mandar</th><th>Sacar de</th><th class="hide-sm">Existencia por bodega</th></tr>`;
+    body = t.sug.map(x => `<tr><td><span class="chip ${x.tipo === "Reponer" ? "c-rep" : "c-new"}">${x.tipo}</span></td>
+      <td><b>${esc(x.a.titulo)}</b><div class="small-t">${esc(x.a.editorial)} · <span class="mono">${esc(x.a.barra)}</span>${x.a.plu ? " · PLU " + esc(x.a.plu) : ""}${x.como && x.como !== "Código de barras" ? " · " + esc(x.como.toLowerCase()) : ""}</div></td>
+      <td class="n">${x.r ? x.r.oh : 0}</td><td class="n">${x.r ? x.r.ec : 0}</td><td class="n big">${x.manda}${x.manda < x.pide ? `<div class="small-t">de ${x.pide}</div>` : ""}</td>
+      <td class="from">${x.de.length ? fromTxt(x.de) : STOCK ? "—" : '<span class="small-t">sin dato</span>'}</td><td class="from hide-sm small-t">${esc(x.bodegas)}</td></tr>`).join("");
+  } else if (TAB === "sin") {
+    head = `<tr><th>Título</th><th class="n">En tienda</th><th class="n">Días sin venta</th></tr>`;
+    body = t.sinEx.map(x => `<tr><td><b>${esc(x.a.titulo)}</b><div class="small-t">${esc(x.a.editorial)} · <span class="mono">${esc(x.a.barra)}</span></div></td><td class="n">${x.r.oh}</td><td class="n">${x.r.dias ?? "—"}</td></tr>`).join("");
+  } else if (TAB === "quieto") {
+    head = `<tr><th>Artículo</th><th class="n">En tienda</th><th class="n">Días sin venta</th><th class="hide-sm">Última venta</th><th class="hide-sm">Se vende en</th><th class="hide-sm">Revisión</th></tr>`;
+    body = t.quieto.sort((x, y) => y.r.dias - x.r.dias || y.r.oh - x.r.oh).map(x => {
+      const k = t.tienda + "|" + x.r.item, v = REV[k] || "";
+      const sel = cls => `<select class="rev ${cls} ${v ? "hecho" : ""}" data-rev="${esc(k)}">${REV_OP.map(([o, l]) => `<option value="${o}" ${o === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
+      return `<tr class="alerta"><td><span class="chip c-quieto">+${CF.dias} días</span> <b>${esc(x.a ? x.a.titulo : x.r.desc)}</b>
+        <div class="small-t">${x.a ? esc(x.a.editorial) + " · " : ""}Item <span class="mono">${esc(x.r.item)}</span>${x.a ? ` · <span class="mono">${esc(x.a.barra)}</span>` : " · no identificado"}</div>${sel("show-sm")}</td>
+        <td class="n big">${x.r.oh}</td><td class="n big">${x.r.dias}</td><td class="hide-sm">${esc(x.r.ult)}</td>
+        <td class="hide-sm small-t">${x.venden.length ? esc(x.venden.slice(0, 4).join(", ")) + (x.venden.length > 4 ? ` y ${x.venden.length - 4} más` : "") : "—"}</td>
+        <td class="hide-sm">${sel("")}</td></tr>`;
+    }).join("");
+  } else {
+    head = `<tr><th>Artículo en la tienda</th><th class="n">En tienda</th><th class="n">Días sin venta</th></tr>`;
+    body = t.noAp.map(x => `<tr><td><b>${esc(x.r.desc)}</b><div class="small-t mono">Item ${esc(x.r.item)}</div></td><td class="n">${x.r.oh}</td><td class="n">${x.r.dias ?? "—"}</td></tr>`).join("");
   }
+  const q = t.quieto, qu = q.reduce((s, x) => s + x.r.oh, 0), rev = q.filter(x => REV[t.tienda + "|" + x.r.item]).length;
+  $("detAlert").hidden = !q.length;
+  $("detAlert").innerHTML = q.length ? `<b>🔴 ${q.length} ${q.length === 1 ? "título" : "títulos"} (${qu} uds.) con más de ${CF.dias} días sin venta</b>
+    <span>Revisa si están físicamente en el piso o si conviene retirarlos o trasladarlos. Revisados: ${rev} de ${q.length}.</span>
+    ${TAB !== "quieto" ? '<span><button type="button" class="small" data-tab="quieto" style="margin-top:6px;background:var(--red);border-color:var(--red)">Ver la lista</button></span>' : ""}` : "";
+  $("detHead").innerHTML = head;
+  $("detBody").innerHTML = body || `<tr><td colspan="7" class="muted">Nada en esta lista.</td></tr>`;
 }
-["pointerdown", "touchend", "click", "keydown"].forEach(ev => document.addEventListener(ev, unlockAudio, { capture: true, passive: true }));
-function playSnd(k, force) {
-  if (!soundOn && !force) return;
-  const a = SND[k];
-  try {
-    a.muted = false;
-    a.currentTime = 0;
-    const pr = a.play();
-    if (pr) pr.catch(() => {});
-  } catch (e) {}
-}
-const chime = force => playSnd("bazar", force);
-const softChime = () => playSnd("normal");
-sndBtn.addEventListener("click", e => {
-  e.stopPropagation(); soundOn = !soundOn; paintSnd();
-  try { localStorage.setItem("dm-sonido", soundOn ? "on" : "off"); } catch (er) {}
-  if (soundOn) chime(true);
-  input.focus();
+$("det").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (!b) return; TAB = b.dataset.tab; pintarDetalle(); });
+$("detBody").addEventListener("change", e => {
+  const s = e.target.closest("select[data-rev]"); if (!s) return;
+  if (s.value) REV[s.dataset.rev] = s.value; else delete REV[s.dataset.rev];
+  lsSet("surtido-revision", REV); pintarDetalle();
 });
 
-input.focus();
-</script>
+// ---------------------------------------------------------------- ajustes
+for (const [id, k] of [["cfMin", "min"], ["cfDias", "dias"], ["cfNuevos", "nuevos"], ["cfUN", "un"]]) {
+  $(id).value = CF[k];
+  $(id).addEventListener("change", () => { const v = Math.max(+$(id).min, Math.min(+$(id).max, Math.round(+$(id).value || 0))); $(id).value = v; CF[k] = v; lsSet("surtido-ajustes", CF); recalcular(); });
+}
 
+// ---------------------------------------------------------------- Excel
+function filasSug(t) {
+  return t.sug.map(x => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Tipo": x.tipo, "Item Nbr": x.r?.item || "", "Código de barras": x.a.barra, "PLU": x.a.plu,
+    "Título": x.a.titulo, "Editorial": x.a.editorial, "En tienda": x.r ? x.r.oh : 0, "En camino": x.r ? x.r.ec : 0, "Días sin venta": x.r?.dias ?? "",
+    "Mandar": x.manda, "Sacar de": x.de.map(([l, n]) => `${l} ${n}`).join(" · "), "Existencia por bodega": x.bodegas, "Identificado": x.como }));
+}
+function libro(ts) {
+  const wb = XLSX.utils.book_new();
+  const add = (nombre, filas, anchos) => {
+    const ws = XLSX.utils.json_to_sheet(filas.length ? filas : [{ "": "Sin datos" }]);
+    if (anchos) ws["!cols"] = anchos.map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws, nombre);
+  };
+  add("Resumen", ts.map(t => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Títulos a reponer": t.sug.filter(x => x.tipo === "Reponer").length,
+    "Títulos nuevos": t.sug.filter(x => x.tipo === "Nuevo").length, "Unidades a mandar": t.sug.reduce((s, x) => s + x.manda, 0),
+    "Sin existencia para reponer": t.sinEx.length, "Alerta +días sin venta (títulos)": t.quieto.length, "Alerta (unidades)": t.quieto.reduce((s, x) => s + x.r.oh, 0), "Alerta revisados": t.quieto.filter(x => REV[t.tienda + "|" + x.r.item]).length, "No aprobados en tienda": t.noAp.length, "Datos al": t.al })), [8, 22, 16, 14, 16, 22, 16, 14, 14, 20, 12]);
+  add("Sugerido", ts.flatMap(filasSug), [8, 20, 9, 11, 15, 9, 44, 18, 9, 9, 13, 8, 26, 34, 16]);
+  // Lo mismo agrupado por bodega, para preparar el despacho
+  const porB = [];
+  for (const t of ts) for (const x of t.sug) for (const [l, n] of x.de) porB.push({ "Bodega": l, "Tienda": t.tienda, "Nombre tienda": t.nombre, "Código de barras": x.a.barra, "PLU": x.a.plu, "Título": x.a.titulo, "Unidades": n });
+  porB.sort((a, b) => a.Bodega.localeCompare(b.Bodega) || String(a.Tienda).localeCompare(String(b.Tienda)) || a.Título.localeCompare(b.Título, "es"));
+  add("Por bodega", porB, [10, 8, 20, 15, 9, 44, 9]);
+  add("Sin existencia", ts.flatMap(t => t.sinEx.map(x => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Código de barras": x.a.barra, "Título": x.a.titulo, "En tienda": x.r.oh, "Días sin venta": x.r.dias ?? "" }))), [8, 20, 15, 44, 9, 13]);
+  const revTxt = Object.fromEntries(REV_OP);
+  add(`Alerta +${CF.dias} dias`, ts.flatMap(t => t.quieto.map(x => ({ "Alerta": "ROJA", "Tienda": t.tienda, "Nombre tienda": t.nombre, "Item Nbr": x.r.item, "Código de barras": x.a?.barra || "",
+    "Título": x.a ? x.a.titulo : x.r.desc, "En tienda": x.r.oh, "Días sin venta": x.r.dias, "Última venta": x.r.ult, "Se vende en": x.venden.join(", "),
+    "Revisión": REV[t.tienda + "|" + x.r.item] ? revTxt[REV[t.tienda + "|" + x.r.item]] : "Sin revisar" }))), [7, 8, 20, 11, 15, 44, 9, 13, 12, 30, 24]);
+  add("No aprobados", ts.flatMap(t => t.noAp.map(x => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Item Nbr": x.r.item, "Descripción en tienda": x.r.desc, "En tienda": x.r.oh, "Días sin venta": x.r.dias ?? "" }))), [8, 20, 11, 30, 9, 13]);
+  const eq = new Map();
+  for (const r of WM) if (!eq.has(r.item)) { const id = identificar(r); eq.set(r.item, { "Item Nbr": r.item, "Descripción en tienda": r.desc, "Código de barras": id.a?.barra || "", "PLU": id.a?.plu || "", "Título aprobado": id.a?.titulo || "", "Identificado": id.como }); }
+  add("Equivalencias", [...eq.values()], [11, 26, 15, 9, 44, 18]);
+  return wb;
+}
+const fechaArchivo = () => new Date().toISOString().slice(0, 10);
+$("xlsAll").addEventListener("click", () => XLSX.writeFile(libro(RES.tiendas), `Surtido_todas_${fechaArchivo()}.xlsx`));
+$("xlsOne").addEventListener("click", () => { const t = RES.tiendas.find(x => x.tienda === SEL); if (t) XLSX.writeFile(libro([t]), `Surtido_${(t.nombre || t.tienda).replace(/[^\w]+/g, "_")}_${fechaArchivo()}.xlsx`); });
+
+pintarAprobados();
+</script>
 </body>
 </html>
