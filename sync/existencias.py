@@ -19,7 +19,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from sync_odoo import Odoo, as_text, clean  # noqa: E402
+from sync_odoo import Odoo, as_text, clean, find_field  # noqa: E402
 
 ITER = 310000
 
@@ -66,10 +66,17 @@ def main():
         if disp > 0:
             ex[q["product_id"][0]][ubic] += disp
 
+    # Localidad del estante (solo para el modo privado del checador)
+    try:
+        pf = o.call("product.product", "fields_get", [], {"attributes": ["string", "type"]})
+        f_loc = (find_field(pf, ["Localidad", "Ubicación en estante", "Estante"], ("char", "text", "many2one", "selection")) or [None])[0]
+    except SystemExit:
+        f_loc = None
+    print("Campo de localidad de estante:", f_loc or "(no encontrado)")
     ids = sorted(ex)
     prods = {}
     for i in range(0, len(ids), 5000):
-        for p in o.call("product.product", "read", [ids[i:i + 5000]], {"fields": ["barcode", "default_code"]}):
+        for p in o.call("product.product", "read", [ids[i:i + 5000]], {"fields": ["barcode", "default_code", "create_date"] + ([f_loc] if f_loc else [])}):
             prods[p["id"]] = p
 
     L = sorted({u for c in ex.values() for u in c})
@@ -94,7 +101,9 @@ def main():
             for j in range(0, len(par), 2):
                 prev[par[j]] = prev.get(par[j], 0) + par[j + 1]
             par = [x for kv in sorted(prev.items(), key=lambda x: -x[1]) for x in kv]
-        P[key] = [ref, par]
+        loc = as_text(p.get(f_loc)) if f_loc else ""
+        alta = str(p.get("create_date") or "")[:10]   # fecha de alta del producto (para "novedades")
+        P[key] = [ref, par, loc, alta] if alta else ([ref, par, loc] if loc else [ref, par])
         if ref:
             R[ref] = key
 
