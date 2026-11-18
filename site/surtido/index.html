@@ -96,6 +96,17 @@ tr.click:hover td, tr.sel td { background: var(--soft); }
 .tabs button[aria-pressed="false"] { background: transparent; color: var(--ink); border-color: var(--line); }
 .cand { display: grid; gap: 6px; }
 .cand select { max-width: 100%; width: 100%; font-size: 13px; }
+.opts { display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; text-align: left; width: 100%; background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 500 14px var(--f-body); min-height: 0; cursor: pointer; }
+.opt:hover { border-color: var(--navy); }
+.opt.top { border-color: var(--green); }
+.opt .ot { font-weight: 700; }
+.opt .os { font-size: 12px; color: var(--muted); }
+.opt .ox { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--navy); }
+.opt .ox small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
+.opt .ox.cero { color: var(--muted); }
+.opt.no { grid-template-columns: 1fr; color: var(--muted); border-style: dashed; }
+@media (max-width: 640px) { #s4 thead { display: none; } #pcBody td { display: block; border-bottom: 0; } #pcBody tr { display: block; border-bottom: 1px solid var(--line); padding-bottom: 6px; } }
 .show-sm { display: none; }
 @media (max-width: 640px) { .show-sm { display: block; margin-top: 6px; } .hide-sm { display: none; } .step { grid-template-columns: 1fr; } .num { display: none; } }
 </style>
@@ -154,7 +165,7 @@ tr.click:hover td, tr.sel td { background: var(--soft); }
         <div class="sets">
           <label>Mínimo de unidades por título en tienda<input type="number" id="cfMin" min="1" max="20" value="2"></label>
           <label>Días sin venta para "no se mueve"<input type="number" id="cfDias" min="15" max="365" value="90"></label>
-          <label>Títulos nuevos por tienda (máximo)<input type="number" id="cfNuevos" min="0" max="200" value="25"></label>
+          <label>Títulos nuevos sugeridos por tienda<input type="number" id="cfNuevos" min="0" max="200" value="25"></label>
           <label>Unidades por título nuevo<input type="number" id="cfUN" min="1" max="20" value="2"></label>
         </div>
         <div style="display:grid;gap:6px"><h3>Bodegas de donde se puede surtir</h3><div class="locs" id="cfLocs"><span class="muted">Se muestran al abrir las existencias.</span></div></div>
@@ -166,9 +177,11 @@ tr.click:hover td, tr.sel td { background: var(--soft); }
   <section class="card" id="s4" hidden>
     <div class="row" style="justify-content:space-between">
       <div style="display:grid;gap:4px"><h2 id="pcTitle">Por confirmar</h2>
-        <p class="muted">El reporte de la tienda no trae el código de barras completo, así que se identifican por el nombre. Estos tienen varias opciones o no se encontraron: elige la correcta una sola vez y queda guardada para todas las tiendas.</p></div>
+        <p class="muted">El reporte de la tienda no trae el código de barras completo, así que se identifican por el nombre. Estos se llaman igual que varios títulos aprobados (distinto ISBN) o no se encontraron. Toca la edición correcta una sola vez y queda guardada para todas las tiendas. Las opciones van ordenadas por nuestra existencia.</p></div>
+      <div class="row"><button type="button" id="pcAuto" hidden>Elegir el que tiene existencia</button>
+        <button type="button" class="ghost" id="pcNo" hidden>Marcar los que no tienen opciones como "no aprobados"</button></div>
     </div>
-    <div class="tbl" style="max-height:50vh"><table>
+    <div class="tbl" style="max-height:60vh"><table>
       <thead><tr><th>Artículo en la tienda</th><th>Es este título aprobado</th></tr></thead>
       <tbody id="pcBody"></tbody>
     </table></div>
@@ -218,6 +231,8 @@ let EQ = lsGet("surtido-equiv", {});          // { itemNbr: barra | "NO" }
 let WM = [];                   // filas de tiendas
 let CF = Object.assign({ min: 2, dias: 90, nuevos: 25, un: 2, sinLocs: [] }, lsGet("surtido-ajustes", {}));
 let RES = null, SEL = null, TAB = "sug";
+let ELEG = lsGet("surtido-elegidos", {});   // { tienda: { barra: unidades } } nuevos elegidos a mano
+let FILTRO = "";
 let REV = lsGet("surtido-revision", {});   // { "tienda|item": "piso" | "noesta" | "retirar" | "trasladar" }
 const REV_OP = [["", "Sin revisar"], ["piso", "Está en el piso"], ["noesta", "No está: ajustar existencia"], ["retirar", "Retirar de la tienda"], ["trasladar", "Trasladar a otra tienda"]];
 
@@ -343,7 +358,7 @@ bindDrop($("apDrop"), $("apFile"), async files => {
 });
 let APX = [];
 function prepAprobados() {
-  APX = (APR?.items || []).map(a => ({ barra: a[0], plu: a[1], titulo: a[2], precio: a[3], autor: a[4], tema: a[5], editorial: a[6], tw: toks(a[2]), ew: toks(a[6]) }));
+  APX = (APR?.items || []).map(a => ({ barra: a[0], plu: a[1], titulo: a[2], precio: a[3], autor: a[4], tema: a[5], editorial: a[6], tw: toks(a[2]), ew: toks(a[6]), aw: toks(a[4]) }));
 }
 function pintarAprobados() {
   prepAprobados();
@@ -415,7 +430,14 @@ function puntaje(t, a) {
   }
   return best;
 }
-function puntajeSuelto(t, a) { return t.filter(w => a.tw.some(x => x.startsWith(w))).length / t.length; }
+// Búsqueda suelta: cuenta palabras del título, la editorial o el autor ("VIOLETA ISABEL ALL", "DEBATE NEXUS ENSAYO"),
+// pero al menos una tiene que ser del título.
+function puntajeSuelto(t, a) {
+  const enT = t.filter(w => w.length > 1 && a.tw.some(x => x.startsWith(w))).length;
+  if (!enT) return 0;
+  const todo = a.tw.concat(a.ew, a.aw);
+  return t.filter(w => todo.some(x => x.startsWith(w))).length / t.length;
+}
 const CACHE_ID = new Map();
 function identificar(r) {
   const k = r.item;
@@ -500,11 +522,17 @@ function recalcular() {
       if (viejo) continue;
       if (disp < CF.min) tareas.push({ t: T, tipo: "Reponer", r, a: id.a, pide: CF.min - disp, como: id.como, prio: 0, sub: r.dias ?? 999 });
     }
-    // Nuevos: aprobados que la tienda no tiene (agotados o nunca enviados)
-    let cand = APX.filter(a => !tiene.has(a.barra));
-    if (STOCK) cand = cand.filter(a => { const m = stockDe(a); return m && [...m.values()].some(n => n > 0); });
-    cand.sort((x, y) => popScore(y) - popScore(x) || (STOCK ? total(stockDe(y)) - total(stockDe(x)) : 0));
-    for (const a of cand.slice(0, CF.nuevos)) tareas.push({ t: T, tipo: "Nuevo", r: null, a, pide: CF.un, como: "", prio: 1, sub: -popScore(a) });
+    // Nuevos: aprobados que la tienda no tiene (agotados o nunca enviados).
+    // Prioridad: lo que tenemos en existencia (más existencia primero), luego lo más vendido en la cadena.
+    let cand = APX.filter(a => !tiene.has(a.barra)).map(a => { const m = stockDe(a); return { a, tot: total(m), bod: txtBodegas(m), pop: pop.get(a.barra) || { v: 0, t: 0 } }; });
+    if (STOCK) cand = cand.filter(c => c.tot > 0);
+    cand.sort((x, y) => y.tot - x.tot || popScore(y.a) - popScore(x.a) || x.a.titulo.localeCompare(y.a.titulo, "es"));
+    T.cands = cand;
+    const mios = ELEG[t.tienda];
+    T.manual = !!mios;
+    const elegidos = mios ? cand.filter(c => mios[c.a.barra]).map(c => [c.a, mios[c.a.barra]]) : cand.slice(0, CF.nuevos).map(c => [c.a, CF.un]);
+    T.elegidos = new Map(elegidos.map(([a, n]) => [a.barra, n]));
+    elegidos.forEach(([a, n], i) => tareas.push({ t: T, tipo: "Nuevo", r: null, a, pide: n, como: "", prio: 1, sub: i }));
   }
   // Asignación: primero reponer (lo que se vende más reciente), luego nuevos (lo más vendido en la cadena)
   tareas.sort((x, y) => x.prio - y.prio || x.sub - y.sub);
@@ -530,20 +558,45 @@ function recalcular() {
 }
 const total = m => m ? [...m.values()].reduce((s, n) => s + n, 0) : 0;
 
+// Candidatos ordenados por nuestra existencia (los que tenemos van primero)
+function candOrden(cand) {
+  return (cand || []).map(a => { const m = stockDe(a); return { a, t: total(m), b: txtBodegas(m) }; }).sort((x, y) => y.t - x.t);
+}
+let PEND = [];
 function pintarPendientes(pend) {
+  PEND = pend;
   $("s4").hidden = !pend.length;
   $("pcTitle").textContent = `Por confirmar: ${pend.length} ${pend.length === 1 ? "artículo" : "artículos"}`;
-  $("pcBody").innerHTML = pend.slice(0, 200).map(({ r, id }) => `
-    <tr><td><b>${esc(r.desc)}</b><div class="small-t mono">Item ${esc(r.item)}${r.upc ? " · UPC " + esc(r.upc) : ""}</div></td>
-    <td class="cand"><select data-item="${esc(r.item)}">
-      <option value="">— Elegir —</option>
-      ${(id.cand || []).map(a => `<option value="${esc(a.barra)}">${esc(a.titulo)} · ${esc(a.editorial)} · Q${a.precio} · ${esc(a.barra)}</option>`).join("")}
-      <option value="NO">No está en la lista de aprobados</option>
-    </select></td></tr>`).join("");
+  const unicos = STOCK ? pend.filter(({ id }) => candOrden(id.cand).filter(c => c.t > 0).length === 1).length : 0;
+  $("pcAuto").hidden = !unicos;
+  $("pcAuto").textContent = `Elegir el que tiene existencia (${unicos})`;
+  $("pcAuto").title = "En los artículos donde solo una de las ediciones tiene existencia, elige esa";
+  const sinOp = pend.filter(({ id }) => !(id.cand || []).length).length;
+  $("pcNo").hidden = !sinOp; $("pcNo").textContent = `Marcar los ${sinOp} sin opciones como "no aprobados"`;
+  // Primero los que tienen opciones para elegir
+  pend = [...pend].sort((x, y) => (!(x.id.cand || []).length) - (!(y.id.cand || []).length));
+  $("pcBody").innerHTML = pend.slice(0, 200).map(({ r, id }) => {
+    const cs = candOrden(id.cand);
+    return `<tr><td style="min-width:180px"><b>${esc(r.desc)}</b><div class="small-t mono">Item ${esc(r.item)}${r.upc ? " · UPC " + esc(r.upc) : ""}${r.precio ? " · Q" + esc(r.precio) : ""}</div>
+      <div class="small-t">${cs.length ? `${cs.length} ${cs.length === 1 ? "opción" : "opciones"}` : "Sin coincidencias en la lista"}</div></td>
+    <td><div class="opts">${cs.map((c, i) => `<button type="button" class="opt ${i === 0 && c.t > 0 ? "top" : ""}" data-item="${esc(r.item)}" data-barra="${esc(c.a.barra)}">
+        <span class="ot">${esc(c.a.titulo)}</span>
+        <span class="os">${esc(c.a.editorial)} · Q${c.a.precio} · <span class="mono">${esc(c.a.barra)}</span>${c.b ? " · " + esc(c.b) : ""}</span>
+        <span class="ox ${STOCK && !c.t ? "cero" : ""}">${STOCK ? c.t : "—"}<small>existencia</small></span></button>`).join("")}
+      <button type="button" class="opt no" data-item="${esc(r.item)}" data-barra="NO">No está en la lista de aprobados</button></div></td></tr>`;
+  }).join("");
 }
-$("pcBody").addEventListener("change", e => {
-  const s = e.target.closest("select[data-item]"); if (!s || !s.value) return;
-  EQ[s.dataset.item] = s.value; lsSet("surtido-equiv", EQ); recalcular();
+$("pcBody").addEventListener("click", e => {
+  const b = e.target.closest("button[data-item]"); if (!b) return;
+  EQ[b.dataset.item] = b.dataset.barra; lsSet("surtido-equiv", EQ); recalcular();
+});
+$("pcNo").addEventListener("click", () => {
+  for (const { r, id } of PEND) if (!(id.cand || []).length) EQ[r.item] = "NO";
+  lsSet("surtido-equiv", EQ); recalcular();
+});
+$("pcAuto").addEventListener("click", () => {
+  for (const { r, id } of PEND) { const con = candOrden(id.cand).filter(c => c.t > 0); if (con.length === 1) EQ[r.item] = con[0].a.barra; }
+  lsSet("surtido-equiv", EQ); recalcular();
 });
 
 function pintarResumen() {
@@ -566,7 +619,7 @@ function pintarDetalle() {
   const t = RES.tiendas.find(x => x.tienda === SEL);
   $("det").hidden = !t; if (!t) return;
   $("detTitle").textContent = `${t.nombre || "Tienda " + t.tienda}: ${t.sug.reduce((s, x) => s + x.manda, 0)} unidades sugeridas`;
-  const tabs = [["sug", `Sugerido (${t.sug.length})`], ["sin", `Sin existencia (${t.sinEx.length})`], ["quieto", `+${CF.dias} días sin venta (${t.quieto.length})`], ["noap", `No aprobados (${t.noAp.length})`]];
+  const tabs = [["sug", `Sugerido (${t.sug.length})`], ["elegir", `Elegir nuevos (${t.elegidos.size} de ${t.cands.length})`], ["sin", `Sin existencia (${t.sinEx.length})`], ["quieto", `+${CF.dias} días sin venta (${t.quieto.length})`], ["noap", `No aprobados (${t.noAp.length})`]];
   $("detTabs").innerHTML = tabs.map(([k, l]) => `<button type="button" class="small ${k === "quieto" ? "t-red" : ""}" data-tab="${k}" aria-pressed="${TAB === k}">${l}</button>`).join("");
   let head, body;
   if (TAB === "sug") {
@@ -575,6 +628,22 @@ function pintarDetalle() {
       <td><b>${esc(x.a.titulo)}</b><div class="small-t">${esc(x.a.editorial)} · <span class="mono">${esc(x.a.barra)}</span>${x.a.plu ? " · PLU " + esc(x.a.plu) : ""}${x.como && x.como !== "Código de barras" ? " · " + esc(x.como.toLowerCase()) : ""}</div></td>
       <td class="n">${x.r ? x.r.oh : 0}</td><td class="n">${x.r ? x.r.ec : 0}</td><td class="n big">${x.manda}${x.manda < x.pide ? `<div class="small-t">de ${x.pide}</div>` : ""}</td>
       <td class="from">${x.de.length ? fromTxt(x.de) : STOCK ? "—" : '<span class="small-t">sin dato</span>'}</td><td class="from hide-sm small-t">${esc(x.bodegas)}</td></tr>`).join("");
+  } else if (TAB === "elegir") {
+    const f = toks(FILTRO);
+    const lista = t.cands.filter(c => !f.length || f.every(w => (c.a.tw.concat(toks(c.a.editorial), toks(c.a.autor))).some(x => x.startsWith(w)) || c.a.barra.includes(w)));
+    head = `<tr><th style="width:42px"></th><th>Título</th><th class="n">Nuestra existencia</th><th class="hide-sm">Por bodega</th><th class="n hide-sm">Se vende en</th><th class="n">Mandar</th></tr>`;
+    body = `<tr><td colspan="6" style="background:var(--soft)"><div class="row">
+        <input type="search" id="filtro" placeholder="Buscar título, autor o editorial" value="${esc(FILTRO)}" style="flex:1;min-width:180px">
+        <span class="small-t">${t.manual ? "Selección hecha a mano." : `Sugerencia automática: los ${CF.nuevos} con más existencia.`} Ordenados por nuestra existencia.</span>
+        ${t.manual ? '<button type="button" class="ghost small" data-reset="1">Volver a la sugerencia automática</button>' : ""}</div></td></tr>` +
+      lista.slice(0, 300).map(c => {
+        const n = t.elegidos.get(c.a.barra) || 0;
+        return `<tr class="${n ? "sel" : ""}"><td><input type="checkbox" data-pick="${esc(c.a.barra)}" ${n ? "checked" : ""} aria-label="Mandar ${esc(c.a.titulo)}" style="width:20px;height:20px"></td>
+          <td><b>${esc(c.a.titulo)}</b><div class="small-t">${esc(c.a.editorial)} · <span class="mono">${esc(c.a.barra)}</span>${c.a.plu ? " · PLU " + esc(c.a.plu) : ""}</div></td>
+          <td class="n big">${STOCK ? c.tot : "—"}</td><td class="hide-sm from small-t">${esc(c.bod)}</td>
+          <td class="n hide-sm">${c.pop.v ? `${c.pop.v} ${c.pop.v === 1 ? "tienda" : "tiendas"}` : "—"}</td>
+          <td class="n"><input type="number" min="1" max="50" value="${n || CF.un}" data-qty="${esc(c.a.barra)}" ${n ? "" : "disabled"} style="width:70px"></td></tr>`;
+      }).join("") + (lista.length > 300 ? `<tr><td colspan="6" class="small-t">Se muestran 300 de ${lista.length}. Usa el buscador para encontrar otros.</td></tr>` : "");
   } else if (TAB === "sin") {
     head = `<tr><th>Título</th><th class="n">En tienda</th><th class="n">Días sin venta</th></tr>`;
     body = t.sinEx.map(x => `<tr><td><b>${esc(x.a.titulo)}</b><div class="small-t">${esc(x.a.editorial)} · <span class="mono">${esc(x.a.barra)}</span></div></td><td class="n">${x.r.oh}</td><td class="n">${x.r.dias ?? "—"}</td></tr>`).join("");
@@ -601,8 +670,27 @@ function pintarDetalle() {
   $("detHead").innerHTML = head;
   $("detBody").innerHTML = body || `<tr><td colspan="7" class="muted">Nada en esta lista.</td></tr>`;
 }
-$("det").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (!b) return; TAB = b.dataset.tab; pintarDetalle(); });
+$("det").addEventListener("click", e => {
+  if (e.target.closest("[data-reset]")) { delete ELEG[SEL]; lsSet("surtido-elegidos", ELEG); recalcular(); return; }
+  const b = e.target.closest("[data-tab]"); if (!b) return; TAB = b.dataset.tab; pintarDetalle();
+});
+$("detBody").addEventListener("input", e => {
+  if (e.target.id !== "filtro") return;
+  FILTRO = e.target.value; const pos = e.target.selectionStart;
+  pintarDetalle(); const f = $("filtro"); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch (er) {} }
+});
+function elegirDe(tienda) {
+  if (!ELEG[tienda]) { const t = RES.tiendas.find(x => x.tienda === tienda); ELEG[tienda] = Object.fromEntries(t.elegidos); }
+  return ELEG[tienda];
+}
 $("detBody").addEventListener("change", e => {
+  const pk = e.target.closest("[data-pick]"), qt = e.target.closest("[data-qty]");
+  if (pk || qt) {
+    const m = elegirDe(SEL);
+    if (pk) { if (pk.checked) m[pk.dataset.pick] = CF.un; else delete m[pk.dataset.pick]; }
+    if (qt) { const v = Math.max(1, Math.min(50, Math.round(+qt.value || 1))); m[qt.dataset.qty] = v; }
+    lsSet("surtido-elegidos", ELEG); recalcular(); return;
+  }
   const s = e.target.closest("select[data-rev]"); if (!s) return;
   if (s.value) REV[s.dataset.rev] = s.value; else delete REV[s.dataset.rev];
   lsSet("surtido-revision", REV); pintarDetalle();
@@ -636,6 +724,8 @@ function libro(ts) {
   for (const t of ts) for (const x of t.sug) for (const [l, n] of x.de) porB.push({ "Bodega": l, "Tienda": t.tienda, "Nombre tienda": t.nombre, "Código de barras": x.a.barra, "PLU": x.a.plu, "Título": x.a.titulo, "Unidades": n });
   porB.sort((a, b) => a.Bodega.localeCompare(b.Bodega) || String(a.Tienda).localeCompare(String(b.Tienda)) || a.Título.localeCompare(b.Título, "es"));
   add("Por bodega", porB, [10, 8, 20, 15, 9, 44, 9]);
+  add("Nuevos posibles", ts.flatMap(t => t.cands.map(c => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Código de barras": c.a.barra, "PLU": c.a.plu, "Título": c.a.titulo,
+    "Editorial": c.a.editorial, "Nuestra existencia": STOCK ? c.tot : "", "Por bodega": c.bod, "Se vende en (tiendas)": c.pop.v, "Elegido (unidades)": t.elegidos.get(c.a.barra) || "" }))), [8, 20, 15, 9, 44, 18, 12, 34, 12, 12]);
   add("Sin existencia", ts.flatMap(t => t.sinEx.map(x => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Código de barras": x.a.barra, "Título": x.a.titulo, "En tienda": x.r.oh, "Días sin venta": x.r.dias ?? "" }))), [8, 20, 15, 44, 9, 13]);
   const revTxt = Object.fromEntries(REV_OP);
   add(`Alerta +${CF.dias} dias`, ts.flatMap(t => t.quieto.map(x => ({ "Alerta": "ROJA", "Tienda": t.tienda, "Nombre tienda": t.nombre, "Item Nbr": x.r.item, "Código de barras": x.a?.barra || "",
