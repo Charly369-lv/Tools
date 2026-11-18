@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Boletín de Novedades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Boletín: elige 10 libros (2 editorial del mes, 2 infantil, 2 juvenil, 2 literario, 1 autoayuda, 1 ensayo)
+   que no estén en bazar, tengan 15+ unidades y estén repartidos entre las tiendas. */
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8; --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1100px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 18px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.mast img { display: block; width: min(220px, 56vw); height: auto; }
+.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; }
+main { padding-block: 22px 56px; }
+main .inner { display: grid; gap: 18px; }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
+h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.small-t { font-size: 12px; color: var(--muted); }
+.mono { font-family: var(--f-mono); font-size: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
+.status { font-size: 15px; font-weight: 600; }
+.status.ok { color: var(--green); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+button { font: 700 15px var(--f-body); border-radius: 8px; cursor: pointer; padding: 9px 15px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 42px; }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.small { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+input[type=password], input[type=number], input[type=text], input[type=search], select { font: 15px var(--f-body); padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+input[type=number] { width: 90px; }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+details > summary { cursor: pointer; font-weight: 700; }
+.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.sets label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.checks label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; color: var(--ink); }
+.cats { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.cats details { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+
+/* Progreso */
+.bar { position: sticky; top: 0; z-index: 5; background: var(--navy-deep); color: #fff; border-radius: 12px; padding: 12px 16px; display: flex; gap: 10px 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.bar b { font-size: 18px; }
+.bar .row button { border-color: #fff; }
+.bar .row button.ghost { color: #fff; border-color: rgba(255,255,255,.4); }
+
+/* Secciones */
+.sec { display: grid; gap: 10px; }
+.sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.sec-h .cnt { font-weight: 800; font-size: 14px; padding: 3px 10px; border-radius: 999px; background: var(--green-bg); color: var(--green); }
+.sec-h .cnt.falta { background: var(--red-bg); color: var(--red); }
+.picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.bk { border: 2px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; background: var(--surface); align-content: start; }
+.bk.on { border-color: var(--navy); box-shadow: 0 0 0 1px var(--navy) inset; }
+.bk .t { font-weight: 800; font-size: 15px; line-height: 1.25; }
+.bk .a { font-size: 13px; color: var(--muted); }
+.bk .pr { font-weight: 800; font-size: 18px; }
+.met { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; }
+.met span { white-space: nowrap; }
+.met b { font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--soft); color: var(--ink); }
+.chip.new { background: var(--gold); color: #3a2a00; }
+.bk .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.alts { border: 1px dashed var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+.alts .picks { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.alts .bk { cursor: pointer; }
+.alts .bk:hover { border-color: var(--navy); }
+.diag { font-size: 13px; color: var(--muted); }
+.ed-grid { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 660px); gap: 18px; align-items: start; }
+.ed-form { display: grid; gap: 12px; }
+.ed-form label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.ed-form input, .ed-form textarea { width: 100%; font: 14px var(--f-body); min-height: 0; }
+.ed-book { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; }
+.ed-book b { font-size: 13px; }
+.prev-wrap { background: var(--soft); border-radius: 12px; padding: 12px; display: grid; justify-items: center; position: sticky; top: 70px; }
+#prev { width: 640px; max-width: 100%; height: 78vh; border: 0; border-radius: 8px; background: #fff; transition: width .2s; }
+#prev.movil { width: 390px; }
+@media (max-width: 900px) { .ed-grid { grid-template-columns: 1fr; } .prev-wrap { position: static; } }
+textarea { width: 100%; min-height: 220px; font: 13px/1.5 var(--f-mono); padding: 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner">
+  <img src="../checador/logo.png" alt="De Museo" width="800" height="144">
+  <span class="mast-t">Boletín de novedades</span>
+</div></header>
+
+<main class="pad"><div class="inner">
+  <p class="muted">Arma el boletín semanal: 10 libros que no estén en bazar, con al menos 15 unidades y repartidos entre las tiendas. La página propone una selección y tú puedes cambiar cualquier libro.</p>
+
+  <section class="card" id="s1">
+    <h3>Datos</h3>
+    <p class="status" id="stStatus">Cargando…</p>
+    <form class="row" id="claveForm" hidden autocomplete="off">
+      <input type="password" id="clave" placeholder="Clave de existencias" autocomplete="current-password" style="flex:1;max-width:320px">
+      <button type="submit">Abrir</button>
+    </form>
+    <p class="notice bad" id="stErr" hidden></p>
+  </section>
+
+  <section class="card">
+    <div class="sets">
+      <label>Editorial destacada del mes<input type="text" id="cfEd" list="eds" placeholder="Escribe la editorial"><datalist id="eds"></datalist></label>
+      <label>Ordenar por<select id="cfOrden"><option value="recientes">Más recientes primero</option><option value="reparto">Mejor repartidos</option><option value="existencia">Más existencia</option></select></label>
+    </div>
+    <details>
+      <summary>Reglas y ajustes</summary>
+      <div style="display:grid;gap:14px;margin-top:12px">
+        <div class="sets">
+          <label>Existencia mínima (total)<input type="number" id="cfMin" min="1" max="500" value="15"></label>
+          <label>Mínimo de tiendas con existencia (%)<input type="number" id="cfTiendas" min="0" max="100" value="50"></label>
+          <label>Máximo en una sola tienda o bodega (%)<input type="number" id="cfMax" min="5" max="100" value="40"></label>
+          <label>Solo dados de alta en los últimos (días, 0 = todos)<input type="number" id="cfDias" min="0" max="3650" value="0"></label>
+          <label>No repetir libros de los últimos (boletines)<input type="number" id="cfRep" min="0" max="52" value="4"></label>
+        </div>
+        <div style="display:grid;gap:6px"><h3>¿Cuáles ubicaciones son tiendas?</h3>
+          <p class="small-t">Se usan para la regla de reparto. Las bodegas cuentan para la existencia total y para la regla de concentración, pero no como tiendas.</p>
+          <div class="checks" id="cfLocs"><span class="muted">Se muestran al abrir las existencias.</span></div></div>
+        <div style="display:grid;gap:6px"><h3>Temas de cada categoría</h3><div class="cats" id="cfCats"></div></div>
+      </div>
+    </details>
+  </section>
+
+  <div class="bar" id="bar" hidden>
+    <b id="barTxt">0 de 10</b>
+    <div class="row">
+      <button type="button" class="ghost small" id="btnRehacer">Volver a proponer</button>
+      <button type="button" class="ghost small" id="btnCopiar">Copiar lista</button>
+      <button type="button" class="ghost small" id="btnXls">Descargar Excel</button>
+      <button type="button" class="small" id="btnGuardar">Guardar como boletín de esta semana</button>
+    </div>
+  </div>
+  <p class="notice" id="aviso" hidden></p>
+  <div id="secs" style="display:grid;gap:22px"></div>
+
+  <section class="card" id="cli" hidden>
+    <div class="row" style="justify-content:space-between"><h2>Boletín para clientes</h2>
+      <div class="row"><button type="button" class="ghost small" id="vMovil">Ver en celular</button><button type="button" class="ghost small" id="btnHtml">Descargar HTML</button><button type="button" class="small" id="btnCopiarHtml">Copiar HTML</button></div></div>
+    <p class="muted">Así lo recibirían los clientes. Edita el asunto, el título, la introducción y, si quieres, una frase por libro. Los cambios se guardan en este equipo.</p>
+    <div class="ed-grid">
+      <div class="ed-form">
+        <label>Asunto del correo<input type="text" id="tAsunto"></label>
+        <label>Título<input type="text" id="tTitulo"></label>
+        <label>Introducción<textarea id="tIntro" style="min-height:90px"></textarea></label>
+        <div id="tLibros" style="display:grid;gap:10px"></div>
+      </div>
+      <div class="prev-wrap"><iframe id="prev" title="Vista previa del boletín"></iframe></div>
+    </div>
+  </section>
+
+  <section class="card" id="copia" hidden>
+    <div class="row" style="justify-content:space-between"><h3>Lista para copiar</h3><button type="button" class="ghost small" id="btnCerrarCopia">Cerrar</button></div>
+    <textarea id="copiaTxt" readonly></textarea>
+  </section>
+  <section class="card" id="hist" hidden>
+    <h3>Boletines guardados en este equipo</h3>
+    <div id="histList" class="muted"></div>
+  </section>
+</div></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const fmtQ = n => "Q" + Math.round(n).toLocaleString("es-GT");
+
+// ---------------------------------------------------------------- configuración
+const CATS = [
+  { k: "ed", n: "Editorial destacada", cupo: 2 },
+  { k: "inf", n: "Infantil", cupo: 2, temas: ["INFANTIL"] },
+  { k: "juv", n: "Juvenil", cupo: 2, temas: ["NARRATIVA JUVENIL"] },
+  { k: "lit", n: "Literario", cupo: 2, temas: ["NARRATIVA", "NARRATIVA CLASICA", "NARRATIVA FANTASTICA Y DE FICCION", "NARRATIVA POLICIACA NEGRA", "NARRATIVA DE TERROR", "NARRATIVA GUATEMALTECA", "NARRATIVA HISTORICA", "NARRATIVA ROMANTICA", "POESIA"] },
+  { k: "aut", n: "Autoayuda", cupo: 1, temas: ["AUTOAYUDA Y SUPERACION PERSONAL"] },
+  { k: "ens", n: "Ensayo", cupo: 1, temas: ["ENSAYO Y NO FICCION"] },
+];
+const BODEGAS = ["BOD", "CDV", "DPROV", "REVIS", "MOVIL", "WALLM", "TEL"];   // por defecto no cuentan como tiendas
+let CF = Object.assign({ ed: "", orden: "recientes", min: 15, tiendas: 50, max: 40, dias: 0, rep: 4, noTiendas: BODEGAS, temas: Object.fromEntries(CATS.filter(c => c.temas).map(c => [c.k, c.temas])) },
+  lsGet("boletin-ajustes", {}));
+const guardarCF = () => lsSet("boletin-ajustes", CF);
+let SEL = lsGet("boletin-seleccion", {});      // { cat: [clave, ...] } elegidos a mano o aceptados
+let HIST = lsGet("boletin-historial", []);     // [{ fecha, libros: [{clave, titulo}] }]
+let ABIERTO = null;                            // categoría con alternativas abiertas: "cat|indice"
+
+// ---------------------------------------------------------------- datos
+let CAT = null, STOCK = null, SOBRE = null, LIBROS = [];
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function abrirStock(clave, silencioso) {
+  $("stErr").hidden = true;
+  try {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(SOBRE.s), iterations: SOBRE.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    let plano;
+    try { plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(SOBRE.iv) }, key, b64(SOBRE.d)); } catch (e) { throw new Error("clave"); }
+    STOCK = JSON.parse(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
+    $("claveForm").hidden = true;
+    listo();
+  } catch (e) {
+    if (silencioso) { try { localStorage.removeItem("surtido-clave"); } catch (er) {} }
+    else { $("stErr").textContent = e.message === "clave" ? "Clave incorrecta." : "No se pudieron abrir las existencias en este navegador."; $("stErr").hidden = false; }
+    $("claveForm").hidden = false;
+    $("stStatus").textContent = "Escribe la clave de existencias para armar el boletín.";
+  }
+}
+$("claveForm").addEventListener("submit", e => { e.preventDefault(); const c = $("clave").value.trim(); if (c) abrirStock(c); });
+
+// Catálogo del checador (se comparte la caché del navegador con el checador)
+function idb() { return new Promise((res, rej) => { try { const r = indexedDB.open("demuseo-checador", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
+async function idbGet(k) { const db = await idb(); return new Promise((res, rej) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbSet(k, v) { const db = await idb(); return new Promise((res, rej) => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); }
+async function cargarCatalogo() {
+  const bz = await (await fetch("../checador/bazar.json?t=" + Date.now(), { cache: "no-store" })).json();
+  let text = null;
+  try { const c = await idbGet("catalogo"); if (c && c.v === bz.v) text = c.text; } catch (e) {}
+  if (!text) {
+    const r = await fetch("../checador/catalogo.json?v=" + encodeURIComponent(bz.v));
+    if (!r.ok) throw new Error("catalogo");
+    text = await r.text();
+    try { await idbSet("catalogo", { v: bz.v, text }); } catch (e) {}
+  }
+  const d = JSON.parse(text);
+  CAT = d.p.map(r => [r[0], r[1], r[2], d.a[r[3]], d.e[r[4]], r[5], d.t[r[6]], r[7]]);
+}
+
+(async () => {
+  try {
+    const [, enc] = await Promise.all([cargarCatalogo(), fetch("../surtido/existencias.enc?t=" + Date.now(), { cache: "no-store" })]);
+    if (!enc.ok) throw new Error("existencias");
+    SOBRE = await enc.json();
+    let c = null; try { c = localStorage.getItem("surtido-clave"); } catch (e) {}
+    $("stStatus").textContent = "Escribe la clave de existencias para armar el boletín.";
+    if (c) await abrirStock(c, true); else $("claveForm").hidden = false;
+  } catch (e) {
+    $("stStatus").textContent = e.message === "existencias" ? "Todavía no hay existencias publicadas. Corre la actualización de datos y vuelve a abrir." : "No se pudo cargar el catálogo. Revisa la conexión y recarga.";
+  }
+})();
+
+// ---------------------------------------------------------------- preparación
+function listo() {
+  const n = Object.keys(STOCK.p).length;
+  const conFecha = Object.values(STOCK.p).some(e => e[3]);
+  $("stStatus").textContent = `Listo: catálogo de ${CAT.length.toLocaleString("es-GT")} productos y existencias al ${fechaLocal(STOCK.v)}` + (conFecha ? "" : " (Las fechas de alta llegarán con la próxima actualización.)");
+  $("stStatus").className = "status ok";
+  if (!conFecha && CF.orden === "recientes") CF.orden = "reparto";
+  pintarAjustes();
+  calcularBase();
+  armar();
+}
+function fechaLocal(v) { const d = new Date(String(v).replace(" ", "T") + ":00Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+const tiendasSel = () => STOCK.L.filter(l => !CF.noTiendas.includes(l));
+
+function calcularBase() {
+  // Libros con precio, que no están en bazar, con sus existencias y métricas de reparto
+  const T = tiendasSel(), Tset = new Set(T);
+  LIBROS = [];
+  for (const p of CAT) {
+    if (!(p[5] > 0) || p[7] != null) continue;                 // sin precio o en bazar
+    const e = (p[0] && STOCK.p[p[0]]) || (p[1] && STOCK.r[p[1]] ? STOCK.p[STOCK.r[p[1]]] : null) || (p[1] && STOCK.p["r:" + p[1]]);
+    if (!e) continue;
+    let tot = 0, mx = 0, mxL = "", tCon = 0; const locs = [];
+    for (let i = 0; i < e[1].length; i += 2) {
+      const l = STOCK.L[e[1][i]], n = e[1][i + 1];
+      tot += n; locs.push([l, n]);
+      if (n > mx) { mx = n; mxL = l; }
+      if (Tset.has(l) && n > 0) tCon++;
+    }
+    if (!tot) continue;
+    LIBROS.push({ p, clave: p[0] || "r:" + p[1], tit: p[2], aut: p[3], ed: p[4], precio: p[5], tema: p[6], nt: norm(p[6]), ned: norm(p[4]),
+      tot, mx, mxL, mxPct: mx / tot * 100, tCon, tPct: T.length ? tCon / T.length * 100 : 0, nT: T.length, locs, alta: e[3] || "", llave: norm(p[2]) + "|" + norm(p[3]) });
+  }
+  // Editoriales para el buscador: las que tienen libros que cumplen la existencia mínima
+  const cnt = new Map();
+  for (const b of LIBROS) if (b.tot >= CF.min && b.ed) cnt.set(b.ed, (cnt.get(b.ed) || 0) + 1);
+  $("eds").innerHTML = [...cnt].sort((a, b) => b[1] - a[1]).slice(0, 400).map(([e, n]) => `<option value="${esc(e)}">${n} libros</option>`).join("");
+}
+
+function cumple(b) {
+  const r = [];
+  if (b.tot < CF.min) r.push("min");
+  if (b.tPct < CF.tiendas) r.push("tiendas");
+  if (b.mxPct > CF.max) r.push("max");
+  if (CF.dias > 0) { if (!b.alta) r.push("alta"); else if ((Date.now() - new Date(b.alta + "T12:00:00")) / 864e5 > CF.dias) r.push("alta"); }
+  return r;
+}
+function enCategoria(b, cat) {
+  if (cat.k === "ed") return !!CF.ed && b.ned === norm(CF.ed);
+  return (CF.temas[cat.k] || []).includes(b.nt);
+}
+function orden(a, b) {
+  if (CF.orden === "recientes") return (b.alta || "").localeCompare(a.alta || "") || b.tPct - a.tPct || b.tot - a.tot;
+  if (CF.orden === "existencia") return b.tot - a.tot || b.tPct - a.tPct;
+  return b.tPct - a.tPct || a.mxPct - b.mxPct || b.tot - a.tot;
+}
+function recientes() {
+  const s = new Set();
+  for (const h of HIST.slice(0, CF.rep)) for (const l of h.libros) s.add(l.clave);
+  return s;
+}
+
+// ---------------------------------------------------------------- selección
+let RES = [];
+function armar() {
+  const usados = new Set(), llaves = new Set(), rep = recientes();
+  const porClave = new Map(LIBROS.map(b => [b.clave, b]));
+  RES = CATS.map(cat => {
+    const todos = LIBROS.filter(b => enCategoria(b, cat));
+    const diag = { total: todos.length, min: 0, tiendas: 0, max: 0, alta: 0, rep: 0 };
+    const ok = [];
+    for (const b of todos) {
+      const r = cumple(b);
+      if (r.length) { r.forEach(x => diag[x]++); continue; }
+      if (rep.has(b.clave)) { diag.rep++; continue; }
+      ok.push(b);
+    }
+    ok.sort(orden);
+    // Primero lo elegido a mano (si sigue cumpliendo), luego se completa con los mejores
+    const elegidos = [];
+    for (const k of SEL[cat.k] || []) {
+      const b = porClave.get(k);
+      if (b && ok.includes(b) && !usados.has(k) && !llaves.has(b.llave) && elegidos.length < cat.cupo) { elegidos.push(b); usados.add(k); llaves.add(b.llave); }
+    }
+    for (const b of ok) {
+      if (elegidos.length >= cat.cupo) break;
+      if (usados.has(b.clave) || llaves.has(b.llave)) continue;
+      elegidos.push(b); usados.add(b.clave); llaves.add(b.llave);
+    }
+    return { cat, elegidos, ok, diag };
+  });
+  // Alternativas: los que cumplen y no están elegidos en ninguna categoría
+  for (const r of RES) r.alts = r.ok.filter(b => !usados.has(b.clave) && !llaves.has(b.llave)).slice(0, 24);
+  pintar();
+}
+
+function tarjeta(b, extra) {
+  const nuevo = b.alta && (Date.now() - new Date(b.alta + "T12:00:00")) / 864e5 <= 60;
+  return `<div class="t">${esc(b.tit)}</div>
+    <div class="a">${esc(b.aut)}${b.aut && b.ed ? " · " : ""}${esc(b.ed)}</div>
+    <div class="row" style="gap:6px"><span class="pr">${fmtQ(b.precio)}</span><span class="chip">${esc(b.tema.toLowerCase())}</span>${nuevo ? '<span class="chip new">Novedad</span>' : ""}</div>
+    <div class="met"><span>Existencia <b>${b.tot}</b></span><span>En <b>${b.tCon}</b> de ${b.nT} tiendas</span><span>Máx. <b>${Math.round(b.mxPct)}%</b> en ${esc(b.mxL)}</span>${b.alta ? `<span>Alta ${esc(b.alta)}</span>` : ""}</div>
+    <div class="small-t mono">${esc(b.p[0] || "")}${b.p[1] ? " · Ref. " + esc(b.p[1]) : ""}</div>${extra || ""}`;
+}
+function pintar() {
+  const n = RES.reduce((s, r) => s + r.elegidos.length, 0);
+  $("bar").hidden = false;
+  $("barTxt").textContent = `${n} de 10 libros listos`;
+  $("btnGuardar").disabled = n === 0;
+  $("aviso").hidden = !!CF.ed;
+  $("aviso").textContent = "Escribe la editorial destacada del mes para completar esa sección.";
+  $("secs").innerHTML = RES.map(r => {
+    const falta = r.cat.cupo - r.elegidos.length, d = r.diag;
+    const motivos = [d.min && `${d.min} con menos de ${CF.min} unidades`, d.tiendas && `${d.tiendas} en menos del ${CF.tiendas}% de las tiendas`, d.max && `${d.max} concentrados en una ubicación`, d.alta && `${d.alta} fuera del rango de alta`, d.rep && `${d.rep} ya salieron en boletines recientes`].filter(Boolean);
+    return `<section class="sec">
+      <div class="sec-h"><h2>${esc(r.cat.n)}${r.cat.k === "ed" && CF.ed ? ": " + esc(CF.ed) : ""}</h2>
+        <span class="cnt ${falta ? "falta" : ""}">${r.elegidos.length} de ${r.cat.cupo}</span></div>
+      ${falta ? `<p class="notice ${r.ok.length ? "" : "bad"}">${r.cat.k === "ed" && !CF.ed ? "Falta elegir la editorial destacada." : `Solo ${r.ok.length} ${r.ok.length === 1 ? "libro cumple" : "libros cumplen"} las reglas.`} ${motivos.length ? "De " + d.total + " en esta categoría: " + motivos.join(", ") + "." : ""}</p>` : ""}
+      <div class="picks">${r.elegidos.map((b, i) => `<div class="bk on">${tarjeta(b, `<div class="acts"><button type="button" class="ghost small" data-cambiar="${r.cat.k}|${i}">Cambiar</button></div>`)}</div>`).join("")}</div>
+      ${ABIERTO && ABIERTO.startsWith(r.cat.k + "|") ? `<div class="alts"><div class="row" style="justify-content:space-between"><b>Elige el reemplazo (${r.alts.length} opciones que cumplen)</b><button type="button" class="ghost small" data-cerrar="1">Cancelar</button></div>
+        <div class="picks">${r.alts.map(b => `<div class="bk" data-elegir="${esc(b.clave)}" tabindex="0" role="button">${tarjeta(b)}</div>`).join("") || '<span class="muted">No hay más libros que cumplan las reglas en esta categoría.</span>'}</div></div>` : ""}
+      <p class="diag">${d.total} libros de esta categoría tienen existencia; ${r.ok.length} cumplen las reglas.</p>
+    </section>`;
+  }).join("");
+  pintarHist();
+  pintarEditor();
+  pintarCorreo();
+}
+$("secs").addEventListener("click", e => {
+  const c = e.target.closest("[data-cambiar]"), x = e.target.closest("[data-cerrar]"), el = e.target.closest("[data-elegir]");
+  if (c) { ABIERTO = c.dataset.cambiar; pintar(); return; }
+  if (x) { ABIERTO = null; pintar(); return; }
+  if (el && ABIERTO) {
+    const [k, i] = ABIERTO.split("|"); const r = RES.find(z => z.cat.k === k);
+    const claves = r.elegidos.map(b => b.clave); claves[+i] = el.dataset.elegir;
+    SEL[k] = claves; lsSet("boletin-seleccion", SEL); ABIERTO = null; armar();
+  }
+});
+$("secs").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-elegir]")) e.target.click(); });
+
+// ---------------------------------------------------------------- ajustes
+function pintarAjustes() {
+  $("cfEd").value = CF.ed; $("cfOrden").value = CF.orden;
+  for (const [id, k] of [["cfMin", "min"], ["cfTiendas", "tiendas"], ["cfMax", "max"], ["cfDias", "dias"], ["cfRep", "rep"]]) $(id).value = CF[k];
+  $("cfLocs").innerHTML = STOCK.L.map(l => `<label><input type="checkbox" data-loc="${esc(l)}" ${CF.noTiendas.includes(l) ? "" : "checked"}> ${esc(l)}</label>`).join("");
+  // Temas con libros (para asignarlos a cada categoría)
+  const cnt = new Map(); for (const p of CAT) if (p[6] && p[7] == null) cnt.set(norm(p[6]), (cnt.get(norm(p[6])) || 0) + 1);
+  const temas = [...cnt].filter(([t, n]) => n >= 20 && t !== "S/E" && t !== "S/V").sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  $("cfCats").innerHTML = CATS.filter(c => c.temas).map(c => `<details><summary>${esc(c.n)}: ${(CF.temas[c.k] || []).length} ${(CF.temas[c.k] || []).length === 1 ? "tema" : "temas"}</summary>
+    <div class="checks" style="margin-top:8px">${temas.map(t => `<label><input type="checkbox" data-cat="${c.k}" data-tema="${esc(t)}" ${(CF.temas[c.k] || []).includes(t) ? "checked" : ""}> ${esc(t.toLowerCase())}</label>`).join("")}</div></details>`).join("");
+}
+function reajustar(base) { guardarCF(); if (base) calcularBase(); armar(); }
+$("cfEd").addEventListener("change", () => { CF.ed = $("cfEd").value.trim(); delete SEL.ed; lsSet("boletin-seleccion", SEL); reajustar(); });
+$("cfOrden").addEventListener("change", () => { CF.orden = $("cfOrden").value; reajustar(); });
+for (const [id, k] of [["cfMin", "min"], ["cfTiendas", "tiendas"], ["cfMax", "max"], ["cfDias", "dias"], ["cfRep", "rep"]])
+  $(id).addEventListener("change", () => { const v = Math.max(+$(id).min, Math.min(+$(id).max, Math.round(+$(id).value || 0))); $(id).value = v; CF[k] = v; reajustar(); });
+$("cfLocs").addEventListener("change", e => { const l = e.target.dataset.loc; if (!l) return; CF.noTiendas = CF.noTiendas.filter(x => x !== l); if (!e.target.checked) CF.noTiendas.push(l); reajustar(true); });
+$("cfCats").addEventListener("change", e => {
+  const k = e.target.dataset.cat, t = e.target.dataset.tema; if (!k) return;
+  const s = new Set(CF.temas[k] || []); e.target.checked ? s.add(t) : s.delete(t); CF.temas[k] = [...s];
+  const sm = e.target.closest("details").querySelector("summary"); sm.textContent = sm.textContent.replace(/: \d+ temas?$/, `: ${s.size} ${s.size === 1 ? "tema" : "temas"}`);
+  reajustar();
+});
+
+// ---------------------------------------------------------------- boletín para clientes (correo)
+let TXT = Object.assign({ asunto: "", titulo: "Lecturas para esta semana", intro: "Seleccionamos para ti las novedades que ya están en nuestras librerías: historias para todas las edades, ideas que inspiran y la editorial invitada del mes.", notas: {}, portadas: {} }, lsGet("boletin-textos", {}));
+const guardarTXT = () => lsSet("boletin-textos", TXT);
+const SITIO = new URL("../", location.href).href;          // para el logo con dirección completa
+const COVER = new Map();                                   // clave → url de portada que sí carga
+function portadaDe(b) {
+  if (TXT.portadas[b.clave]) return TXT.portadas[b.clave];
+  return COVER.get(b.clave) || "";
+}
+function probarPortadas(lista) {
+  // Portadas públicas por ISBN (Open Library); si no existe, el correo usa una portada tipográfica
+  for (const b of lista) {
+    if (COVER.has(b.clave) || !/^97[89]\d{10}$/.test(b.p[0] || "")) continue;
+    COVER.set(b.clave, "");
+    const url = `https://covers.openlibrary.org/b/isbn/${b.p[0]}-M.jpg?default=false`;
+    const im = new Image();
+    im.onload = () => { if (im.naturalWidth > 20) { COVER.set(b.clave, url); pintarCorreo(); } };
+    im.src = url;
+  }
+}
+const e2 = s => esc(s).replace(/'/g, "&#39;");
+const NAVY = "#112369", DEEP = "#0b1748", GOLD = "#c9a13b", CREAM = "#f7f4ee", INK = "#1d2340", MUTED = "#6b6f85";
+const SERIF = "'Bodoni Moda', 'Bodoni 72', Didot, Georgia, 'Times New Roman', serif", SANS = "Helvetica, Arial, sans-serif";
+function capital(s) { return String(s || "").toLowerCase().replace(/(^|[\s(¿¡"'-])(\p{L})/gu, (m, a, c) => a + c.toUpperCase()).replace(/\b(De|Del|La|Las|El|Los|Y|En|Un|Una|A|Para|Con|Por|Sin|Al)\b/g, (m, w, i) => i ? w.toLowerCase() : w); }
+// Los nombres en el sistema a veces traen el tema y el autor pegados ("HIJAS DE LA VILLA… NARRATIVA JUVENIL JACOBS, ANNE")
+// y el artículo al final ("CIRCULO OCTOGONUS, EL"). Para el correo se limpian.
+function tituloLimpio(b) {
+  let t = String(b.tit || "").trim();
+  const quitar = [b.tema, b.aut, String(b.aut || "").split(",").reverse().join(" ").trim()].filter(x => x && x.length > 2);
+  for (let k = 0; k < 3; k++) for (const q of quitar) {
+    const re = new RegExp("[\\s.,;:-]*" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+") + "[\\s.]*$", "i");
+    t = t.replace(re, "");
+  }
+  t = t.replace(/[\s.,;:-]+$/, "");
+  const m = t.match(/^(.*?),\s*(EL|LA|LOS|LAS|UN|UNA|LO)\s*(\(.*\))?$/i);
+  if (m) t = `${m[2]} ${m[1]}${m[3] ? " " + m[3] : ""}`;
+  return capital(t);
+}
+const SIN_AUTOR = /^(SIN AUTOR|S\/A|VARIOS|V\.?\s*V\.?\s*A\.?\s*A\.?|VV\.?\s*AA\.?|ANONIMO|N\/A)$/i;
+function autorBonito(a) { const s = String(a || "").trim(); if (!s || SIN_AUTOR.test(s)) return ""; const m = s.split(","); return capital(m.length === 2 ? m[1].trim() + " " + m[0].trim() : s); }
+function libroHTML(b, ancho, grande) {
+  const img = portadaDe(b), t = tituloLimpio(b), a = autorBonito(b.aut), nota = TXT.notas[b.clave] || "";
+  const alto = Math.round(ancho * 1.5);
+  const cover = img
+    ? `<img src="${e2(img)}" width="${ancho}" alt="${e2(t)}" style="display:block;width:${ancho}px;max-width:100%;height:auto;border:0;margin:0 auto;box-shadow:0 6px 18px rgba(11,23,72,.18);">`
+    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${ancho}" style="margin:0 auto;width:${ancho}px;max-width:100%;"><tr><td height="${alto}" valign="middle" align="center" style="height:${alto}px;background:${CREAM};border:1px solid ${GOLD};outline:4px solid ${CREAM};padding:16px;">
+        <div style="font-family:${SANS};font-size:9px;letter-spacing:2px;text-transform:uppercase;color:${GOLD};margin:0 0 12px;">De Museo</div>
+        <div style="font-family:${SERIF};font-size:${grande ? 19 : 15}px;line-height:1.25;color:${DEEP};font-weight:700;">${e2(t)}</div>
+        <div style="width:28px;height:1px;background:${GOLD};margin:10px auto;font-size:0;line-height:0;">&nbsp;</div>
+        <div style="font-family:${SANS};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${MUTED};">${e2(a)}</div></td></tr></table>`;
+  return `${cover}
+    <div style="font-family:${SERIF};font-size:${grande ? 20 : 17}px;line-height:1.25;color:${INK};font-weight:700;margin:14px 0 4px;">${e2(t)}</div>
+    <div style="font-family:${SERIF};font-style:italic;font-size:14px;color:${MUTED};margin:0 0 6px;">${e2(a)}</div>
+    ${nota ? `<div style="font-family:${SANS};font-size:13px;line-height:1.5;color:${INK};margin:0 0 8px;">${e2(nota)}</div>` : ""}
+    <div style="font-family:${SANS};font-size:15px;font-weight:700;color:${NAVY};letter-spacing:.5px;">${fmtQ(b.precio)}</div>`;
+}
+function filaDos(libros, grande) {
+  const w = grande ? 170 : 130;
+  const celdas = libros.map(b => `<td class="col" width="50%" valign="top" align="center" style="width:50%;padding:0 12px 28px;text-align:center;">${libroHTML(b, w, grande)}</td>`);
+  if (celdas.length === 1) celdas.push('<td class="col" width="50%" style="width:50%;">&nbsp;</td>');
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${celdas.join("")}</tr></table>`;
+}
+function seccionHTML(etiqueta, titulo, cuerpo, fondo) {
+  return `<tr><td style="background:${fondo || "#ffffff"};padding:34px 28px 6px;">
+    <div style="font-family:${SANS};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${GOLD};text-align:center;margin:0 0 6px;">${e2(etiqueta)}</div>
+    <div style="font-family:${SERIF};font-size:26px;line-height:1.2;color:${INK};text-align:center;font-weight:700;margin:0 0 24px;">${e2(titulo)}</div>
+    ${cuerpo}</td></tr>`;
+}
+function correoHTML() {
+  const S = Object.fromEntries(RES.map(r => [r.cat.k, r.elegidos]));
+  const fecha = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "long", year: "numeric" });
+  const asunto = TXT.asunto || asuntoSugerido();
+  const pre = `${TXT.titulo}: ${seleccion().slice(0, 3).map(x => tituloLimpio(x.b)).join(", ")} y más.`;
+  const sec = [];
+  if (S.ed?.length) sec.push(seccionHTML("Editorial del mes", capital(CF.ed), filaDos(S.ed, true), CREAM));
+  if (S.inf?.length) sec.push(seccionHTML("Para los más pequeños", "Infantil", filaDos(S.inf)));
+  if (S.juv?.length) sec.push(seccionHTML("Para lectores jóvenes", "Juvenil", filaDos(S.juv), CREAM));
+  if (S.lit?.length) sec.push(seccionHTML("Grandes historias", "Literatura", filaDos(S.lit)));
+  const aut = S.aut || [], ens = S.ens || [];
+  if (aut.length || ens.length) sec.push(seccionHTML("Ideas para crecer", "Autoayuda y ensayo", filaDos([...aut, ...ens]), CREAM));
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting"><title>${e2(asunto)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&display=swap" rel="stylesheet">
+<style>body{margin:0;padding:0;background:${CREAM};}img{-ms-interpolation-mode:bicubic;}
+@media (max-width:620px){.wrap{width:100%!important;}.col{display:block!important;width:100%!important;padding:0 0 30px!important;}.px{padding-left:20px!important;padding-right:20px!important;}}</style></head>
+<body style="margin:0;padding:0;background:${CREAM};">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${CREAM};">${e2(pre)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${CREAM};"><tr><td align="center" style="padding:24px 10px;">
+<table role="presentation" class="wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;">
+  <tr><td align="center" style="background:${DEEP};padding:30px 20px 26px;"><img src="${SITIO}checador/logo.png" width="230" alt="De Museo" style="display:block;width:230px;height:auto;border:0;"></td></tr>
+  <tr><td style="height:3px;background:${GOLD};font-size:0;line-height:0;">&nbsp;</td></tr>
+  <tr><td class="px" align="center" style="padding:40px 48px 30px;">
+    <div style="font-family:${SANS};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${GOLD};margin:0 0 12px;">Novedades · ${e2(fecha)}</div>
+    <div style="font-family:${SERIF};font-size:34px;line-height:1.15;color:${INK};font-weight:700;margin:0 0 16px;">${e2(TXT.titulo)}</div>
+    <div style="font-family:${SERIF};font-size:16px;line-height:1.6;color:${MUTED};font-style:italic;">${e2(TXT.intro)}</div></td></tr>
+  ${sec.join("\n")}
+  <tr><td align="center" style="background:${DEEP};padding:34px 30px;">
+    <div style="font-family:${SERIF};font-size:22px;line-height:1.3;color:#ffffff;font-weight:700;margin:0 0 8px;">Te esperamos en tu librería De Museo</div>
+    <div style="font-family:${SANS};font-size:14px;line-height:1.6;color:#d8dcf0;">Pregunta por estos títulos en cualquiera de nuestras tiendas. Nuestros libreros te ayudan a encontrar tu próxima lectura.</div></td></tr>
+  <tr><td align="center" style="padding:22px 30px 28px;font-family:${SANS};font-size:11px;line-height:1.6;color:${MUTED};">
+    Precios en quetzales, válidos en tiendas físicas De Museo hasta agotar existencias.<br>
+    Recibes este correo porque te registraste para recibir novedades de De Museo. <a href="{{baja}}" style="color:${MUTED};">Dejar de recibir estos correos</a>.</td></tr>
+</table></td></tr></table></body></html>`;
+}
+function asuntoSugerido() {
+  const s = seleccion(); if (!s.length) return "Novedades De Museo";
+  return `Novedades De Museo: ${tituloLimpio(s[0].b)} y ${s.length - 1} lecturas más`;
+}
+function pintarCorreo() {
+  if (!RES.length) return;
+  $("cli").hidden = false;
+  $("tAsunto").placeholder = asuntoSugerido();
+  probarPortadas(seleccion().map(x => x.b));
+  $("prev").srcdoc = correoHTML();
+}
+function pintarEditor() {
+  $("tAsunto").value = TXT.asunto; $("tTitulo").value = TXT.titulo; $("tIntro").value = TXT.intro;
+  $("tLibros").innerHTML = seleccion().map(({ cat, b }) => `<div class="ed-book"><b>${esc(tituloLimpio(b))}</b><span class="small-t">${esc(cat)}</span>
+    <input type="text" data-nota="${esc(b.clave)}" placeholder="Frase opcional: por qué leerlo" value="${esc(TXT.notas[b.clave] || "")}">
+    <input type="text" data-port="${esc(b.clave)}" placeholder="Portada: pega la dirección de una imagen (opcional)" value="${esc(TXT.portadas[b.clave] || "")}"></div>`).join("");
+}
+for (const [id, k] of [["tAsunto", "asunto"], ["tTitulo", "titulo"], ["tIntro", "intro"]]) $(id).addEventListener("input", () => { TXT[k] = $(id).value; guardarTXT(); clearTimeout(window._tp); window._tp = setTimeout(pintarCorreo, 300); });
+$("tLibros").addEventListener("input", e => {
+  const n = e.target.dataset.nota, pt = e.target.dataset.port;
+  if (n) TXT.notas[n] = e.target.value; if (pt) TXT.portadas[pt] = e.target.value.trim();
+  guardarTXT(); clearTimeout(window._tp); window._tp = setTimeout(pintarCorreo, 400);
+});
+$("vMovil").addEventListener("click", () => { const m = $("prev").classList.toggle("movil"); $("vMovil").textContent = m ? "Ver en computadora" : "Ver en celular"; });
+$("btnHtml").addEventListener("click", () => {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([correoHTML()], { type: "text/html" }));
+  a.download = `Boletin_DeMuseo_${new Date().toISOString().slice(0, 10)}.html`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+$("btnCopiarHtml").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(correoHTML()); $("btnCopiarHtml").textContent = "Copiado ✓"; } catch (e) { $("btnCopiarHtml").textContent = "No se pudo copiar"; }
+  setTimeout(() => { $("btnCopiarHtml").textContent = "Copiar HTML"; }, 2000);
+});
+
+// ---------------------------------------------------------------- salida
+const seleccion = () => RES.flatMap(r => r.elegidos.map(b => ({ cat: r.cat.n, b })));
+$("btnRehacer").addEventListener("click", () => { SEL = {}; lsSet("boletin-seleccion", SEL); ABIERTO = null; armar(); });
+$("btnCopiar").addEventListener("click", () => {
+  const txt = RES.map(r => `${r.cat.n.toUpperCase()}${r.cat.k === "ed" && CF.ed ? " (" + CF.ed + ")" : ""}\n` + r.elegidos.map(b => `• ${b.tit} — ${b.aut} (${b.ed}) · ${fmtQ(b.precio)} · ${b.p[0] || "Ref. " + b.p[1]}`).join("\n")).join("\n\n");
+  $("copiaTxt").value = txt; $("copia").hidden = false; $("copiaTxt").select();
+  try { navigator.clipboard.writeText(txt); } catch (e) {}
+  $("copia").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("btnCerrarCopia").addEventListener("click", () => { $("copia").hidden = true; });
+$("btnXls").addEventListener("click", () => {
+  const filas = seleccion().map(({ cat, b }, i) => ({ "#": i + 1, "Sección": cat, "Título": b.tit, "Autor": b.aut, "Editorial": b.ed, "Tema": b.tema, "Precio": b.precio,
+    "Código de barras": b.p[0] || "", "Referencia": b.p[1] || "", "Existencia total": b.tot, "Tiendas con existencia": `${b.tCon} de ${b.nT}`,
+    "Ubicación con más": `${b.mxL} (${Math.round(b.mxPct)}%)`, "Fecha de alta": b.alta, "Existencia por ubicación": b.locs.sort((x, y) => y[1] - x[1]).map(([l, n]) => `${l} ${n}`).join(" · ") }));
+  const ws = XLSX.utils.json_to_sheet(filas); ws["!cols"] = [4, 18, 44, 24, 18, 22, 8, 15, 10, 10, 12, 16, 12, 60].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Boletín");
+  XLSX.writeFile(wb, `Boletin_${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+$("btnGuardar").addEventListener("click", () => {
+  const fecha = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short", year: "numeric" });
+  HIST.unshift({ fecha, libros: seleccion().map(({ b }) => ({ clave: b.clave, titulo: b.tit })) });
+  HIST = HIST.slice(0, 52); lsSet("boletin-historial", HIST);
+  SEL = {}; lsSet("boletin-seleccion", SEL);
+  $("btnGuardar").textContent = "Guardado ✓"; setTimeout(() => { $("btnGuardar").textContent = "Guardar como boletín de esta semana"; }, 2500);
+  pintarHist();
+});
+function pintarHist() {
+  $("hist").hidden = !HIST.length;
+  $("histList").innerHTML = HIST.slice(0, 8).map((h, i) => `<p style="margin:6px 0"><b>${esc(h.fecha)}</b>${i < CF.rep ? ' <span class="chip">no se repiten</span>' : ""}: ${h.libros.map(l => esc(l.titulo)).join(" · ")}
+    <button type="button" class="ghost small" data-borrar="${i}">Quitar</button></p>`).join("");
+}
+$("histList").addEventListener("click", e => { const b = e.target.closest("[data-borrar]"); if (!b) return; HIST.splice(+b.dataset.borrar, 1); lsSet("boletin-historial", HIST); armar(); });
+</script>
+</body>
+</html>
