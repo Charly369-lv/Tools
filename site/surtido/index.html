@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Surtido de Tiendas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Surtido: 1 existencias propias (con clave), 2 aprobados, 3 reportes de tiendas, 4 por confirmar, 5 sugerido por tienda */
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8;
+  --gray: #5b6386; --gray-bg: #eceef4; --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; --gray: #9da6c9; --gray-bg: #1c2650; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1180px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 18px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.mast img { display: block; width: min(220px, 56vw); height: auto; }
+.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; }
+main { padding-block: 22px 56px; }
+main .inner { display: grid; gap: 18px; }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
+h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
+.step { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); color: var(--ink); font-weight: 800; }
+.step.done .num { background: var(--green-bg); color: var(--green); }
+.step-b { display: grid; gap: 10px; min-width: 0; }
+.status { font-size: 15px; font-weight: 600; }
+.status.ok { color: var(--green); }
+button, .btn { font: 700 15px var(--f-body); border-radius: 8px; cursor: pointer; padding: 9px 15px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 42px; display: inline-flex; align-items: center; }
+button.ghost, .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.small { min-height: 34px; padding: 5px 10px; font-size: 13px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, input:focus-visible, .btn:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
+input[type=password], input[type=number], input[type=search], select { font: 15px var(--f-body); padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+input[type=number] { width: 90px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.drop { border: 3px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; display: grid; gap: 4px; justify-items: center; cursor: pointer; }
+.drop.over { border-color: var(--navy); background: var(--soft); }
+.drop b { font-size: 16px; }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.ok { background: var(--green-bg); }
+.stores { display: flex; flex-wrap: wrap; gap: 6px; }
+.stores span { font-size: 13px; background: var(--soft); border-radius: 6px; padding: 4px 8px; }
+.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.sets label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.locs { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.locs label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; color: var(--ink); }
+details > summary { cursor: pointer; font-weight: 700; }
+
+.tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 70vh; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.big { font-weight: 800; font-size: 16px; }
+.mono { font-family: var(--f-mono); font-size: 13px; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.c-rep { background: var(--navy); color: #fff; }
+.c-new { background: var(--green-bg); color: var(--green); }
+.c-sin { background: var(--gray-bg); color: var(--gray); }
+.c-quieto { background: var(--red); color: #fff; }
+.pill-red { display: inline-block; min-width: 28px; text-align: center; font-weight: 800; background: var(--red); color: #fff; border-radius: 999px; padding: 2px 9px; }
+tr.alerta td { background: var(--red-bg); }
+.alerta-box { border-radius: 10px; padding: 12px 14px; background: var(--red-bg); border-left: 6px solid var(--red); display: grid; gap: 2px; }
+.alerta-box b { color: var(--red); font-size: 17px; }
+.tabs button.t-red[aria-pressed="false"] { color: var(--red); border-color: var(--red); }
+.tabs button.t-red[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+select.rev { font-size: 13px; padding: 5px 6px; }
+select.rev.hecho { border-color: var(--green); }
+.from { font-size: 13px; }
+.from b { font-family: var(--f-mono); }
+.small-t { font-size: 12px; color: var(--muted); }
+tr.click { cursor: pointer; }
+tr.click:hover td, tr.sel td { background: var(--soft); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.tabs button[aria-pressed="false"] { background: transparent; color: var(--ink); border-color: var(--line); }
+.cand { display: grid; gap: 6px; }
+.cand select { max-width: 100%; width: 100%; font-size: 13px; }
+.show-sm { display: none; }
+@media (max-width: 640px) { .show-sm { display: block; margin-top: 6px; } .hide-sm { display: none; } .step { grid-template-columns: 1fr; } .num { display: none; } }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner">
+  <img src="../checador/logo.png" alt="De Museo" width="800" height="144">
+  <span class="mast-t">Surtido de tiendas</span>
+</div></header>
+
+<main class="pad"><div class="inner">
+  <p class="muted">Sube los reportes de existencias de las tiendas y la lista de títulos aprobados. La página sugiere qué mandar a cada tienda y de qué bodega sacarlo. Los archivos se revisan en este equipo y no se suben a internet.</p>
+
+  <!-- 1. Existencias propias -->
+  <section class="card step" id="s1">
+    <span class="num">1</span>
+    <div class="step-b">
+      <h3>Nuestras existencias por bodega</h3>
+      <p class="status" id="stStatus">Cargando…</p>
+      <form class="row" id="claveForm" hidden autocomplete="off">
+        <input type="password" id="clave" placeholder="Clave de existencias" autocomplete="current-password" style="flex:1;max-width:320px">
+        <button type="submit">Abrir</button>
+      </form>
+      <p class="notice bad" id="stErr" hidden></p>
+      <div class="row" id="stTools" hidden><button type="button" class="ghost small" id="olvidar">Olvidar clave en este equipo</button></div>
+    </div>
+  </section>
+
+  <!-- 2. Aprobados -->
+  <section class="card step" id="s2">
+    <span class="num">2</span>
+    <div class="step-b">
+      <h3>Títulos aprobados</h3>
+      <p class="status" id="apStatus">Aún no hay lista de aprobados.</p>
+      <label class="drop" id="apDrop"><b>Sube la lista de aprobados</b><span class="muted">Excel o CSV con BARRA, PLU y DESCRIPCION. Queda guardada en este equipo.</span><input type="file" id="apFile" accept=".xlsx,.xls,.csv" hidden></label>
+    </div>
+  </section>
+
+  <!-- 3. Reportes de tiendas -->
+  <section class="card step" id="s3">
+    <span class="num">3</span>
+    <div class="step-b">
+      <h3>Existencias de las tiendas</h3>
+      <p class="status" id="wmStatus">Aún no hay reportes de tiendas.</p>
+      <div class="stores" id="wmStores"></div>
+      <label class="drop" id="wmDrop"><b>Sube uno o varios reportes de tiendas</b><span class="muted">CSV o Excel con Tienda, Item Nbr, Descripción, On hand, En camino y Días sin venta. Puede venir una tienda por archivo o todas juntas.</span><input type="file" id="wmFile" accept=".xlsx,.xls,.csv,.txt" multiple hidden></label>
+      <div class="row" id="wmTools" hidden><button type="button" class="ghost small" id="wmClear">Quitar todos los reportes</button></div>
+    </div>
+  </section>
+
+  <!-- Ajustes -->
+  <section class="card">
+    <details id="ajustes">
+      <summary>Ajustes del sugerido</summary>
+      <div style="display:grid;gap:14px;margin-top:12px">
+        <div class="sets">
+          <label>Mínimo de unidades por título en tienda<input type="number" id="cfMin" min="1" max="20" value="2"></label>
+          <label>Días sin venta para "no se mueve"<input type="number" id="cfDias" min="15" max="365" value="90"></label>
+          <label>Títulos nuevos por tienda (máximo)<input type="number" id="cfNuevos" min="0" max="200" value="25"></label>
+          <label>Unidades por título nuevo<input type="number" id="cfUN" min="1" max="20" value="2"></label>
+        </div>
+        <div style="display:grid;gap:6px"><h3>Bodegas de donde se puede surtir</h3><div class="locs" id="cfLocs"><span class="muted">Se muestran al abrir las existencias.</span></div></div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 4. Por confirmar -->
+  <section class="card" id="s4" hidden>
+    <div class="row" style="justify-content:space-between">
+      <div style="display:grid;gap:4px"><h2 id="pcTitle">Por confirmar</h2>
+        <p class="muted">El reporte de la tienda no trae el código de barras completo, así que se identifican por el nombre. Estos tienen varias opciones o no se encontraron: elige la correcta una sola vez y queda guardada para todas las tiendas.</p></div>
+    </div>
+    <div class="tbl" style="max-height:50vh"><table>
+      <thead><tr><th>Artículo en la tienda</th><th>Es este título aprobado</th></tr></thead>
+      <tbody id="pcBody"></tbody>
+    </table></div>
+  </section>
+
+  <!-- 5. Resultado -->
+  <section id="s5" hidden style="display:grid;gap:14px">
+    <div class="row" style="justify-content:space-between">
+      <h2>Sugerido por tienda</h2>
+      <div class="row"><button type="button" id="xlsAll">Descargar Excel de todas las tiendas</button></div>
+    </div>
+    <p class="notice" id="resNote" hidden></p>
+    <div class="tbl" style="max-height:none"><table>
+      <thead><tr><th>Tienda</th><th class="n">Reponer</th><th class="n">Nuevos</th><th class="n">Unidades</th><th class="n">Alerta +<span class="umbral">90</span> días</th><th class="n hide-sm">Datos al</th></tr></thead>
+      <tbody id="sumBody"></tbody>
+    </table></div>
+
+    <section class="card" id="det" hidden>
+      <div class="row" style="justify-content:space-between">
+        <h2 id="detTitle"></h2>
+        <button type="button" class="ghost" id="xlsOne">Descargar Excel de esta tienda</button>
+      </div>
+      <div class="alerta-box" id="detAlert" hidden></div>
+      <div class="tabs" id="detTabs"></div>
+      <div class="tbl"><table>
+        <thead id="detHead"></thead>
+        <tbody id="detBody"></tbody>
+      </table></div>
+    </section>
+  </section>
+</div></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const normTxt = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+const toks = s => normTxt(s).replace(/[^A-Z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const hoy = () => new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short", year: "numeric" });
+
+// ---------------------------------------------------------------- estado
+let STOCK = null;              // { v, L:[bodegas], p:{barra:[ref,[i,n,...]]}, r:{ref:barra} }
+let APR = lsGet("surtido-aprobados", null);   // { fecha, nombre, items:[[barra, plu, titulo, precio, autor, tema, editorial]] }
+let EQ = lsGet("surtido-equiv", {});          // { itemNbr: barra | "NO" }
+let WM = [];                   // filas de tiendas
+let CF = Object.assign({ min: 2, dias: 90, nuevos: 25, un: 2, sinLocs: [] }, lsGet("surtido-ajustes", {}));
+let RES = null, SEL = null, TAB = "sug";
+let REV = lsGet("surtido-revision", {});   // { "tienda|item": "piso" | "noesta" | "retirar" | "trasladar" }
+const REV_OP = [["", "Sin revisar"], ["piso", "Está en el piso"], ["noesta", "No está: ajustar existencia"], ["retirar", "Retirar de la tienda"], ["trasladar", "Trasladar a otra tienda"]];
+
+// ---------------------------------------------------------------- 1. existencias cifradas
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+let SOBRE = null;
+async function abrirExistencias(clave, silencioso) {
+  $("stErr").hidden = true;
+  try {
+    const salt = b64(SOBRE.s), iv = b64(SOBRE.iv), data = b64(SOBRE.d);
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: SOBRE.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    let plano;
+    try { plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data); }
+    catch (e) { throw new Error("clave"); }
+    const txt = await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    STOCK = JSON.parse(txt);
+    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
+    pintarExistencias();
+    recalcular();
+  } catch (e) {
+    if (!silencioso) { $("stErr").textContent = e.message === "clave" ? "Clave incorrecta. Revísala e intenta de nuevo." : "No se pudieron abrir las existencias en este navegador."; $("stErr").hidden = false; }
+    $("claveForm").hidden = false;
+    if (silencioso) try { localStorage.removeItem("surtido-clave"); } catch (er) {}
+  }
+}
+function fechaLocal(v) {
+  const d = new Date(String(v).replace(" ", "T") + ":00Z");
+  return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+function pintarExistencias() {
+  const n = Object.keys(STOCK.p).length;
+  $("stStatus").textContent = `Listas: ${n.toLocaleString("es-GT")} productos con existencia en ${STOCK.L.length} bodegas (al ${fechaLocal(STOCK.v)}).`;
+  $("stStatus").className = "status ok"; $("s1").classList.add("done");
+  $("claveForm").hidden = true; $("stTools").hidden = false;
+  $("cfLocs").innerHTML = STOCK.L.map(l => `<label><input type="checkbox" data-loc="${esc(l)}" ${CF.sinLocs.includes(l) ? "" : "checked"}> ${esc(l)}</label>`).join("");
+}
+$("cfLocs").addEventListener("change", e => {
+  const l = e.target.dataset.loc; if (!l) return;
+  CF.sinLocs = CF.sinLocs.filter(x => x !== l); if (!e.target.checked) CF.sinLocs.push(l);
+  lsSet("surtido-ajustes", CF); recalcular();
+});
+$("claveForm").addEventListener("submit", e => { e.preventDefault(); const c = $("clave").value.trim(); if (c) abrirExistencias(c); });
+$("olvidar").addEventListener("click", () => { try { localStorage.removeItem("surtido-clave"); } catch (e) {} location.reload(); });
+(async () => {
+  try {
+    const r = await fetch("existencias.enc?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw 0;
+    SOBRE = await r.json();
+    let c = null; try { c = localStorage.getItem("surtido-clave"); } catch (e) {}
+    $("stStatus").textContent = "Escribe la clave para ver en qué bodegas hay existencia.";
+    if (c) await abrirExistencias(c, true); else $("claveForm").hidden = false;
+  } catch (e) {
+    $("stStatus").textContent = "Todavía no hay existencias publicadas. El sugerido funciona igual, pero sin revisar de qué bodega sacar.";
+  }
+})();
+
+// ---------------------------------------------------------------- lectura de archivos
+async function leerTabla(file) {
+  const buf = await file.arrayBuffer();
+  if (/\.(csv|txt)$/i.test(file.name)) {
+    let txt = new TextDecoder("utf-8").decode(buf);
+    if (txt.includes("�")) txt = new TextDecoder("windows-1252").decode(buf);
+    txt = txt.replace(/^﻿/, "");
+    const head = txt.split(/\r?\n/)[0];
+    const sep = [";", "\t", ","].sort((a, b) => head.split(b).length - head.split(a).length)[0];
+    const wb = XLSX.read(txt, { type: "string", FS: sep, raw: true });
+    return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" });
+  }
+  const wb = XLSX.read(buf, { type: "array" });
+  return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" });
+}
+const hkey = s => normTxt(s).replace(/[^A-Z0-9]/g, "");
+function colIdx(head, ...names) {
+  const h = head.map(hkey);
+  for (const n of names) { const i = h.indexOf(hkey(n)); if (i > -1) return i; }
+  for (const n of names) { const i = h.findIndex(x => x.startsWith(hkey(n))); if (i > -1) return i; }
+  return -1;
+}
+function digitos(v) {
+  if (typeof v === "number") return Number.isFinite(v) && v >= 1e9 ? String(Math.round(v)) : "";
+  const s = String(v ?? "").trim();
+  return /^\d{10,14}$/.test(s) ? s : "";
+}
+// "9.78607E+11": Excel recortó el código y lo redondeó; se revisa si un código completo redondea a lo mismo
+function prefijoUPC(v) {
+  const m = String(v ?? "").trim().match(/^(\d)[.,](\d+)E\+?(\d+)$/i);
+  if (!m) return null;
+  const sig = m[1] + m[2], len = +m[3] + 1;
+  return barra => {
+    if (barra.length < len) return false;
+    return Math.round(Number(barra.slice(0, len)) / 10 ** (len - sig.length)) === Number(sig);
+  };
+}
+function isbnCompleto(d12) {
+  let s = 0; for (let i = 0; i < 12; i++) s += +d12[i] * (i % 2 ? 3 : 1);
+  return d12 + ((10 - s % 10) % 10);
+}
+
+// ---------------------------------------------------------------- 2. aprobados
+function bindDrop(drop, input, fn) {
+  input.addEventListener("change", () => { if (input.files.length) fn([...input.files]); input.value = ""; });
+  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files.length) fn([...e.dataTransfer.files]); });
+}
+bindDrop($("apDrop"), $("apFile"), async files => {
+  try {
+    const rows = await leerTabla(files[0]);
+    const hi = rows.findIndex(r => colIdx(r, "BARRA", "CODIGO DE BARRAS", "ISBN") > -1 && colIdx(r, "DESCRIPCION", "TITULO", "NOMBRE") > -1);
+    if (hi < 0) throw new Error("No encontré las columnas BARRA y DESCRIPCION.");
+    const h = rows[hi];
+    const c = { b: colIdx(h, "BARRA", "CODIGO DE BARRAS", "ISBN"), p: colIdx(h, "PLU", "REFERENCIA"), d: colIdx(h, "DESCRIPCION", "TITULO", "NOMBRE"),
+                $: colIdx(h, "PRECIO"), a: colIdx(h, "AUTOR"), t: colIdx(h, "TEMA"), e: colIdx(h, "EDITORIAL") };
+    const g = (r, i) => i < 0 ? "" : r[i];
+    const items = rows.slice(hi + 1).map(r => [String(digitos(g(r, c.b)) || String(g(r, c.b)).trim()), String(g(r, c.p)).trim(), String(g(r, c.d)).trim(), +g(r, c.$) || 0,
+      String(g(r, c.a) || ""), String(g(r, c.t) || ""), String(g(r, c.e) || "")]).filter(x => x[0] && x[2]);
+    if (!items.length) throw new Error("La lista no trae títulos.");
+    APR = { fecha: hoy(), nombre: files[0].name, items };
+    lsSet("surtido-aprobados", APR);
+    pintarAprobados(); recalcular();
+  } catch (e) { alert(e.message || "No se pudo leer la lista de aprobados."); }
+});
+let APX = [];
+function prepAprobados() {
+  APX = (APR?.items || []).map(a => ({ barra: a[0], plu: a[1], titulo: a[2], precio: a[3], autor: a[4], tema: a[5], editorial: a[6], tw: toks(a[2]), ew: toks(a[6]) }));
+}
+function pintarAprobados() {
+  prepAprobados();
+  if (!APR) return;
+  $("apStatus").textContent = `${APX.length.toLocaleString("es-GT")} títulos aprobados (${APR.nombre}, cargado el ${APR.fecha}). Para cambiarla, sube otra.`;
+  $("apStatus").className = "status ok"; $("s2").classList.add("done");
+  $("apDrop").querySelector("b").textContent = "Subir otra lista de aprobados";
+}
+
+// ---------------------------------------------------------------- 3. reportes de tiendas
+bindDrop($("wmDrop"), $("wmFile"), async files => {
+  const errores = [];
+  for (const f of files) {
+    try {
+      const rows = await leerTabla(f);
+      const hi = rows.findIndex(r => colIdx(r, "Item Nbr", "Item Number", "Articulo") > -1);
+      if (hi < 0) throw new Error("sin columna Item Nbr");
+      const h = rows[hi];
+      const c = { t: colIdx(h, "Tienda", "Store Nbr", "Store"), tn: colIdx(h, "Nombre tienda", "Store Name"), i: colIdx(h, "Item Nbr", "Item Number", "Articulo"),
+        d: colIdx(h, "Descripcion", "Item Desc", "Description"), u: colIdx(h, "UPC"), oh: colIdx(h, "On hand", "Existencia", "OH"), ec: colIdx(h, "En camino", "In transit", "Transito"),
+        pr: colIdx(h, "Precio retail", "Precio", "Retail"), uv: colIdx(h, "Ultima venta", "Last sale"), ds: colIdx(h, "Dias sin venta"), da: colIdx(h, "Datos al") };
+      const g = (r, i) => i < 0 ? "" : r[i];
+      const nuevos = rows.slice(hi + 1).filter(r => String(g(r, c.i)).trim()).map(r => ({
+        tienda: String(g(r, c.t) || f.name.replace(/\.\w+$/, "")).trim(), nombre: String(g(r, c.tn) || "").trim(),
+        item: String(g(r, c.i)).trim(), desc: String(g(r, c.d)).trim(), upc: g(r, c.u), precio: g(r, c.pr),
+        oh: Math.max(0, Math.round(+g(r, c.oh) || 0)), ec: Math.max(0, Math.round(+g(r, c.ec) || 0)),
+        ult: fechaTxt(g(r, c.uv)), dias: String(g(r, c.ds)).trim() === "" ? null : +g(r, c.ds), al: fechaTxt(g(r, c.da)) }));
+      // Si se vuelve a subir una tienda, se reemplaza
+      const ts = new Set(nuevos.map(x => x.tienda));
+      WM = WM.filter(x => !ts.has(x.tienda)).concat(nuevos);
+    } catch (e) { errores.push(f.name); }
+  }
+  if (errores.length) alert("No se pudieron leer: " + errores.join(", ") + ". Revisa que tengan la columna Item Nbr.");
+  pintarTiendas(); recalcular();
+});
+function fechaTxt(v) {
+  if (typeof v === "number" && v > 20000 && v < 80000) { const d = new Date(Math.round((v - 25569) * 864e5)); return d.toLocaleDateString("es-GT", { timeZone: "UTC" }); }
+  return String(v ?? "").trim();
+}
+function tiendas() {
+  const m = new Map();
+  for (const r of WM) { if (!m.has(r.tienda)) m.set(r.tienda, { tienda: r.tienda, nombre: r.nombre, n: 0, u: 0, al: r.al }); const t = m.get(r.tienda); t.n++; t.u += r.oh; }
+  return [...m.values()].sort((a, b) => (a.nombre || a.tienda).localeCompare(b.nombre || b.tienda, "es"));
+}
+function pintarTiendas() {
+  const ts = tiendas();
+  $("wmTools").hidden = !ts.length;
+  if (!ts.length) { $("wmStatus").textContent = "Aún no hay reportes de tiendas."; $("wmStatus").className = "status"; $("wmStores").innerHTML = ""; $("s3").classList.remove("done"); return; }
+  $("wmStatus").textContent = `${ts.length} ${ts.length === 1 ? "tienda cargada" : "tiendas cargadas"}. Puedes subir más.`;
+  $("wmStatus").className = "status ok"; $("s3").classList.add("done");
+  $("wmStores").innerHTML = ts.map(t => `<span>${esc(t.tienda)} ${esc(t.nombre)} · ${t.n} artículos · ${t.u} uds.</span>`).join("");
+}
+$("wmClear").addEventListener("click", () => { WM = []; pintarTiendas(); recalcular(); });
+
+// ---------------------------------------------------------------- identificación por nombre
+function puntaje(t, a) {
+  // Cada palabra del reporte (que viene cortada a 20 letras) debe ser el inicio de una palabra del título.
+  // Se permite que las primeras 1–2 palabras sean la editorial o la colección ("PAIDOS HABITOS ATOMI").
+  let best = 0;
+  for (let skip = 0; skip < Math.min(3, t.length); skip++) {
+    const tt = t.slice(skip);
+    if (!tt.length) break;
+    if (tt.every(w => a.tw.some(x => x.startsWith(w)))) {
+      let s = tt.length / t.length - 0.05 * skip;
+      if (a.tw[0] && a.tw[0].startsWith(tt[0])) s += 0.2;
+      if (skip && t.slice(0, skip).some(w => a.ew.some(x => x.startsWith(w)) || a.tw.some(x => x.startsWith(w)))) s += 0.1;
+      best = Math.max(best, s);
+    }
+  }
+  return best;
+}
+function puntajeSuelto(t, a) { return t.filter(w => a.tw.some(x => x.startsWith(w))).length / t.length; }
+const CACHE_ID = new Map();
+function identificar(r) {
+  const k = r.item;
+  if (EQ[k]) return EQ[k] === "NO" ? { a: null, como: "No aprobado (confirmado)" } : { a: APX.find(x => x.barra === EQ[k]) || null, como: "Confirmado" };
+  if (CACHE_ID.has(k)) return CACHE_ID.get(k);
+  let out;
+  const d = digitos(r.upc);
+  const full = d.length === 12 && /^97[89]/.test(d) ? isbnCompleto(d) : d;
+  const exacto = full && APX.find(x => x.barra === full || x.barra === d);
+  if (exacto) out = { a: exacto, como: "Código de barras" };
+  else {
+    const t = toks(r.desc), pre = prefijoUPC(r.upc);
+    let c = APX.map(a => ({ a, s: puntaje(t, a) })).filter(x => x.s >= 0.6);
+    if (pre) { const c2 = c.filter(x => pre(x.a.barra)); if (c2.length) c = c2; }
+    c.sort((x, y) => y.s - x.s);
+    if (c.length > 1 && c[0].s - c[1].s < 0.15) {
+      // Desempate por precio: el precio de la tienda suele ser ~60% de nuestro precio de lista
+      const pr = +String(r.precio || "").replace(",", ".");
+      if (pr > 0) {
+        const top = c.filter(x => c[0].s - x.s < 0.15).map(x => ({ ...x, d: x.a.precio ? Math.abs(pr / x.a.precio - 0.6) : 9 })).sort((x, y) => x.d - y.d);
+        if (top[0].d < 0.1 && top[1].d - top[0].d > 0.12) c = [top[0]];
+      }
+    }
+    if (c.length === 1 || (c.length > 1 && c[0].s - c[1].s >= 0.15)) out = { a: c[0].a, como: "Por nombre" };
+    else {
+      let cand = c.slice(0, 8).map(x => x.a);
+      if (!cand.length) cand = APX.map(a => ({ a, s: puntajeSuelto(t, a) })).filter(x => x.s >= 0.5).sort((x, y) => y.s - x.s).slice(0, 8).map(x => x.a);
+      out = { a: null, como: cand.length ? "Varias opciones" : "Sin coincidencia", cand, pendiente: true };
+    }
+  }
+  CACHE_ID.set(k, out);
+  return out;
+}
+
+// ---------------------------------------------------------------- existencias propias
+function stockDe(a) {
+  if (!STOCK || !a) return null;
+  const e = STOCK.p[a.barra] || (a.plu && STOCK.r[a.plu] ? STOCK.p[STOCK.r[a.plu]] : null);
+  const m = new Map();
+  if (e) for (let i = 0; i < e[1].length; i += 2) { const l = STOCK.L[e[1][i]]; if (!CF.sinLocs.includes(l)) m.set(l, e[1][i + 1]); }
+  return m;
+}
+const txtBodegas = m => m && m.size ? [...m].sort((a, b) => b[1] - a[1]).map(([l, n]) => `${l} ${n}`).join(" · ") : "";
+
+// ---------------------------------------------------------------- cálculo
+function recalcular() {
+  CACHE_ID.clear();
+  const ok = APX.length && WM.length;
+  $("s5").hidden = !ok; $("s4").hidden = true;
+  if (!ok) return;
+  // Identificación de cada artículo (una vez por Item Nbr)
+  const porItem = new Map();
+  for (const r of WM) if (!porItem.has(r.item)) porItem.set(r.item, { r, id: identificar(r) });
+  const pend = [...porItem.values()].filter(x => x.id.pendiente);
+  pintarPendientes(pend);
+
+  const ts = tiendas();
+  const pool = new Map();           // existencia disponible por barra (se va descontando)
+  const poolDe = a => { if (!STOCK) return null; if (!pool.has(a.barra)) pool.set(a.barra, stockDe(a)); return pool.get(a.barra); };
+  // Popularidad en la cadena: tiendas donde vendió en los últimos 30 días
+  const pop = new Map();
+  for (const r of WM) { const a = porItem.get(r.item).id.a; if (!a) continue; const p = pop.get(a.barra) || { v: 0, t: 0 }; p.t++; if (r.dias != null && r.dias <= 30) p.v++; pop.set(a.barra, p); }
+  const popScore = a => { const p = pop.get(a.barra); return p ? p.v + p.t * 0.1 : 0; };
+
+  // Dónde sí se vende cada artículo (vendió en los últimos 30 días), para sugerir traslados
+  const venden = new Map();
+  for (const r of WM) if (r.dias != null && r.dias <= 30) { if (!venden.has(r.item)) venden.set(r.item, []); venden.get(r.item).push(r.nombre || r.tienda); }
+  const porTienda = new Map(ts.map(t => [t.tienda, { ...t, sug: [], quieto: [], noAp: [], sinEx: [] }]));
+  const tareas = [];
+  for (const t of ts) {
+    const filas = WM.filter(r => r.tienda === t.tienda);
+    const tiene = new Set();
+    const T = porTienda.get(t.tienda);
+    for (const r of filas) {
+      const id = porItem.get(r.item).id;
+      // Alerta roja: todo lo que lleva más días sin venta que el umbral, esté o no en la lista de aprobados
+      const viejo = r.dias != null && r.dias >= CF.dias;
+      if (viejo && r.oh > 0) T.quieto.push({ r, a: id.a, venden: (venden.get(r.item) || []).filter(x => x !== (t.nombre || t.tienda)) });
+      if (!id.a) { if (!id.pendiente) T.noAp.push({ r }); continue; }
+      tiene.add(id.a.barra);
+      const disp = r.oh + r.ec;
+      if (viejo) continue;
+      if (disp < CF.min) tareas.push({ t: T, tipo: "Reponer", r, a: id.a, pide: CF.min - disp, como: id.como, prio: 0, sub: r.dias ?? 999 });
+    }
+    // Nuevos: aprobados que la tienda no tiene (agotados o nunca enviados)
+    let cand = APX.filter(a => !tiene.has(a.barra));
+    if (STOCK) cand = cand.filter(a => { const m = stockDe(a); return m && [...m.values()].some(n => n > 0); });
+    cand.sort((x, y) => popScore(y) - popScore(x) || (STOCK ? total(stockDe(y)) - total(stockDe(x)) : 0));
+    for (const a of cand.slice(0, CF.nuevos)) tareas.push({ t: T, tipo: "Nuevo", r: null, a, pide: CF.un, como: "", prio: 1, sub: -popScore(a) });
+  }
+  // Asignación: primero reponer (lo que se vende más reciente), luego nuevos (lo más vendido en la cadena)
+  tareas.sort((x, y) => x.prio - y.prio || x.sub - y.sub);
+  for (const k of tareas) {
+    const m = poolDe(k.a);
+    let manda = k.pide, de = [];
+    if (m) {
+      manda = 0;
+      for (const [l, n] of [...m].sort((a, b) => b[1] - a[1])) {
+        if (manda >= k.pide) break;
+        const toma = Math.min(n, k.pide - manda);
+        if (toma > 0) { de.push([l, toma]); m.set(l, n - toma); manda += toma; }
+      }
+    }
+    const item = { ...k, manda, de, bodegas: txtBodegas(stockDe(k.a)) };
+    if (m && manda === 0) { if (k.tipo === "Reponer") k.t.sinEx.push(item); }
+    else k.t.sug.push(item);
+  }
+  for (const T of porTienda.values()) T.sug.sort((x, y) => (x.tipo === y.tipo ? 0 : x.tipo === "Reponer" ? -1 : 1) || (x.a.editorial || "").localeCompare(y.a.editorial || "", "es") || x.a.titulo.localeCompare(y.a.titulo, "es"));
+  RES = { tiendas: [...porTienda.values()], pend: pend.length };
+  document.querySelectorAll(".umbral").forEach(x => x.textContent = CF.dias);
+  pintarResumen();
+}
+const total = m => m ? [...m.values()].reduce((s, n) => s + n, 0) : 0;
+
+function pintarPendientes(pend) {
+  $("s4").hidden = !pend.length;
+  $("pcTitle").textContent = `Por confirmar: ${pend.length} ${pend.length === 1 ? "artículo" : "artículos"}`;
+  $("pcBody").innerHTML = pend.slice(0, 200).map(({ r, id }) => `
+    <tr><td><b>${esc(r.desc)}</b><div class="small-t mono">Item ${esc(r.item)}${r.upc ? " · UPC " + esc(r.upc) : ""}</div></td>
+    <td class="cand"><select data-item="${esc(r.item)}">
+      <option value="">— Elegir —</option>
+      ${(id.cand || []).map(a => `<option value="${esc(a.barra)}">${esc(a.titulo)} · ${esc(a.editorial)} · Q${a.precio} · ${esc(a.barra)}</option>`).join("")}
+      <option value="NO">No está en la lista de aprobados</option>
+    </select></td></tr>`).join("");
+}
+$("pcBody").addEventListener("change", e => {
+  const s = e.target.closest("select[data-item]"); if (!s || !s.value) return;
+  EQ[s.dataset.item] = s.value; lsSet("surtido-equiv", EQ); recalcular();
+});
+
+function pintarResumen() {
+  const ts = RES.tiendas;
+  $("resNote").hidden = !(RES.pend || !STOCK);
+  $("resNote").textContent = [RES.pend ? `Hay ${RES.pend} artículos por confirmar: mientras tanto no se toman en cuenta.` : "", !STOCK ? "Sin nuestras existencias abiertas, el sugerido no revisa si hay de dónde sacar." : ""].filter(Boolean).join(" ");
+  $("sumBody").innerHTML = ts.map(t => {
+    const rep = t.sug.filter(x => x.tipo === "Reponer"), nue = t.sug.filter(x => x.tipo === "Nuevo");
+    return `<tr class="click ${SEL === t.tienda ? "sel" : ""}" data-t="${esc(t.tienda)}"><td><b>${esc(t.nombre || t.tienda)}</b><div class="small-t">Tienda ${esc(t.tienda)} · ${t.n} artículos, ${t.u} uds.</div></td>
+      <td class="n">${rep.length}</td><td class="n">${nue.length}</td><td class="n big">${t.sug.reduce((s, x) => s + x.manda, 0)}</td>
+      <td class="n">${t.quieto.length ? `<span class="pill-red">${t.quieto.length}</span><div class="small-t">${t.quieto.reduce((s, x) => s + x.r.oh, 0)} uds.</div>` : "0"}</td><td class="n hide-sm">${esc(t.al)}</td></tr>`;
+  }).join("");
+  if (!SEL || !ts.find(t => t.tienda === SEL)) SEL = ts[0]?.tienda;
+  pintarDetalle();
+}
+$("sumBody").addEventListener("click", e => { const tr = e.target.closest("tr[data-t]"); if (!tr) return; SEL = tr.dataset.t; pintarResumen(); $("det").scrollIntoView({ behavior: "smooth", block: "start" }); });
+
+const fromTxt = de => de.map(([l, n]) => `<b>${esc(l)}</b> ${n}`).join(" · ");
+function pintarDetalle() {
+  const t = RES.tiendas.find(x => x.tienda === SEL);
+  $("det").hidden = !t; if (!t) return;
+  $("detTitle").textContent = `${t.nombre || "Tienda " + t.tienda}: ${t.sug.reduce((s, x) => s + x.manda, 0)} unidades sugeridas`;
+  const tabs = [["sug", `Sugerido (${t.sug.length})`], ["sin", `Sin existencia (${t.sinEx.length})`], ["quieto", `+${CF.dias} días sin venta (${t.quieto.length})`], ["noap", `No aprobados (${t.noAp.length})`]];
+  $("detTabs").innerHTML = tabs.map(([k, l]) => `<button type="button" class="small ${k === "quieto" ? "t-red" : ""}" data-tab="${k}" aria-pressed="${TAB === k}">${l}</button>`).join("");
+  let head, body;
+  if (TAB === "sug") {
+    head = `<tr><th>Tipo</th><th>Título</th><th class="n">En tienda</th><th class="n">En camino</th><th class="n">Mandar</th><th>Sacar de</th><th class="hide-sm">Existencia por bodega</th></tr>`;
+    body = t.sug.map(x => `<tr><td><span class="chip ${x.tipo === "Reponer" ? "c-rep" : "c-new"}">${x.tipo}</span></td>
+      <td><b>${esc(x.a.titulo)}</b><div class="small-t">${esc(x.a.editorial)} · <span class="mono">${esc(x.a.barra)}</span>${x.a.plu ? " · PLU " + esc(x.a.plu) : ""}${x.como && x.como !== "Código de barras" ? " · " + esc(x.como.toLowerCase()) : ""}</div></td>
+      <td class="n">${x.r ? x.r.oh : 0}</td><td class="n">${x.r ? x.r.ec : 0}</td><td class="n big">${x.manda}${x.manda < x.pide ? `<div class="small-t">de ${x.pide}</div>` : ""}</td>
+      <td class="from">${x.de.length ? fromTxt(x.de) : STOCK ? "—" : '<span class="small-t">sin dato</span>'}</td><td class="from hide-sm small-t">${esc(x.bodegas)}</td></tr>`).join("");
+  } else if (TAB === "sin") {
+    head = `<tr><th>Título</th><th class="n">En tienda</th><th class="n">Días sin venta</th></tr>`;
+    body = t.sinEx.map(x => `<tr><td><b>${esc(x.a.titulo)}</b><div class="small-t">${esc(x.a.editorial)} · <span class="mono">${esc(x.a.barra)}</span></div></td><td class="n">${x.r.oh}</td><td class="n">${x.r.dias ?? "—"}</td></tr>`).join("");
+  } else if (TAB === "quieto") {
+    head = `<tr><th>Artículo</th><th class="n">En tienda</th><th class="n">Días sin venta</th><th class="hide-sm">Última venta</th><th class="hide-sm">Se vende en</th><th class="hide-sm">Revisión</th></tr>`;
+    body = t.quieto.sort((x, y) => y.r.dias - x.r.dias || y.r.oh - x.r.oh).map(x => {
+      const k = t.tienda + "|" + x.r.item, v = REV[k] || "";
+      const sel = cls => `<select class="rev ${cls} ${v ? "hecho" : ""}" data-rev="${esc(k)}">${REV_OP.map(([o, l]) => `<option value="${o}" ${o === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
+      return `<tr class="alerta"><td><span class="chip c-quieto">+${CF.dias} días</span> <b>${esc(x.a ? x.a.titulo : x.r.desc)}</b>
+        <div class="small-t">${x.a ? esc(x.a.editorial) + " · " : ""}Item <span class="mono">${esc(x.r.item)}</span>${x.a ? ` · <span class="mono">${esc(x.a.barra)}</span>` : " · no identificado"}</div>${sel("show-sm")}</td>
+        <td class="n big">${x.r.oh}</td><td class="n big">${x.r.dias}</td><td class="hide-sm">${esc(x.r.ult)}</td>
+        <td class="hide-sm small-t">${x.venden.length ? esc(x.venden.slice(0, 4).join(", ")) + (x.venden.length > 4 ? ` y ${x.venden.length - 4} más` : "") : "—"}</td>
+        <td class="hide-sm">${sel("")}</td></tr>`;
+    }).join("");
+  } else {
+    head = `<tr><th>Artículo en la tienda</th><th class="n">En tienda</th><th class="n">Días sin venta</th></tr>`;
+    body = t.noAp.map(x => `<tr><td><b>${esc(x.r.desc)}</b><div class="small-t mono">Item ${esc(x.r.item)}</div></td><td class="n">${x.r.oh}</td><td class="n">${x.r.dias ?? "—"}</td></tr>`).join("");
+  }
+  const q = t.quieto, qu = q.reduce((s, x) => s + x.r.oh, 0), rev = q.filter(x => REV[t.tienda + "|" + x.r.item]).length;
+  $("detAlert").hidden = !q.length;
+  $("detAlert").innerHTML = q.length ? `<b>🔴 ${q.length} ${q.length === 1 ? "título" : "títulos"} (${qu} uds.) con más de ${CF.dias} días sin venta</b>
+    <span>Revisa si están físicamente en el piso o si conviene retirarlos o trasladarlos. Revisados: ${rev} de ${q.length}.</span>
+    ${TAB !== "quieto" ? '<span><button type="button" class="small" data-tab="quieto" style="margin-top:6px;background:var(--red);border-color:var(--red)">Ver la lista</button></span>' : ""}` : "";
+  $("detHead").innerHTML = head;
+  $("detBody").innerHTML = body || `<tr><td colspan="7" class="muted">Nada en esta lista.</td></tr>`;
+}
+$("det").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (!b) return; TAB = b.dataset.tab; pintarDetalle(); });
+$("detBody").addEventListener("change", e => {
+  const s = e.target.closest("select[data-rev]"); if (!s) return;
+  if (s.value) REV[s.dataset.rev] = s.value; else delete REV[s.dataset.rev];
+  lsSet("surtido-revision", REV); pintarDetalle();
+});
+
+// ---------------------------------------------------------------- ajustes
+for (const [id, k] of [["cfMin", "min"], ["cfDias", "dias"], ["cfNuevos", "nuevos"], ["cfUN", "un"]]) {
+  $(id).value = CF[k];
+  $(id).addEventListener("change", () => { const v = Math.max(+$(id).min, Math.min(+$(id).max, Math.round(+$(id).value || 0))); $(id).value = v; CF[k] = v; lsSet("surtido-ajustes", CF); recalcular(); });
+}
+
+// ---------------------------------------------------------------- Excel
+function filasSug(t) {
+  return t.sug.map(x => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Tipo": x.tipo, "Item Nbr": x.r?.item || "", "Código de barras": x.a.barra, "PLU": x.a.plu,
+    "Título": x.a.titulo, "Editorial": x.a.editorial, "En tienda": x.r ? x.r.oh : 0, "En camino": x.r ? x.r.ec : 0, "Días sin venta": x.r?.dias ?? "",
+    "Mandar": x.manda, "Sacar de": x.de.map(([l, n]) => `${l} ${n}`).join(" · "), "Existencia por bodega": x.bodegas, "Identificado": x.como }));
+}
+function libro(ts) {
+  const wb = XLSX.utils.book_new();
+  const add = (nombre, filas, anchos) => {
+    const ws = XLSX.utils.json_to_sheet(filas.length ? filas : [{ "": "Sin datos" }]);
+    if (anchos) ws["!cols"] = anchos.map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws, nombre);
+  };
+  add("Resumen", ts.map(t => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Títulos a reponer": t.sug.filter(x => x.tipo === "Reponer").length,
+    "Títulos nuevos": t.sug.filter(x => x.tipo === "Nuevo").length, "Unidades a mandar": t.sug.reduce((s, x) => s + x.manda, 0),
+    "Sin existencia para reponer": t.sinEx.length, "Alerta +días sin venta (títulos)": t.quieto.length, "Alerta (unidades)": t.quieto.reduce((s, x) => s + x.r.oh, 0), "Alerta revisados": t.quieto.filter(x => REV[t.tienda + "|" + x.r.item]).length, "No aprobados en tienda": t.noAp.length, "Datos al": t.al })), [8, 22, 16, 14, 16, 22, 16, 14, 14, 20, 12]);
+  add("Sugerido", ts.flatMap(filasSug), [8, 20, 9, 11, 15, 9, 44, 18, 9, 9, 13, 8, 26, 34, 16]);
+  // Lo mismo agrupado por bodega, para preparar el despacho
+  const porB = [];
+  for (const t of ts) for (const x of t.sug) for (const [l, n] of x.de) porB.push({ "Bodega": l, "Tienda": t.tienda, "Nombre tienda": t.nombre, "Código de barras": x.a.barra, "PLU": x.a.plu, "Título": x.a.titulo, "Unidades": n });
+  porB.sort((a, b) => a.Bodega.localeCompare(b.Bodega) || String(a.Tienda).localeCompare(String(b.Tienda)) || a.Título.localeCompare(b.Título, "es"));
+  add("Por bodega", porB, [10, 8, 20, 15, 9, 44, 9]);
+  add("Sin existencia", ts.flatMap(t => t.sinEx.map(x => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Código de barras": x.a.barra, "Título": x.a.titulo, "En tienda": x.r.oh, "Días sin venta": x.r.dias ?? "" }))), [8, 20, 15, 44, 9, 13]);
+  const revTxt = Object.fromEntries(REV_OP);
+  add(`Alerta +${CF.dias} dias`, ts.flatMap(t => t.quieto.map(x => ({ "Alerta": "ROJA", "Tienda": t.tienda, "Nombre tienda": t.nombre, "Item Nbr": x.r.item, "Código de barras": x.a?.barra || "",
+    "Título": x.a ? x.a.titulo : x.r.desc, "En tienda": x.r.oh, "Días sin venta": x.r.dias, "Última venta": x.r.ult, "Se vende en": x.venden.join(", "),
+    "Revisión": REV[t.tienda + "|" + x.r.item] ? revTxt[REV[t.tienda + "|" + x.r.item]] : "Sin revisar" }))), [7, 8, 20, 11, 15, 44, 9, 13, 12, 30, 24]);
+  add("No aprobados", ts.flatMap(t => t.noAp.map(x => ({ "Tienda": t.tienda, "Nombre tienda": t.nombre, "Item Nbr": x.r.item, "Descripción en tienda": x.r.desc, "En tienda": x.r.oh, "Días sin venta": x.r.dias ?? "" }))), [8, 20, 11, 30, 9, 13]);
+  const eq = new Map();
+  for (const r of WM) if (!eq.has(r.item)) { const id = identificar(r); eq.set(r.item, { "Item Nbr": r.item, "Descripción en tienda": r.desc, "Código de barras": id.a?.barra || "", "PLU": id.a?.plu || "", "Título aprobado": id.a?.titulo || "", "Identificado": id.como }); }
+  add("Equivalencias", [...eq.values()], [11, 26, 15, 9, 44, 18]);
+  return wb;
+}
+const fechaArchivo = () => new Date().toISOString().slice(0, 10);
+$("xlsAll").addEventListener("click", () => XLSX.writeFile(libro(RES.tiendas), `Surtido_todas_${fechaArchivo()}.xlsx`));
+$("xlsOne").addEventListener("click", () => { const t = RES.tiendas.find(x => x.tienda === SEL); if (t) XLSX.writeFile(libro([t]), `Surtido_${(t.nombre || t.tienda).replace(/[^\w]+/g, "_")}_${fechaArchivo()}.xlsx`); });
+
+pintarAprobados();
+</script>
+</body>
+</html>
