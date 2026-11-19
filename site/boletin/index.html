@@ -164,6 +164,12 @@ textarea { width: 100%; min-height: 220px; font: 13px/1.5 var(--f-mono); padding
         <label>Asunto del correo<input type="text" id="tAsunto"></label>
         <label>Título<input type="text" id="tTitulo"></label>
         <label>Introducción<textarea id="tIntro" style="min-height:90px"></textarea></label>
+        <details><summary>Pegar descripciones preparadas</summary>
+          <div style="display:grid;gap:8px;margin-top:8px">
+            <p class="small-t">Una línea por libro: el ISBN (o la referencia), una barra vertical y la descripción. Ejemplo:<br><span class="mono">9788466354561 | Una novela luminosa sobre…</span></p>
+            <textarea id="tPegar" rows="5" placeholder="ISBN | descripción"></textarea>
+            <div class="row"><button type="button" class="small" id="bPegar">Aplicar descripciones</button><span class="small-t" id="pegarRes"></span></div>
+          </div></details>
         <div id="tLibros" style="display:grid;gap:10px"></div>
       </div>
       <div class="prev-wrap"><iframe id="prev" title="Vista previa del boletín"></iframe></div>
@@ -617,6 +623,17 @@ $("tLibros").addEventListener("input", e => {
   if (n) TXT.notas[n] = e.target.value; if (pt) TXT.portadas[pt] = e.target.value.trim();
   if (ur) { TXT.urls[ur] = e.target.value.trim(); const a = e.target.nextElementSibling; if (a) a.href = e.target.value.trim(); }
   guardarTXT(); clearTimeout(window._tp); window._tp = setTimeout(pintarCorreo, 400);
+});
+$("bPegar").addEventListener("click", () => {
+  const sel = seleccion().map(x => x.b); let ok = 0; const no = [];
+  for (const linea of $("tPegar").value.split(/\r?\n/)) {
+    const m = linea.match(/^\s*([0-9Xx-]{4,17})\s*[|\t]\s*(.+)$/); if (!m) continue;
+    const id = m[1].replace(/-/g, "").toUpperCase();
+    const b = sel.find(x => x.p[0] === id || String(x.p[1]).toUpperCase() === id);
+    if (b) { TXT.notas[b.clave] = m[2].trim(); ok++; } else no.push(id);
+  }
+  guardarTXT(); pintarEditor(); pintarCorreo();
+  $("pegarRes").textContent = `${ok} ${ok === 1 ? "descripción aplicada" : "descripciones aplicadas"}` + (no.length ? ` · no están en el boletín: ${no.join(", ")}` : "");
 });
 $("vMovil").addEventListener("click", () => { const m = $("prev").classList.toggle("movil"); $("vMovil").textContent = m ? "Ver en computadora" : "Ver en celular"; });
 $("btnHtml").addEventListener("click", () => {
