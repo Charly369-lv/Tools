@@ -207,8 +207,18 @@ let HIST = lsGet("boletin-historial", []);     // [{ fecha, libros: [{clave, tit
 let ABIERTO = null;                            // categoría con alternativas abiertas: "cat|indice"
 
 // ---------------------------------------------------------------- datos
-let CAT = null, STOCK = null, SOBRE = null, LIBROS = [];
+let CAT = null, STOCK = null, SOBRE = null, LIBROS = [], META = null;
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function descifrar(sobre, clave) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(sobre.s), iterations: sobre.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(sobre.iv) }, key, b64(sobre.d));
+  return JSON.parse(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+}
+// Pestaña Metadatos (género literario, título, autor, sinopsis y portada), con la misma clave
+async function cargarMeta(clave) {
+  try { const r = await fetch("metadatos.enc?t=" + Date.now(), { cache: "no-store" }); if (r.ok) META = await descifrar(await r.json(), clave); } catch (e) { META = null; }
+}
 async function abrirStock(clave, silencioso) {
   $("stErr").hidden = true;
   try {
@@ -219,6 +229,7 @@ async function abrirStock(clave, silencioso) {
     STOCK = JSON.parse(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
     try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
     $("claveForm").hidden = true;
+    await cargarMeta(clave);
     listo();
   } catch (e) {
     if (silencioso) { try { localStorage.removeItem("surtido-clave"); } catch (er) {} }
@@ -264,11 +275,13 @@ async function cargarCatalogo() {
 function listo() {
   const n = Object.keys(STOCK.p).length;
   const conFecha = Object.values(STOCK.p).some(e => e[3]);
-  $("stStatus").textContent = `Listo: catálogo de ${CAT.length.toLocaleString("es-GT")} productos y existencias al ${fechaLocal(STOCK.v)}` + (conFecha ? "" : " (Las fechas de alta llegarán con la próxima actualización.)");
+  $("stStatus").textContent = `Listo: catálogo de ${CAT.length.toLocaleString("es-GT")} productos y existencias al ${fechaLocal(STOCK.v)}` +
+    (META ? ` · Categorías tomadas del género literario de Metadatos (${Object.keys(META.p).length.toLocaleString("es-GT")} libros).` : " · (Los datos de Metadatos llegarán con la próxima actualización; mientras tanto se usa el campo Tema.)") +
+    (conFecha ? "" : " (Las fechas de alta llegarán con la próxima actualización.)");
   $("stStatus").className = "status ok";
   if (!conFecha && CF.orden === "recientes") CF.orden = "reparto";
-  pintarAjustes();
   calcularBase();
+  pintarAjustes();
   armar();
 }
 function fechaLocal(v) { const d = new Date(String(v).replace(" ", "T") + ":00Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
@@ -290,7 +303,11 @@ function calcularBase() {
       if (Tset.has(l) && n > 0) tCon++;
     }
     if (!tot) continue;
-    LIBROS.push({ p, clave: p[0] || "r:" + p[1], tit: p[2], aut: p[3], ed: p[4], precio: p[5], tema: p[6], nt: norm(p[6]), ned: norm(p[4]),
+    const m = META ? (META.p[p[0]] || META.p["r:" + p[1]]) : null;
+    const gen = m && m[0] ? m[0] : p[6];
+    const port = m && /^https?:\/\//.test(m[4] || "") && !/\/id\/-1-/.test(m[4]) ? m[4] : "";
+    LIBROS.push({ p, clave: p[0] || "r:" + p[1], tit: p[2], aut: p[3], ed: p[4], precio: p[5], tema: gen || "", nt: norm(gen), ned: norm(p[4]),
+      titM: m ? m[1] : "", autM: m ? m[2] : "", sin: m ? m[3] : "", port,
       tot, mx, mxL, mxPct: mx / tot * 100, tCon, tPct: T.length ? tCon / T.length * 100 : 0, nT: T.length, locs, alta: e[3] || "", llave: norm(p[2]) + "|" + norm(p[3]) });
   }
   // Editoriales para el buscador: las que tienen libros que cumplen la existencia mínima
@@ -375,8 +392,8 @@ function armar() {
 
 function tarjeta(b, extra) {
   const nuevo = b.alta && (Date.now() - new Date(b.alta + "T12:00:00")) / 864e5 <= 60;
-  return `<div class="t">${esc(b.tit)}</div>
-    <div class="a">${esc(b.aut)}${b.aut && b.ed ? " · " : ""}${esc(b.ed)}</div>
+  return `${b.port ? `<img src="${esc(b.port)}" alt="" loading="lazy" style="width:64px;height:auto;border-radius:3px;float:right;margin:0 0 6px 8px">` : ""}<div class="t">${esc(tituloLimpio(b))}</div>
+    <div class="a">${esc(autorBonito(b.autM || b.aut) || "—")}${b.ed ? " · " : ""}${esc(b.ed)}</div>
     <div class="row" style="gap:6px"><span class="pr">${fmtQ(b.precio)}</span><span class="chip">${esc(b.tema.toLowerCase())}</span>${nuevo ? '<span class="chip new">Novedad</span>' : ""}</div>
     <div class="met"><span>Existencia <b>${b.tot}</b></span><span>En <b>${b.tCon}</b> de ${b.nT} tiendas</span><span>Máx. <b>${Math.round(b.mxPct)}%</b> en ${esc(b.mxL)}</span>${b.alta ? `<span>Alta ${esc(b.alta)}</span>` : ""}</div>
     <div class="small-t mono">${esc(b.p[0] || "")}${b.p[1] ? " · Ref. " + esc(b.p[1]) : ""}</div>${extra || ""}`;
@@ -424,8 +441,8 @@ function pintarAjustes() {
   for (const [id, k] of [["cfMin", "min"], ["cfTiendas", "tiendas"], ["cfMax", "max"], ["cfDias", "dias"], ["cfRep", "rep"]]) $(id).value = CF[k];
   $("cfLocs").innerHTML = STOCK.L.map(l => `<label><input type="checkbox" data-loc="${esc(l)}" ${CF.noTiendas.includes(l) ? "" : "checked"}> ${esc(l)}</label>`).join("");
   // Temas con libros (para asignarlos a cada categoría)
-  const cnt = new Map(); for (const p of CAT) if (p[6] && p[7] == null) cnt.set(norm(p[6]), (cnt.get(norm(p[6])) || 0) + 1);
-  const temas = [...cnt].filter(([t, n]) => n >= 20 && t !== "S/E" && t !== "S/V").sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  const cnt = new Map(); for (const b of LIBROS) if (b.nt) cnt.set(b.nt, (cnt.get(b.nt) || 0) + 1);
+  const temas = [...cnt].filter(([t, n]) => n >= 5 && t !== "S/E" && t !== "S/V").sort((a, b) => b[1] - a[1]).map(x => x[0]);
   $("cfCats").innerHTML = CATS.filter(c => c.temas).map(c => `<details><summary>${esc(c.n)}: ${(CF.temas[c.k] || []).length} ${(CF.temas[c.k] || []).length === 1 ? "tema" : "temas"}</summary>
     <div class="checks" style="margin-top:8px">${temas.map(t => `<label><input type="checkbox" data-cat="${c.k}" data-tema="${esc(t)}" ${(CF.temas[c.k] || []).includes(t) ? "checked" : ""}> ${esc(t.toLowerCase())}</label>`).join("")}</div></details>`).join("");
 }
@@ -450,12 +467,12 @@ const SITIO = new URL("../", location.href).href;          // para el logo con d
 const COVER = new Map();                                   // clave → url de portada que sí carga
 function portadaDe(b) {
   if (TXT.portadas[b.clave]) return TXT.portadas[b.clave];
-  return COVER.get(b.clave) || "";
+  return b.port || COVER.get(b.clave) || "";
 }
 function probarPortadas(lista) {
   // Portadas públicas por ISBN (Open Library); si no existe, el correo usa una portada tipográfica
   for (const b of lista) {
-    if (COVER.has(b.clave) || !/^97[89]\d{10}$/.test(b.p[0] || "")) continue;
+    if (b.port || COVER.has(b.clave) || !/^97[89]\d{10}$/.test(b.p[0] || "")) continue;
     COVER.set(b.clave, "");
     const url = `https://covers.openlibrary.org/b/isbn/${b.p[0]}-M.jpg?default=false`;
     const im = new Image();
@@ -470,8 +487,9 @@ function capital(s) { return String(s || "").toLowerCase().replace(/(^|[\s(¿¡"
 // Los nombres en el sistema a veces traen el tema y el autor pegados ("HIJAS DE LA VILLA… NARRATIVA JUVENIL JACOBS, ANNE")
 // y el artículo al final ("CIRCULO OCTOGONUS, EL"). Para el correo se limpian.
 function tituloLimpio(b) {
-  let t = String(b.tit || "").trim();
-  const quitar = [b.tema, b.aut, String(b.aut || "").split(",").reverse().join(" ").trim()].filter(x => x && x.length > 2);
+  let t = String(b.titM || b.tit || "").trim();
+  // El "Nombre del libro" de Metadatos ya viene limpio; al nombre del sistema se le quita el tema y el autor pegados
+  const quitar = [b.tema, b.p[6], b.aut, b.autM, String(b.aut || "").split(",").reverse().join(" ").trim()].filter(x => x && x.length > 2);
   for (let k = 0; k < 3; k++) for (const q of quitar) {
     const re = new RegExp("[\\s.,;:-]*" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+") + "[\\s.]*$", "i");
     t = t.replace(re, "");
@@ -481,10 +499,17 @@ function tituloLimpio(b) {
   if (m) t = `${m[2]} ${m[1]}${m[3] ? " " + m[3] : ""}`;
   return capital(t);
 }
+// Frase de cada libro: la que escriba el librero o, si no, el inicio de la sinopsis
+function resumen(s) {
+  s = String(s || "").replace(/[\u0000-\u001f\u007f-\u009f\ufffd]/g, "").replace(/\s+/g, " ").trim(); if (!s) return "";
+  const f = s.match(/^(.{60,190}?[.!?…])(\s|$)/);
+  return f ? f[1] : (s.length > 180 ? s.slice(0, 180).replace(/\s+\S*$/, "") + "…" : s);
+}
+function notaDe(b) { return Object.prototype.hasOwnProperty.call(TXT.notas, b.clave) ? TXT.notas[b.clave] : resumen(b.sin); }
 const SIN_AUTOR = /^(SIN AUTOR|S\/A|VARIOS|V\.?\s*V\.?\s*A\.?\s*A\.?|VV\.?\s*AA\.?|ANONIMO|N\/A)$/i;
 function autorBonito(a) { const s = String(a || "").trim(); if (!s || SIN_AUTOR.test(s)) return ""; const m = s.split(","); return capital(m.length === 2 ? m[1].trim() + " " + m[0].trim() : s); }
 function libroHTML(b, ancho, grande) {
-  const img = portadaDe(b), t = tituloLimpio(b), a = autorBonito(b.aut), nota = TXT.notas[b.clave] || "";
+  const img = portadaDe(b), t = tituloLimpio(b), a = autorBonito(b.autM || b.aut), nota = notaDe(b);
   const alto = Math.round(ancho * 1.5);
   const cover = img
     ? `<img src="${e2(img)}" width="${ancho}" alt="${e2(t)}" style="display:block;width:${ancho}px;max-width:100%;height:auto;border:0;margin:0 auto;box-shadow:0 6px 18px rgba(11,23,72,.18);">`
@@ -561,7 +586,7 @@ function pintarCorreo() {
 function pintarEditor() {
   $("tAsunto").value = TXT.asunto; $("tTitulo").value = TXT.titulo; $("tIntro").value = TXT.intro;
   $("tLibros").innerHTML = seleccion().map(({ cat, b }) => `<div class="ed-book"><b>${esc(tituloLimpio(b))}</b><span class="small-t">${esc(cat)}</span>
-    <input type="text" data-nota="${esc(b.clave)}" placeholder="Frase opcional: por qué leerlo" value="${esc(TXT.notas[b.clave] || "")}">
+    <textarea data-nota="${esc(b.clave)}" rows="2" placeholder="Frase opcional: por qué leerlo">${esc(notaDe(b))}</textarea>
     <input type="text" data-port="${esc(b.clave)}" placeholder="Portada: pega la dirección de una imagen (opcional)" value="${esc(TXT.portadas[b.clave] || "")}"></div>`).join("");
 }
 for (const [id, k] of [["tAsunto", "asunto"], ["tTitulo", "titulo"], ["tIntro", "intro"]]) $(id).addEventListener("input", () => { TXT[k] = $(id).value; guardarTXT(); clearTimeout(window._tp); window._tp = setTimeout(pintarCorreo, 300); });
