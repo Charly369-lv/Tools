@@ -174,8 +174,33 @@ def round_half_up(x):
     return int(math.floor(x + 0.5 + 1e-9))
 
 
+def fields_get_es(o, model, attributes):
+    """fields_get con las etiquetas también en español.
+
+    El usuario de la conexión puede tener el sistema en inglés, y entonces "Tema" llega con otro nombre.
+    Se piden las etiquetas en español y se guardan como alias para poder buscar por cualquiera de los dos."""
+    pf = o.call(model, "fields_get", [], {"attributes": attributes})
+    for lang in ("es_419", "es_ES", "es_MX", "es_GT"):
+        try:
+            alt = o.call(model, "fields_get", [], {"attributes": ["string"], "context": {"lang": lang}})
+        except SystemExit:
+            continue
+        dif = 0
+        for n, f in alt.items():
+            if n in pf and f.get("string") and f.get("string") != pf[n].get("string"):
+                pf[n].setdefault("alias", []).append(f["string"])
+                dif += 1
+        if dif:
+            break
+    return pf
+
+
+def etiquetas(f):
+    return [norm(f.get("string"))] + [norm(a) for a in f.get("alias", [])]
+
+
 def find_field(fields, labels, types=None, exclude=()):
-    """Busca un campo por su etiqueta visible (sin importar mayúsculas ni acentos)."""
+    """Busca un campo por su etiqueta visible, en inglés o en español (sin importar mayúsculas ni acentos)."""
     want = [norm(l) for l in labels]
     cands = []
     for name, f in fields.items():
@@ -183,9 +208,9 @@ def find_field(fields, labels, types=None, exclude=()):
             continue
         if types and f.get("type") not in types:
             continue
-        lab = norm(f.get("string"))
+        labs = etiquetas(f)
         for rank, w in enumerate(want):
-            if lab == w:
+            if w in labs:
                 cands.append((rank, 0 if name.startswith("x_") else 1, name))
     cands.sort()
     return list(dict.fromkeys(c[2] for c in cands))
@@ -211,18 +236,26 @@ def main():
     o.connect()
     print(f"Conectado a {env['ODOO_URL']} ({o.mode})")
 
-    pf = o.call("product.product", "fields_get", [], {"attributes": ["string", "type", "relation", "selection"]})
+    pf = fields_get_es(o, "product.product", ["string", "type", "relation", "selection"])
     text_types = ("char", "text", "many2one", "many2many", "selection")
 
-    def pick(key, labels, types):
+    def pick(key, labels, types, palabra=None):
         if cfg.get(key):
             return [cfg[key]] if isinstance(cfg[key], str) else list(cfg[key])
-        return find_field(pf, labels, types)
+        r = find_field(pf, labels, types)
+        if not r and palabra:
+            # Si no hay uno que se llame exactamente así, se busca uno cuya etiqueta contenga la palabra
+            # ("Temas", "Tema del libro", "TEMA / GÉNERO"…). Primero los campos propios (x_).
+            rx = re.compile(r"\b" + palabra + r"(S|TICA|TICAS)?\b")
+            c = [(0 if n.startswith("x_") else 1, n) for n, f in pf.items()
+                 if f.get("type") in types and any(rx.search(l) for l in etiquetas(f))]
+            r = [n for _, n in sorted(c)]
+        return r
 
     F = {
         "autor": pick("campo_autor", ["Autor", "AUTOR", "Autores"], text_types),
         "editorial": pick("campo_editorial", ["Editorial"], text_types),
-        "tema": pick("campo_tema", ["Tema"], text_types),
+        "tema": pick("campo_tema", ["Tema", "Temas", "Tema del libro", "Género", "Genero"], text_types, palabra="TEMA"),
         # El precio de bazar se calcula con la categoría ("… #2BAZAR 75%"). Solo si se fija un campo
         # en config.json ("campo_precio_bazar") se usa ese campo en lugar de la categoría.
         "precio_bazar": [cfg["campo_precio_bazar"]] if cfg.get("campo_precio_bazar") else [],
@@ -233,6 +266,10 @@ def main():
         found = ", ".join("%s (%s)" % (x, pf[x].get("string")) for x in v if x in pf)
         print(f"  {k:13s} -> {found or ('(se calcula con la categoría)' if k == 'precio_bazar' else 'NO ENCONTRADO')}")
     print(f"  precio        -> {price_field}")
+    if not F["tema"]:
+        cand = [f"{n} ({' / '.join([f.get('string')] + f.get('alias', []))}, {f.get('type')})" for n, f in sorted(pf.items()) if n.startswith("x_")]
+        print("\n  AVISO: no se encontró el campo de Tema. Campos propios disponibles (pon el nombre correcto en"
+              " sync/config.json como \"campo_tema\"):\n    " + "\n    ".join(cand or ["(ninguno)"]))
     if a.diagnostico:
         extra = [f"{n} ({f.get('string')}, {f.get('type')})" for n, f in sorted(pf.items()) if n.startswith("x_")]
         print("\nCampos propios (x_) disponibles:\n  " + "\n  ".join(extra or ["(ninguno)"]))

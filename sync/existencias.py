@@ -19,7 +19,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from sync_odoo import Odoo, as_text, clean, find_field  # noqa: E402
+from sync_odoo import Odoo, as_text, clean, find_field, fields_get_es  # noqa: E402
 
 ITER = 310000
 
@@ -68,7 +68,7 @@ def main():
 
     # Localidad del estante (solo para el modo privado del checador)
     try:
-        pf = o.call("product.product", "fields_get", [], {"attributes": ["string", "type"]})
+        pf = fields_get_es(o, "product.product", ["string", "type"])
         f_loc = (find_field(pf, ["Localidad", "Ubicación en estante", "Estante"], ("char", "text", "many2one", "selection")) or [None])[0]
     except SystemExit:
         f_loc = None

@@ -29,7 +29,7 @@ import time
 from html import escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from sync_odoo import Odoo, as_text, clean, find_field  # noqa: E402
+from sync_odoo import Odoo, as_text, clean, find_field, fields_get_es  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ESTADO = os.path.join(HERE, "remarcaje_estado.json")
@@ -66,7 +66,7 @@ def main():
     o = Odoo(env["ODOO_URL"], env["ODOO_DB"], env["ODOO_USER"], env["ODOO_API_KEY"])
     o.connect()
 
-    pf = o.call("product.product", "fields_get", [], {"attributes": ["string", "type"]})
+    pf = fields_get_es(o, "product.product", ["string", "type"])
     tt = ("char", "text", "many2one", "many2many", "selection")
     f_aut = find_field(pf, ["Autor", "AUTOR", "Autores"], tt)
     f_edi = find_field(pf, ["Editorial"], tt)

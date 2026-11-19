@@ -12,9 +12,9 @@ import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from sync_odoo import Odoo, as_text, norm  # noqa: E402
+from sync_odoo import Odoo, as_text, norm, fields_get_es, etiquetas  # noqa: E402
 
-PESTANA = "METADATA"
+PESTANA = "METADAT"   # "Metadata" o "Metadatos"
 
 
 def main():
@@ -22,13 +22,14 @@ def main():
     o = Odoo(env["ODOO_URL"], env["ODOO_DB"], env["ODOO_USER"], env["ODOO_API_KEY"])
     o.connect()
     model = "product.template"
-    pf = o.call(model, "fields_get", [], {"attributes": ["string", "type", "relation"]})
+    pf = fields_get_es(o, model, ["string", "type", "relation"])
+    lab = lambda f: " / ".join([str(f.get("string"))] + f.get("alias", []))
 
     # Campos que se llaman parecido a Tema (lo que usa hoy la sincronización)
     print("\n=== CAMPOS PARECIDOS A 'TEMA' ===")
     for n, f in sorted(pf.items()):
-        if "TEMA" in norm(f.get("string")) or "TEMA" in n.upper():
-            print(f"  {n:40s} {f.get('type'):10s} {f.get('string')}")
+        if any("TEMA" in l for l in etiquetas(f)) or "TEMA" in n.upper():
+            print(f"  {n:40s} {f.get('type'):10s} {lab(f)}")
 
     # Campos dentro de la pestaña Metadata del formulario
     campos = []
@@ -43,7 +44,7 @@ def main():
                     n = f.get("name")
                     if n and n in pf and n not in campos:
                         campos.append(n)
-        print(f"\n=== CAMPOS EN LA PESTAÑA '{PESTANA.title()}' ({len(campos)}) ===")
+        print(f"\n=== CAMPOS EN LA PESTAÑA DE METADATOS ({len(campos)}) ===")
         if not campos:
             print("  No encontré la pestaña. Pestañas del formulario: " +
                   ", ".join(sorted({(p.get('string') or p.get('name') or '?') for p in root.iter('page')})))
@@ -52,7 +53,7 @@ def main():
 
     for n in campos:
         f = pf[n]
-        print(f"\n  {n}  ·  {f.get('string')}  ·  {f.get('type')}{'  → ' + f['relation'] if f.get('relation') else ''}")
+        print(f"\n  {n}  ·  {lab(f)}  ·  {f.get('type')}{'  → ' + f['relation'] if f.get('relation') else ''}")
         if f.get("type") in ("char", "selection", "many2one", "boolean", "integer"):
             try:
                 try:
@@ -73,7 +74,7 @@ def main():
                 print(f"\n  [{r.get('default_code') or ''}] {str(r.get('name'))[:60]}")
                 for c in campos:
                     if r.get(c) not in (False, None, "", []):
-                        print(f"      {pf[c].get('string')}: {as_text(r.get(c))[:80]}")
+                        print(f"      {lab(pf[c])}: {as_text(r.get(c))[:80]}")
         except SystemExit as e:
             print("  (no se pudieron leer ejemplos)", str(e)[:200])
 

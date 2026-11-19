@@ -29,7 +29,7 @@ import sys
 from html import escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from sync_odoo import Odoo, as_text, clean, find_field  # noqa: E402
+from sync_odoo import Odoo, as_text, clean, find_field, fields_get_es  # noqa: E402
 import correo_top25 as C  # noqa: E402
 
 LOGO_URL = os.environ.get("LOGO_URL", "https://charly369-lv.github.io/Tools/checador/logo.png")
@@ -98,7 +98,7 @@ def main():
 
     # Datos de los productos vendidos (categoría, nombre, autor, editorial)
     pids = sorted(set().union(*[set(U[k]) for k in U]))
-    pf = o.call("product.product", "fields_get", [], {"attributes": ["string", "type"]})
+    pf = fields_get_es(o, "product.product", ["string", "type"])
     tt = ("char", "text", "many2one", "many2many", "selection")
     f_aut = find_field(pf, ["Autor", "AUTOR", "Autores"], tt)
     f_edi = find_field(pf, ["Editorial"], tt)

@@ -28,7 +28,7 @@ import sys
 from html import escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from sync_odoo import Odoo, as_text, clean, find_field  # noqa: E402
+from sync_odoo import Odoo, as_text, clean, find_field, fields_get_es  # noqa: E402
 
 LOGO_URL = os.environ.get("LOGO_URL", "https://charly369-lv.github.io/Tools/checador/logo.png")
 BAZAR = re.compile(r"BAZAR\D{0,3}(\d{1,2})\s*%", re.I)
@@ -101,7 +101,7 @@ def main():
 
     # Productos vendidos: precio normal, categoría, datos para el top
     pids = sorted({l["product_id"][0] for l in lineas if l.get("product_id")})
-    pf = o.call("product.product", "fields_get", [], {"attributes": ["string", "type"]})
+    pf = fields_get_es(o, "product.product", ["string", "type"])
     tt = ("char", "text", "many2one", "many2many", "selection")
     f_aut, f_edi = find_field(pf, ["Autor", "AUTOR"], tt), find_field(pf, ["Editorial"], tt)
     price_field = "lst_price" if "lst_price" in pf else "list_price"
