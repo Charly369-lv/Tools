@@ -307,9 +307,26 @@ function cumple(b) {
   if (CF.dias > 0) { if (!b.alta) r.push("alta"); else if ((Date.now() - new Date(b.alta + "T12:00:00")) / 864e5 > CF.dias) r.push("alta"); }
   return r;
 }
+// Palabras clave por categoría: sirven aunque el tema venga con otra forma ("LIBROS / INFANTIL", "Infantil 6-8 años")
+const CLAVES = {
+  inf: { si: /INFANTIL|NIN[OA]S/, no: /JUVENIL/ },
+  juv: { si: /JUVENIL|YOUNG ADULT/, no: null },
+  lit: { si: /NARRATIVA|NOVELA|POESIA|LITERATURA|CUENTO/, no: /JUVENIL|INFANTIL|INGLES|EROTICA|ILUSTRADA/ },
+  aut: { si: /AUTOAYUDA|SUPERACION|DESARROLLO PERSONAL/, no: null },
+  ens: { si: /ENSAYO/, no: null },
+};
 function enCategoria(b, cat) {
   if (cat.k === "ed") return !!CF.ed && b.ned === norm(CF.ed);
-  return (CF.temas[cat.k] || []).includes(b.nt);
+  const lista = CF.temas[cat.k] || [];
+  if (lista.includes(b.nt) || lista.includes(b.nt.split("/").pop().trim())) return true;
+  if (CF.temasManual && CF.temasManual[cat.k]) return false;     // si el usuario ajustó los temas a mano, solo esos
+  const c = CLAVES[cat.k];
+  return !!c && c.si.test(b.nt) && !(c.no && c.no.test(b.nt));
+}
+// Temas más comunes entre los libros con existencia (para revisar cuando una categoría sale vacía)
+function temasComunes(n) {
+  const c = new Map(); for (const b of LIBROS) c.set(b.tema || "(sin tema)", (c.get(b.tema || "(sin tema)") || 0) + 1);
+  return [...c].sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 function orden(a, b) {
   if (CF.orden === "recientes") return (b.alta || "").localeCompare(a.alta || "") || b.tPct - a.tPct || b.tot - a.tot;
@@ -382,6 +399,7 @@ function pintar() {
       ${ABIERTO && ABIERTO.startsWith(r.cat.k + "|") ? `<div class="alts"><div class="row" style="justify-content:space-between"><b>Elige el reemplazo (${r.alts.length} opciones que cumplen)</b><button type="button" class="ghost small" data-cerrar="1">Cancelar</button></div>
         <div class="picks">${r.alts.map(b => `<div class="bk" data-elegir="${esc(b.clave)}" tabindex="0" role="button">${tarjeta(b)}</div>`).join("") || '<span class="muted">No hay más libros que cumplan las reglas en esta categoría.</span>'}</div></div>` : ""}
       <p class="diag">${d.total} libros de esta categoría tienen existencia; ${r.ok.length} cumplen las reglas.</p>
+      ${r.cat.k !== "ed" && !d.total ? `<p class="notice bad">No encontré libros con el tema de esta categoría. Los temas más comunes entre los libros con existencia son: ${temasComunes(10).map(([t, n]) => `<b>${esc(t)}</b> (${n})`).join(", ")}. Mándame una captura de esto para ajustarlo.</p>` : ""}
     </section>`;
   }).join("");
   pintarHist();
@@ -420,6 +438,7 @@ $("cfLocs").addEventListener("change", e => { const l = e.target.dataset.loc; if
 $("cfCats").addEventListener("change", e => {
   const k = e.target.dataset.cat, t = e.target.dataset.tema; if (!k) return;
   const s = new Set(CF.temas[k] || []); e.target.checked ? s.add(t) : s.delete(t); CF.temas[k] = [...s];
+  CF.temasManual = Object.assign({}, CF.temasManual, { [k]: true });
   const sm = e.target.closest("details").querySelector("summary"); sm.textContent = sm.textContent.replace(/: \d+ temas?$/, `: ${s.size} ${s.size === 1 ? "tema" : "temas"}`);
   reajustar();
 });
