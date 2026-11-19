@@ -234,13 +234,17 @@ mark { background: var(--gold); color: var(--gold-ink); padding: 0 1px; border-r
 .locs li b { font-family: var(--f-num); font-weight: 800; margin-left: 5px; }
 .locs li.me { background: var(--navy); color: var(--on-navy); border-color: var(--navy); }
 .stock-note { margin: 0; font-size: 12px; color: var(--muted); }
+/* Los toques al logo no deben seleccionarlo ni marcarlo en azul */
+.logo { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.mast-top { user-select: none; -webkit-user-select: none; }
 body.priv .mast { box-shadow: inset 0 4px 0 var(--gold); }
 .priv-pill { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--gold-ink, #3a2a00); background: var(--gold); border-radius: 999px; padding: 2px 8px; }
 .shelf { font-size: 14px; font-weight: 700; color: var(--ink); }
 .shelf code { font-family: var(--f-mono); font-size: 14px; background: var(--soft); padding: 2px 7px; border-radius: 5px; }
 .pedir { font-size: 14px; font-weight: 700; color: var(--sale); }
-.pick .pe { font-size: 11px; font-weight: 800; font-family: var(--f-mono); color: var(--navy); }
-.pick .pe.cero { color: var(--muted); }
+.pick .pe { font-size: 12px; font-weight: 800; font-family: var(--f-mono); color: var(--navy); background: var(--soft); border-radius: 5px; padding: 2px 6px; justify-self: start; }
+.pick .pe.cero { color: var(--muted); background: transparent; border: 1px dashed var(--line); }
+body.priv .pick.reg .pe { margin-top: 2px; }
 .ex-hide { margin-left: auto; align-self: center; padding: 3px 12px !important; min-height: 0 !important; font-size: 12px !important; font-weight: 700; background: transparent !important; color: var(--muted) !important; border: 1px solid var(--line) !important; border-radius: 999px; }
 .matches .mp .ex { font-size: 12px; font-weight: 700; color: var(--muted); font-family: var(--f-mono); }
 .history .x { font-size: 12px; color: var(--muted); font-family: var(--f-mono); }
@@ -249,7 +253,7 @@ body.priv .mast { box-shadow: inset 0 4px 0 var(--gold); }
 <header class="mast pad">
   <div class="inner">
     <div class="mast-top">
-      <img class="logo" src="logo.png" alt="De Museo" width="800" height="144">
+      <img class="logo" src="logo.png" alt="De Museo" width="800" height="144" draggable="false">
       <span class="tagline">Un mundo por descubrir</span>
     </div>
     <div class="ribbon">
@@ -362,6 +366,10 @@ async function loadCatalog() {
   const A = d.a, E = d.e, T = d.t;
   CAT = d.p.map(r => { const p = [r[0], r[1], r[2], A[r[3]], E[r[4]], r[5], T[r[6]]]; if (r.length > 7) p.push(r[7], r[8]); return p; });
   TXT = CAT.map(p => norm(p[2] + " " + p[3] + " " + p[4] + " " + p[1]));
+  // Índices locales: con el catálogo ya guardado, los códigos se buscan sin internet
+  LC = new Map(); LR = new Map();
+  for (const p of CAT) { if (p[0]) LC.set(String(p[0]), p); if (p[1]) LR.set(String(p[1]), p); }
+  for (const [code, i] of Object.entries(d.x || {})) if (CAT[i] && !LC.has(code)) LC.set(code, CAT[i]);
   for (const q of CAT) if (q[6] && q[5] > 0 && !isBz(q)) { if (!TEMA_N.has(q[6])) TEMA_N.set(q[6], []); TEMA_N.get(q[6]).push(q); }
   catPct = 100;
   if (pendingName != null) { const q = pendingName; pendingName = null; if (input.value.trim() === q) search(q, false); }
@@ -432,6 +440,7 @@ async function abrirStock(clave, silencioso) {
 try { const c = localStorage.getItem("surtido-clave"); if (c && localStorage.getItem("dm-ex-on") === "1") abrirStock(c, true); } catch (e) {}
 // Gesto secreto: 5 toques al logo en menos de 3 segundos
 let toques = [];
+document.querySelector(".logo").addEventListener("mousedown", e => { if (e.detail > 1) e.preventDefault(); });
 document.querySelector(".logo").addEventListener("click", () => {
   const t = Date.now(); toques = toques.filter(x => t - x < 3000); toques.push(t);
   if (toques.length < 5) return;
@@ -492,11 +501,16 @@ bazarReady.catch(() => { result.innerHTML = `<div class="loading">No se pudo car
 // El catálogo completo se pide después de que la página ya está lista
 bazarReady.then(() => setTimeout(() => loadCatalog().catch(() => {}), 400)).catch(() => {});
 
+let LC = null, LR = null;
 async function byDigits(d) {
-  try { await bazarReady; } catch (e) {} // la versión de los datos llega con bazar.json
   const tries = [...new Set([d, d.replace(/^0+/, ""), "0" + d])].filter(Boolean);
   // Números cortos (referencias internas, 8 dígitos o menos): primero la referencia; largos: primero el código de barras
   const orden = d.length <= 8 ? ["r", "c"] : ["c", "r"];
+  if (LC) {   // catálogo completo ya en el equipo: respuesta inmediata y sin depender de la señal
+    for (const k of orden) for (const t of tries) { const p = (k === "c" ? LC : LR).get(t); if (p) return p; }
+    return null;
+  }
+  try { await bazarReady; } catch (e) {} // la versión de los datos llega con bazar.json
   for (const k of orden) for (const t of tries) { const s = await shard(k, key2(t)); if (s[t]) return s[t]; }
   return null;
 }
@@ -557,10 +571,23 @@ const descBlock = p => `
 
 // Libros a precio normal del mismo tema: primero del mismo autor, luego de la misma editorial
 const TEMA_N = new Map();
+// Modo privado: las recomendaciones se ordenan por existencia (primero lo que hay en mi tienda, luego el total)
+// y se muestran más opciones con su existencia, para que el librero escoja qué ofrecer.
+const privPicks = () => EX_ON && !!STOCK;
+function porExistencia(pool, p, n, extra) {
+  const c = pool.filter(q => q !== p && !(p[0] && q[0] === p[0])).map(q => { const l = stockDe(q); return { q, m: MINE ? miDe(l) : 0, t: totalDe(l), x: extra ? extra(q) : 0 }; });
+  c.sort((a, b) => (b.m > 0) - (a.m > 0) || b.m - a.m || (b.t > 0) - (a.t > 0) || b.x - a.x || b.t - a.t);
+  return c.slice(0, n).map(z => z.q);
+}
+function exBadge(q) {
+  if (!privPicks()) return "";
+  const l = stockDe(q), m = miDe(l), t = totalDe(l), cero = MINE ? !m : !t;
+  return `<span class="pe ${cero ? "cero" : ""}">${MINE ? `Aquí ${m} · total ${t}` : t ? `Existencia ${t}` : "Sin existencia"}</span>`;
+}
 function normalPicks(p, n) {
   let pool = (p[6] && TEMA_N.get(p[6])) || [];
-  if (EX_ON && MINE) { const aqui = pool.filter(q => miDe(stockDe(q)) > 0); if (aqui.length >= n) pool = aqui; }
   if (!pool.length) return [];
+  if (privPicks()) return porExistencia(pool, p, n, q => (p[3] && q[3] === p[3] ? 2 : 0) + (p[4] && q[4] === p[4] ? 1 : 0));
   let h = 0; for (const ch of String(p[0] || p[1])) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const sc = q => (p[3] && q[3] === p[3] ? 2 : 0) + (p[4] && q[4] === p[4] ? 1 : 0);
   const best = pool.filter(q => sc(q) > 0 && q[0] !== p[0]).sort((a, b) => sc(b) - sc(a)).slice(0, n);
@@ -572,7 +599,7 @@ function normalPicks(p, n) {
   return out;
 }
 function moreBlock(p) {
-  const out = normalPicks(p, 4);
+  const out = normalPicks(p, privPicks() ? 8 : 4);
   if (!out.length) return "";
   return `<div class="advice more">
     <h3>Del mismo tema: ${esc(p[6].toLowerCase())}</h3>
@@ -581,7 +608,7 @@ function moreBlock(p) {
         <span class="pp">${q[3] && q[3] === p[3] ? "Mismo autor" : q[4] && q[4] === p[4] ? "Misma editorial" : "Recomendado"}</span>
         <span class="pt">${esc(q[2])}</span>
         <span class="pr">${enPromo(q) ? `<b>${fmt(promoPrecio(q))}</b><s>${fmt(q[5])}</s><span class="pc">−${PROMO.porcentaje}%</span>` : `<b>${fmt(q[5])}</b>`}</span>
-        ${EX_ON && STOCK && MINE ? (() => { const m = miDe(stockDe(q)); return `<span class="pe ${m ? "" : "cero"}">Aquí: ${m}</span>`; })() : ""}
+        ${exBadge(q)}
       </button>`).join("")}</div>
   </div>`;
 }
@@ -591,8 +618,7 @@ function picksFor(p) {
   let from = pool.length ? "tema" : "";
   if (!pool.length) { pool = BZ.filter(b => b[4] && b[4] === p[4]); from = pool.length ? "editorial" : ""; }
   if (!pool.length) pool = BZ;
-  // En modo privado con tienda elegida, se recomiendan primero los que hay en esta tienda
-  if (EX_ON && MINE) { const aqui = pool.filter(b => miDe(stockDe(b)) > 0); if (aqui.length >= 3) pool = aqui; }
+  if (privPicks()) return { out: porExistencia(pool, p, 6), from };
   // Selección variada pero estable para cada producto
   let h = 0; for (const ch of String(p[0] || p[1])) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const out = [];
@@ -655,7 +681,7 @@ function showItem(p, repintar) {
             <span class="pp">−${b[8]}%</span>
             <span class="pt">${esc(b[2])}</span>
             <span class="pr"><b>${fmt(b[7])}</b><s>${fmt(b[5])}</s></span>
-            ${EX_ON && STOCK && MINE ? (() => { const m = miDe(stockDe(b)); return `<span class="pe ${m ? "" : "cero"}">Aquí: ${m}</span>`; })() : ""}
+            ${exBadge(b)}
           </button>`).join("")}</div>
       </div>` : ""}
       ${moreBlock(p)}`;
@@ -756,6 +782,8 @@ document.addEventListener("click", e => { const el = e.target.closest("[data-i],
 document.addEventListener("keydown", e => {
   const el = document.activeElement;
   if (e.key === "Enter" && el && el.matches(".matches li")) { pick(el); return; }
+  // Un número tecleado fuera del buscador lo manda al buscador (lector de barras), salvo en la clave u otro campo
+  if (el && el !== input && el.matches("input, textarea, select, [contenteditable]")) return;
   if (el !== input && /^\d$/.test(e.key)) { input.value = ""; input.focus(); }
 });
 // Sonidos: archivos .wav publicados junto a la página (más confiables que el sintetizador del navegador)
