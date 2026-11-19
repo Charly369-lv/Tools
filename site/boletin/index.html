@@ -461,7 +461,26 @@ $("cfCats").addEventListener("change", e => {
 });
 
 // ---------------------------------------------------------------- boletín para clientes (correo)
-let TXT = Object.assign({ asunto: "", titulo: "Lecturas para esta semana", intro: "Seleccionamos para ti las novedades que ya están en nuestras librerías: historias para todas las edades, ideas que inspiran y la editorial invitada del mes.", notas: {}, portadas: {} }, lsGet("boletin-textos", {}));
+let TXT = Object.assign({ asunto: "", titulo: "Lecturas para esta semana", intro: "Seleccionamos para ti las novedades que ya están en nuestras librerías: historias para todas las edades, ideas que inspiran y la editorial invitada del mes.", notas: {}, portadas: {}, urls: {},
+  plantilla: "https://demuseo.com/producto/{slug}-{ref}/" }, lsGet("boletin-textos", {}));
+TXT.urls = TXT.urls || {};
+// Enlace a la página del libro en demuseo.com (WooCommerce): /producto/<título>-<PLU>/, por ejemplo
+// "Rembrandt: Las pinturas. 45th Ed. – 160408" → /producto/rembrandt-las-pinturas-45th-ed-160408/
+function slugWP(s) {
+  return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/&[a-z]+;|&/g, "").replace(/['’"`]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+function urlDe(b) {
+  if (TXT.urls[b.clave]) return TXT.urls[b.clave];
+  const tit = String(b.titM || b.tit || "").replace(/\s*[–-]\s*\d+\s*$/, "");
+  return (TXT.plantilla || "https://demuseo.com/producto/{slug}-{ref}/").replace("{slug}", slugWP(tit)).replace("{ref}", b.p[1] || "").replace("{isbn}", b.p[0] || "");
+}
+// Marca de campaña para saber cuántas visitas trae el boletín (no cambia la página que se abre)
+function conCampana(u) {
+  if (!u) return "";
+  const c = "utm_source=boletin&utm_medium=email&utm_campaign=novedades-" + new Date().toISOString().slice(0, 10);
+  return u + (u.includes("?") ? "&" : "?") + c;
+}
 const guardarTXT = () => lsSet("boletin-textos", TXT);
 const SITIO = new URL("../", location.href).href;          // para el logo con dirección completa
 const COVER = new Map();                                   // clave → url de portada que sí carga
@@ -510,6 +529,7 @@ const SIN_AUTOR = /^(SIN AUTOR|S\/A|VARIOS|V\.?\s*V\.?\s*A\.?\s*A\.?|VV\.?\s*AA\
 function autorBonito(a) { const s = String(a || "").trim(); if (!s || SIN_AUTOR.test(s)) return ""; const m = s.split(","); return capital(m.length === 2 ? m[1].trim() + " " + m[0].trim() : s); }
 function libroHTML(b, ancho, grande) {
   const img = portadaDe(b), t = tituloLimpio(b), a = autorBonito(b.autM || b.aut), nota = notaDe(b);
+  const u = conCampana(urlDe(b)), A = h => u ? `<a href="${e2(u)}" target="_blank" style="text-decoration:none;color:inherit;">${h}</a>` : h;
   const alto = Math.round(ancho * 1.5);
   const cover = img
     ? `<img src="${e2(img)}" width="${ancho}" alt="${e2(t)}" style="display:block;width:${ancho}px;max-width:100%;height:auto;border:0;margin:0 auto;box-shadow:0 6px 18px rgba(11,23,72,.18);">`
@@ -518,11 +538,12 @@ function libroHTML(b, ancho, grande) {
         <div style="font-family:${SERIF};font-size:${grande ? 19 : 15}px;line-height:1.25;color:${DEEP};font-weight:700;">${e2(t)}</div>
         <div style="width:28px;height:1px;background:${GOLD};margin:10px auto;font-size:0;line-height:0;">&nbsp;</div>
         <div style="font-family:${SANS};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${MUTED};">${e2(a)}</div></td></tr></table>`;
-  return `${cover}
-    <div style="font-family:${SERIF};font-size:${grande ? 20 : 17}px;line-height:1.25;color:${INK};font-weight:700;margin:14px 0 4px;">${e2(t)}</div>
+  return `${A(cover)}
+    <div style="font-family:${SERIF};font-size:${grande ? 20 : 17}px;line-height:1.25;color:${INK};font-weight:700;margin:14px 0 4px;">${A(e2(t))}</div>
     <div style="font-family:${SERIF};font-style:italic;font-size:14px;color:${MUTED};margin:0 0 6px;">${e2(a)}</div>
     ${nota ? `<div style="font-family:${SANS};font-size:13px;line-height:1.5;color:${INK};margin:0 0 8px;">${e2(nota)}</div>` : ""}
-    <div style="font-family:${SANS};font-size:15px;font-weight:700;color:${NAVY};letter-spacing:.5px;">${fmtQ(b.precio)}</div>`;
+    <div style="font-family:${SANS};font-size:15px;font-weight:700;color:${NAVY};letter-spacing:.5px;">${fmtQ(b.precio)}</div>
+    ${u ? `<div style="margin:10px 0 0;"><a href="${e2(u)}" target="_blank" style="display:inline-block;font-family:${SANS};font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${NAVY};text-decoration:none;border:1px solid ${GOLD};padding:7px 14px;">Ver en demuseo.com</a></div>` : ""}`;
 }
 function filaDos(libros, grande) {
   const w = grande ? 170 : 130;
@@ -587,12 +608,14 @@ function pintarEditor() {
   $("tAsunto").value = TXT.asunto; $("tTitulo").value = TXT.titulo; $("tIntro").value = TXT.intro;
   $("tLibros").innerHTML = seleccion().map(({ cat, b }) => `<div class="ed-book"><b>${esc(tituloLimpio(b))}</b><span class="small-t">${esc(cat)}</span>
     <textarea data-nota="${esc(b.clave)}" rows="2" placeholder="Frase opcional: por qué leerlo">${esc(notaDe(b))}</textarea>
-    <input type="text" data-port="${esc(b.clave)}" placeholder="Portada: pega la dirección de una imagen (opcional)" value="${esc(TXT.portadas[b.clave] || "")}"></div>`).join("");
+    <input type="text" data-port="${esc(b.clave)}" placeholder="Portada: pega la dirección de una imagen (opcional)" value="${esc(TXT.portadas[b.clave] || "")}">
+    <div class="row" style="gap:6px;flex-wrap:nowrap"><input type="text" data-url="${esc(b.clave)}" value="${esc(urlDe(b))}" style="flex:1" title="Página del libro en demuseo.com"><a href="${esc(urlDe(b))}" target="_blank" rel="noopener" class="small-t" style="white-space:nowrap">Probar ↗</a></div></div>`).join("");
 }
 for (const [id, k] of [["tAsunto", "asunto"], ["tTitulo", "titulo"], ["tIntro", "intro"]]) $(id).addEventListener("input", () => { TXT[k] = $(id).value; guardarTXT(); clearTimeout(window._tp); window._tp = setTimeout(pintarCorreo, 300); });
 $("tLibros").addEventListener("input", e => {
-  const n = e.target.dataset.nota, pt = e.target.dataset.port;
+  const n = e.target.dataset.nota, pt = e.target.dataset.port, ur = e.target.dataset.url;
   if (n) TXT.notas[n] = e.target.value; if (pt) TXT.portadas[pt] = e.target.value.trim();
+  if (ur) { TXT.urls[ur] = e.target.value.trim(); const a = e.target.nextElementSibling; if (a) a.href = e.target.value.trim(); }
   guardarTXT(); clearTimeout(window._tp); window._tp = setTimeout(pintarCorreo, 400);
 });
 $("vMovil").addEventListener("click", () => { const m = $("prev").classList.toggle("movil"); $("vMovil").textContent = m ? "Ver en computadora" : "Ver en celular"; });
@@ -618,7 +641,7 @@ $("btnCerrarCopia").addEventListener("click", () => { $("copia").hidden = true; 
 $("btnXls").addEventListener("click", () => {
   const filas = seleccion().map(({ cat, b }, i) => ({ "#": i + 1, "Sección": cat, "Título": b.tit, "Autor": b.aut, "Editorial": b.ed, "Tema": b.tema, "Precio": b.precio,
     "Código de barras": b.p[0] || "", "Referencia": b.p[1] || "", "Existencia total": b.tot, "Tiendas con existencia": `${b.tCon} de ${b.nT}`,
-    "Ubicación con más": `${b.mxL} (${Math.round(b.mxPct)}%)`, "Fecha de alta": b.alta, "Existencia por ubicación": b.locs.sort((x, y) => y[1] - x[1]).map(([l, n]) => `${l} ${n}`).join(" · ") }));
+    "Ubicación con más": `${b.mxL} (${Math.round(b.mxPct)}%)`, "Fecha de alta": b.alta, "Página web": urlDe(b), "Existencia por ubicación": b.locs.sort((x, y) => y[1] - x[1]).map(([l, n]) => `${l} ${n}`).join(" · ") }));
   const ws = XLSX.utils.json_to_sheet(filas); ws["!cols"] = [4, 18, 44, 24, 18, 22, 8, 15, 10, 10, 12, 16, 12, 60].map(w => ({ wch: w }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Boletín");
   XLSX.writeFile(wb, `Boletin_${new Date().toISOString().slice(0, 10)}.xlsx`);
