@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Despachos De Museo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Despachos: el CEDIS empaca por caja escaneando cada unidad y sella; la tienda recibe a ciegas y se comparan diferencias */
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8; --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", Georgia, serif; --f-body: "Archivo", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1100px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: #fff; padding-block: 12px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 8px 14px; flex-wrap: wrap; }
+.mast img { display: block; width: min(170px, 44vw); height: auto; }
+.who { display: flex; gap: 10px; align-items: center; font-size: 14px; flex-wrap: wrap; }
+.who b { color: var(--gold); }
+main { padding-block: 18px 60px; }
+main .inner { display: grid; gap: 16px; }
+h1 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(24px, 5vw, 32px); line-height: 1.1; }
+h2 { margin: 0; font-size: 18px; font-weight: 800; }
+h3 { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.small { font-size: 12px; color: var(--muted); }
+.mono { font-family: var(--f-mono); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 12px; min-width: 0; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+button { font: 700 16px var(--f-body); border-radius: 10px; cursor: pointer; padding: 10px 16px; border: 2px solid var(--navy); background: var(--navy); color: #fff; min-height: 46px; }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.ok { background: var(--green); border-color: var(--green); }
+button.warn { background: var(--red); border-color: var(--red); }
+button.sm { min-height: 34px; padding: 4px 10px; font-size: 13px; }
+.mast button.ghost { color: #fff; border-color: rgba(255,255,255,.35); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+input, select, textarea { font: 16px var(--f-body); padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); min-width: 0; }
+label.f { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.scan { display: flex; gap: 10px; }
+.scan input { flex: 1; font: 600 24px var(--f-mono); padding: 14px 16px; border: 3px solid var(--navy); letter-spacing: .03em; }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.good { background: var(--green-bg); }
+
+/* Mensaje grande después de cada escaneo */
+.flash { border-radius: 12px; padding: 14px 18px; font-weight: 800; font-size: 20px; line-height: 1.25; display: grid; gap: 2px; }
+.flash small { font-size: 14px; font-weight: 600; }
+.flash.ok { background: var(--green-bg); color: var(--green); }
+.flash.err { background: var(--red); color: #fff; animation: shake .35s; }
+.flash.info { background: var(--soft); color: var(--ink); }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+@media (prefers-reduced-motion: reduce) { .flash.err { animation: none; } }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.kpi { background: var(--soft); border-radius: 10px; padding: 10px 12px; }
+.kpi span { display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.kpi b { font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.bar { height: 10px; border-radius: 999px; background: var(--soft); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--green); }
+
+.tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; max-height: 60vh; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.big { font-size: 18px; font-weight: 900; }
+tr.done td { color: var(--muted); }
+tr.over td { background: var(--red-bg); }
+tr.cur td { background: var(--amber-bg); }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; background: var(--soft); white-space: nowrap; }
+.chip.g { background: var(--green-bg); color: var(--green); }
+.chip.r { background: var(--red-bg); color: var(--red); }
+.chip.a { background: var(--amber-bg); color: var(--amber); }
+.list { display: grid; gap: 8px; }
+.item { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 14px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; text-align: left; color: var(--ink); font-weight: 600; width: 100%; min-height: 0; }
+.item:hover { border-color: var(--navy); }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+dialog { border: 0; border-radius: 14px; padding: 20px; width: min(460px, calc(100vw - 24px)); background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog::backdrop { background: rgba(11,23,72,.55); }
+dialog form { display: grid; gap: 12px; }
+
+.gaf { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.gf { border: 2px dashed var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 2px; justify-items: center; background: #fff; color: #000; }
+.gf b { font-size: 18px; } .gf span { font-size: 12px; color: #555; } .gf svg { width: 100%; max-width: 230px; }
+@media print { body.print-gaf * { visibility: hidden !important; } body.print-gaf #gaf, body.print-gaf #gaf * { visibility: visible !important; }
+  body.print-gaf #gaf { position: absolute; inset: 0; } body.print-gaf #etiqueta { display: none !important; } }
+/* Etiqueta de caja (se imprime en 4 x 6 pulgadas) */
+#etiqueta { display: none; }
+@media print {
+  @page { size: 4in 6in; margin: 0; }
+  body:not(.print-gaf) * { visibility: hidden !important; }
+  body:not(.print-gaf) #etiqueta, body:not(.print-gaf) #etiqueta * { visibility: visible !important; }
+  body:not(.print-gaf) #etiqueta { display: block; position: fixed; inset: 0; width: 4in; height: 6in; padding: .25in; color: #000; background: #fff; font-family: Arial, sans-serif; }
+}
+.et-top { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px solid #000; padding-bottom: 6px; }
+.et-top b { font-size: 22px; letter-spacing: .1em; }
+.et-tienda { font-size: 64px; font-weight: 900; line-height: 1; margin: 14px 0 4px; }
+.et-caja { font-size: 40px; font-weight: 900; }
+.et-l { font-size: 14px; margin: 3px 0; }
+.et-sello { font-size: 22px; font-weight: 900; border: 3px solid #000; padding: 6px 10px; display: inline-block; margin: 10px 0; }
+#etiqueta svg { width: 100%; height: 1.3in; }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner">
+  <img src="../checador/logo.png" alt="De Museo" width="800" height="144">
+  <div class="who" id="who" hidden><span id="whoTxt"></span><button type="button" class="ghost sm" id="btnInicio">Inicio</button><button type="button" class="ghost sm" id="btnSalir">Cambiar operador</button></div>
+</div></header>
+
+<main class="pad"><div class="inner" id="app"></div></main>
+
+<div id="etiqueta"></div>
+
+<dialog id="dlg"><form id="dlgForm" method="dialog"></form></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const app = $("app");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+const limpio = s => String(s || "").trim().replace(/\s+/g, "").toUpperCase();
+const hora = d => new Date(d).toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+// ---------------------------------------------------------------- sonidos
+const SND = { ok: new Audio("../checador/sonido-normal.wav"), bien: new Audio("../checador/sonido-bazar.wav"), err: new Audio("error.wav") };
+Object.values(SND).forEach(a => { a.preload = "auto"; a.volume = 1; });
+let sndOn = false;
+document.addEventListener("pointerdown", () => { if (sndOn) return; sndOn = true; Object.values(SND).forEach(a => { a.muted = true; a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; }); }); }, { once: true });
+const sonar = k => { try { const a = SND[k]; a.currentTime = 0; a.play().catch(() => {}); } catch (e) {} if (k === "err" && navigator.vibrate) navigator.vibrate([120, 60, 120]); };
+
+// ---------------------------------------------------------------- servidor
+let CFG = lsGet("despacho-cfg", null);     // { url, token }
+let OP = lsGet("despacho-op", null);       // operador en turno
+async function api(accion, datos) {
+  const r = await fetch(CFG.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(Object.assign({ accion, token: CFG.token, operador: OP && OP.codigo }, datos || {})) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || "Error del servidor");
+  return j.datos;
+}
+function cargando(txt) { app.innerHTML = `<section class="card"><p class="muted">${esc(txt || "Cargando…")}</p></section>`; }
+function error(e, volver) {
+  app.innerHTML = `<section class="card"><p class="notice bad">${esc(e.message || e)}</p><div class="row"><button type="button" id="reint">Intentar de nuevo</button></div></section>`;
+  $("reint").onclick = volver || inicio;
+}
+
+// ---------------------------------------------------------------- inicio de sesión
+function pantallaConfig() {
+  $("who").hidden = true;
+  app.innerHTML = `<section class="card"><h1>Configurar este equipo</h1>
+    <p class="muted">Se hace una sola vez en cada equipo. Pega la dirección del servidor y la clave de la app que te dieron.</p>
+    <form id="fCfg" style="display:grid;gap:12px" autocomplete="off">
+      <label class="f">Dirección del servidor<input id="cUrl" placeholder="https://script.google.com/macros/s/…/exec" required></label>
+      <label class="f">Clave de la app<input id="cTok" type="password" required></label>
+      <p class="notice bad" id="cErr" hidden></p>
+      <button type="submit">Guardar y probar</button></form></section>`;
+  $("fCfg").onsubmit = async e => {
+    e.preventDefault();
+    CFG = { url: $("cUrl").value.trim(), token: $("cTok").value.trim() };
+    try { await api("ping"); lsSet("despacho-cfg", CFG); pantallaLogin(); }
+    catch (er) { $("cErr").textContent = "No se pudo conectar: " + er.message; $("cErr").hidden = false; }
+  };
+}
+function pantallaLogin() {
+  $("who").hidden = true;
+  app.innerHTML = `<section class="card"><h1>¿Quién está trabajando?</h1>
+    <p class="muted">Escanea tu gafete o escribe tu código de operador. Todo lo que hagas queda registrado a tu nombre.</p>
+    <form class="scan" id="fLog" autocomplete="off"><input id="lCod" placeholder="Código de operador" autofocus><button type="submit">Entrar</button></form>
+    <p class="notice bad" id="lErr" hidden></p>
+    <p class="small"><a href="#" id="lCfg">Configurar este equipo</a></p></section>`;
+  $("lCod").focus();
+  $("lCfg").onclick = e => { e.preventDefault(); pantallaConfig(); };
+  $("fLog").onsubmit = async e => {
+    e.preventDefault();
+    const c = limpio($("lCod").value); if (!c) return;
+    try { OP = await api("login", { codigo: c }); lsSet("despacho-op", OP); tocar(); inicio(); }
+    catch (er) { sonar("err"); $("lErr").textContent = er.message; $("lErr").hidden = false; $("lCod").select(); }
+  };
+}
+$("btnSalir").onclick = () => { OP = null; lsDel("despacho-op"); pantallaLogin(); };
+$("btnInicio").onclick = () => inicio();
+// Cambio de operador automático tras 60 minutos sin uso (equipos compartidos)
+let tOcio;
+function tocar() { clearTimeout(tOcio); tOcio = setTimeout(() => { if (OP) { OP = null; lsDel("despacho-op"); pantallaLogin(); } }, 60 * 60000); }
+["keydown", "pointerdown"].forEach(ev => document.addEventListener(ev, () => OP && tocar(), { passive: true }));
+
+function inicio() {
+  if (!CFG) return pantallaConfig();
+  if (!OP) return pantallaLogin();
+  $("who").hidden = false;
+  $("whoTxt").innerHTML = `<b>${esc(OP.nombre)}</b> · ${esc(OP.rol === "TIENDA" ? "Tienda " + OP.tienda : OP.rol === "SUPERVISOR" ? "Supervisor" : "CEDIS")}`;
+  return menu();
+}
+const OPCIONES = {
+  emp: ["Empacar pedidos del sistema", () => listaEmpacar()],
+  rec: ["Recibir cajas", () => listaRecibir()],
+  dev: ["Recibir devoluciones y traslados", () => listaRecibir()],
+  sp: ["Enviar sin pedido (devolución, traslado o urgente)", () => iniciarSP()],
+  apr: ["Aprobar envíos sin pedido", () => listaAprobar()],
+  ind: ["Indicadores por operador", () => indicadores()],
+  gaf: ["Imprimir gafetes de operadores", () => gafetes()],
+};
+function menu() {
+  const ks = OP.rol === "TIENDA" ? ["rec", "sp"] : OP.rol === "SUPERVISOR" ? ["emp", "rec", "sp", "apr", "ind", "gaf"] : ["emp", "dev", "sp"];
+  const sp = lsGet("despacho-sp-actual", null);
+  app.innerHTML = `<section class="card"><h1>¿Qué vas a hacer?</h1>
+    ${sp ? `<p class="notice">Tienes un envío sin pedido a medias${sp.nombre ? " (" + esc(sp.nombre) + ")" : ""} para ${esc(sp.tienda)}. <button type="button" class="sm" id="spSeguir">Continuar</button></p>` : ""}
+    <div class="list">${ks.map(k => `<button type="button" class="item" data-go="${k}">${OPCIONES[k][0]} <span>→</span></button>`).join("")}</div></section>`;
+  app.querySelectorAll("[data-go]").forEach(b => b.onclick = OPCIONES[b.dataset.go][1]);
+  if (sp) $("spSeguir").onclick = () => { T = sp; BOX = lsGet("despacho-sp-caja", null) || { items: {}, inicio: null, hist: [] }; FLASH = null; pintarSP(); };
+}
+// ---------------------------------------------------------------- CEDIS: lista de pedidos
+async function listaEmpacar() {
+  cargando("Buscando pedidos por empacar…");
+  const filtro = lsGet("despacho-filtro", "");
+  try {
+    const ts = await api("traslados", { tienda: filtro });
+    app.innerHTML = `<section class="card"><div class="row between"><h1>Pedidos por empacar</h1>
+      <label class="f" style="min-width:160px">Tienda<input id="fT" value="${esc(filtro)}" placeholder="Todas"></label></div>
+      <form class="scan" id="fBus" autocomplete="off"><input id="bTr" placeholder="Escanea o escribe el número del pedido"><button type="submit">Abrir</button></form>
+      <div class="list">${ts.map(t => `<button type="button" class="item" data-id="${t.id}"><span><b class="mono">${esc(t.nombre)}</b> · ${esc(t.tienda)}<br><span class="small">${t.fecha ? esc(hora(t.fecha.replace(" ", "T") + "Z")) : ""}${t.origen ? " · " + esc(t.origen) : ""}</span></span>
+        <span class="chip ${t.estado === "en empaque" ? "a" : ""}">${esc(t.estado)}</span></button>`).join("") || '<p class="muted">No hay pedidos pendientes.</p>'}</div></section>`;
+    $("fT").onchange = () => { lsSet("despacho-filtro", limpio($("fT").value)); listaEmpacar(); };
+    app.querySelectorAll("[data-id]").forEach(b => b.onclick = () => empacar(+b.dataset.id));
+    $("fBus").onsubmit = e => { e.preventDefault(); const v = limpio($("bTr").value); const t = ts.find(x => limpio(x.nombre) === v || limpio(x.nombre).endsWith(v) || String(x.id) === v); if (t) empacar(t.id); else { sonar("err"); $("bTr").select(); } };
+    $("bTr").focus();
+  } catch (e) { error(e, listaEmpacar); }
+}
+
+// ---------------------------------------------------------------- CEDIS: empacar por caja
+let T = null;       // traslado abierto { id, nombre, tienda, lineas, cajas }
+let BOX = null;     // caja abierta { items: {pid: {...,qty, manual}}, inicio, hist: [] }
+const boxKey = () => "despacho-caja-" + T.id;
+function indice(lineas) {
+  const m = new Map();
+  for (const l of lineas) { for (const c of [l.codigo, l.ref, ...(l.alternos || [])]) if (c) m.set(limpio(c), l); }
+  return m;
+}
+let IDX = new Map();
+async function empacar(id) {
+  cargando("Abriendo pedido…");
+  try {
+    T = await api("traslado", { id });
+    IDX = indice(T.lineas);
+    BOX = lsGet(boxKey(), null) || { items: {}, inicio: null, hist: [] };
+    pintarEmpaque();
+  } catch (e) { error(e, () => empacar(id)); }
+}
+const enCajas = pid => T.cajas.reduce((s, c) => s + (c.contenido.find(i => i.pid === pid)?.qty || 0), 0);
+const enBox = pid => BOX.items[pid]?.qty || 0;
+let FLASH = null;
+function pintarEmpaque() {
+  const pide = T.lineas.reduce((s, l) => s + l.pide, 0);
+  const lleva = T.lineas.reduce((s, l) => s + Math.min(l.pide, enCajas(l.pid) + enBox(l.pid)), 0);
+  const uBox = Object.values(BOX.items).reduce((s, i) => s + i.qty, 0);
+  const nCaja = T.cajas.length + 1;
+  const orden = [...T.lineas].sort((a, b) => ((a.pide - enCajas(a.pid) - enBox(a.pid)) <= 0) - ((b.pide - enCajas(b.pid) - enBox(b.pid)) <= 0) || a.nombre.localeCompare(b.nombre, "es"));
+  app.innerHTML = `
+  <section class="card">
+    <div class="row between"><div><h3>Empacando para ${esc(T.tienda)}</h3><h1 class="mono">${esc(T.nombre)}</h1></div>
+      <div class="row"><button type="button" class="ghost sm" id="bVolver">Pedidos</button></div></div>
+    <div class="kpis">
+      <div class="kpi"><span>Empacado</span><b>${lleva}</b> <span style="display:inline">de ${pide}</span></div>
+      <div class="kpi"><span>Caja ${nCaja} (abierta)</span><b>${uBox}</b> <span style="display:inline">uds.</span></div>
+      <div class="kpi"><span>Cajas cerradas</span><b>${T.cajas.length}</b></div>
+    </div>
+    <div class="bar"><i style="width:${pide ? Math.round(lleva / pide * 100) : 0}%"></i></div>
+    <form class="scan" id="fScan" autocomplete="off"><input id="sc" placeholder="Escanea cada unidad" inputmode="none"><button type="submit">+1</button></form>
+    ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : '<div class="flash info">Escanea una unidad a la vez. Si algo no va en el pedido, la app te avisa.</div>'}
+    <div class="row">
+      <button type="button" class="ok" id="bCerrar" ${uBox ? "" : "disabled"}>Cerrar caja ${nCaja} y sellar</button>
+      <button type="button" class="ghost" id="bDeshacer" ${BOX.hist.length ? "" : "disabled"}>Quitar el último</button>
+      <button type="button" class="ghost" id="bManual">Ingresar a mano</button>
+      <button type="button" class="ghost" id="bTerminar">Terminar pedido</button>
+    </div>
+  </section>
+  <div class="grid2">
+    <section class="card"><h2>Lo que pide el pedido</h2><div class="tbl"><table>
+      <thead><tr><th>Producto</th><th class="n">Pide</th><th class="n">Cajas cerradas</th><th class="n">Esta caja</th><th class="n">Falta</th></tr></thead>
+      <tbody>${orden.map(l => { const c = enCajas(l.pid), b = enBox(l.pid), f = l.pide - c - b;
+        return `<tr class="${f < 0 ? "over" : f === 0 ? "done" : b ? "cur" : ""}"><td><b>${esc(l.nombre)}</b><div class="small mono">${esc(l.codigo)}${l.ref ? " · " + esc(l.ref) : ""}</div></td>
+        <td class="n">${l.pide}</td><td class="n">${c}</td><td class="n">${b}</td><td class="n big">${f > 0 ? f : f === 0 ? "✓" : "+" + -f}</td></tr>`; }).join("")}</tbody></table></div></section>
+    <section class="card"><h2>Caja ${nCaja}</h2>${uBox ? `<div class="tbl"><table><tbody>${Object.values(BOX.items).map(i => `<tr><td>${esc(i.nombre)}${i.manual ? ' <span class="chip a">a mano</span>' : ""}</td><td class="n big">${i.qty}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Vacía. Empieza a escanear.</p>'}
+      ${T.cajas.length ? `<h3>Cajas cerradas</h3><div class="list">${T.cajas.map(c => `<div class="row between"><span>Caja ${c.caja} · ${c.unidades} uds. · sello <b class="mono">${esc(c.sello)}</b></span><button type="button" class="ghost sm" data-re="${c.caja}">Etiqueta</button></div>`).join("")}</div>` : ""}
+    </section>
+  </div>`;
+  const sc = $("sc"); sc.focus();
+  $("fScan").onsubmit = e => { e.preventDefault(); const v = sc.value; sc.value = ""; escanear(v); };
+  $("bVolver").onclick = listaEmpacar;
+  $("bDeshacer").onclick = deshacer;
+  $("bManual").onclick = manual;
+  $("bCerrar").onclick = cerrarCaja;
+  $("bTerminar").onclick = terminar;
+  app.querySelectorAll("[data-re]").forEach(b => b.onclick = () => { const c = T.cajas.find(x => x.caja === +b.dataset.re); imprimirEtiqueta(c.caja, c.sello, c.armo || OP.codigo, c.unidades); });
+}
+function guardarBox() { if (T.sinPedido) lsSet("despacho-sp-caja", BOX); else lsSet(boxKey(), BOX); }
+function agregar(l, qty, manual, motivo) {
+  const falta = l.pide - enCajas(l.pid) - enBox(l.pid);
+  if (qty > falta) {
+    sonar("err");
+    FLASH = { t: "err", h: falta <= 0 ? `Ya está completo: ${l.nombre}` : `Solo faltan ${falta}: ${l.nombre}`, s: `El pedido pide ${l.pide}. No lo metas en la caja.` };
+    return pintarEmpaque();
+  }
+  if (!BOX.inicio) BOX.inicio = new Date().toISOString();
+  const it = BOX.items[l.pid] || (BOX.items[l.pid] = { pid: l.pid, codigo: l.codigo, ref: l.ref, nombre: l.nombre, alternos: l.alternos || [], qty: 0, manual: false });
+  it.qty += qty; if (manual) { it.manual = true; it.motivo = motivo; }
+  BOX.hist.push({ pid: l.pid, qty });
+  guardarBox();
+  const f = falta - qty;
+  sonar("ok");
+  FLASH = { t: "ok", h: `+${qty} ${l.nombre}`, s: f ? `Faltan ${f} de ${l.pide}` : `Completo (${l.pide} de ${l.pide}) ✓` };
+  pintarEmpaque();
+}
+function escanear(v) {
+  const c = limpio(v); if (!c) return;
+  const l = IDX.get(c);
+  if (!l) { sonar("err"); FLASH = { t: "err", h: "Este producto NO va en este pedido", s: `Código ${esc(c)}. Sácalo de la caja.` }; return pintarEmpaque(); }
+  agregar(l, 1, false);
+}
+function deshacer() {
+  const h = BOX.hist.pop(); if (!h) return;
+  const it = BOX.items[h.pid]; it.qty -= h.qty; if (it.qty <= 0) delete BOX.items[h.pid];
+  guardarBox(); FLASH = { t: "info", h: `Quitado: ${it.nombre}`, s: "Sácalo de la caja." }; pintarEmpaque();
+}
+function dialogo(html, alAbrir) {
+  $("dlgForm").innerHTML = html; const d = $("dlg");
+  try { d.showModal(); } catch (e) { d.setAttribute("open", ""); }
+  if (alAbrir) alAbrir();
+  return d;
+}
+function manual() {
+  const d = dialogo(`<h2>Ingresar a mano</h2><p class="small">Solo cuando el código no se puede leer o es un paquete cerrado. Queda marcado como ingreso manual.</p>
+    <label class="f">Producto<select id="mP">${T.lineas.map(l => `<option value="${l.pid}">${esc(l.nombre)} · ${esc(l.ref || l.codigo)} (falta ${Math.max(0, l.pide - enCajas(l.pid) - enBox(l.pid))})</option>`).join("")}</select></label>
+    <label class="f">Cantidad<input id="mQ" type="number" min="1" value="1"></label>
+    <label class="f">Motivo<select id="mM"><option>Código no se lee</option><option>Producto sin código</option><option>Paquete cerrado</option><option>Otro</option></select></label>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="mNo">Cancelar</button><button type="submit">Agregar</button></div>`);
+  $("mNo").onclick = () => d.close();
+  $("dlgForm").onsubmit = e => { e.preventDefault(); const l = T.lineas.find(x => x.pid === +$("mP").value); const q = Math.max(1, Math.round(+$("mQ").value || 1)); d.close(); agregar(l, q, true, $("mM").value); };
+}
+function cerrarCaja() {
+  const n = T.cajas.length + 1, u = Object.values(BOX.items).reduce((s, i) => s + i.qty, 0);
+  const d = dialogo(`<h2>Cerrar caja ${n} (${u} uds.)</h2><p class="small">Cierra la caja, ponle el sello de seguridad y escanea el número del sello.</p>
+    <label class="f">Número de sello<input id="sS" autocomplete="off" required style="font:600 22px var(--f-mono)"></label>
+    <p class="notice bad" id="sErr" hidden></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="sNo">Cancelar</button><button type="submit" class="ok">Guardar e imprimir etiqueta</button></div>`, () => $("sS").focus());
+  $("sNo").onclick = () => d.close();
+  $("dlgForm").onsubmit = async e => {
+    e.preventDefault();
+    const sello = limpio($("sS").value); if (!sello) return;
+    const bt = $("dlgForm").querySelector("[type=submit]"); bt.disabled = true; bt.textContent = "Guardando…";
+    try {
+      const items = Object.values(BOX.items).map(({ pid, codigo, ref, nombre, alternos, qty, manual, motivo }) => ({ pid, codigo, ref, nombre, alternos, qty, manual, motivo }));
+      const r = await api("guardarCaja", { traslado: T.nombre, trasladoId: T.id, tienda: T.tienda, sello, items, inicio: BOX.inicio,
+        sinPedido: !!T.sinPedido, origen: T.origen, motivo: T.motivo });
+      if (T.sinPedido) { T.nombre = r.traslado; T.id = r.trasladoId; }
+      T.cajas.push({ caja: r.caja, sello, unidades: r.unidades, armo: OP.codigo, contenido: items });
+      BOX = { items: {}, inicio: null, hist: [] };
+      if (T.sinPedido) { lsSet("despacho-sp-actual", T); lsDel("despacho-sp-caja"); } else lsDel(boxKey());
+      d.close(); sonar("bien");
+      FLASH = { t: "ok", h: `Caja ${r.caja} cerrada con sello ${sello}`, s: "Pega la etiqueta en la caja." };
+      (T.sinPedido ? pintarSP : pintarEmpaque)(); imprimirEtiqueta(r.caja, sello, OP.codigo, r.unidades);
+    } catch (er) { sonar("err"); $("sErr").textContent = er.message; $("sErr").hidden = false; bt.disabled = false; bt.textContent = "Guardar e imprimir etiqueta"; }
+  };
+}
+function codigoEtiqueta(id, caja) { return "77" + String(id).padStart(8, "0") + String(caja).padStart(3, "0"); }
+function imprimirEtiqueta(caja, sello, armo, unidades) {
+  const cod = codigoEtiqueta(T.id, caja);
+  $("etiqueta").innerHTML = `<div class="et-top"><b>DE MUSEO</b><span>${esc(new Date().toLocaleDateString("es-GT"))}</span></div>
+    <div class="et-tienda">${esc(T.tienda)}</div><div class="et-caja">CAJA ${caja}</div>
+    <div class="et-l">Pedido <b>${esc(T.nombre)}</b> · ${unidades} unidades</div><div class="et-l">Armó: ${esc(armo)}</div>
+    <div class="et-sello">SELLO ${esc(sello)}</div><svg id="etBar"></svg>
+    <div class="et-l">Si el sello está roto o no coincide, no abras la caja y avisa.</div>`;
+  try { JsBarcode("#etBar", cod, { format: "CODE128", displayValue: true, fontSize: 16, height: 80, margin: 0 }); } catch (e) {}
+  setTimeout(() => window.print(), 150);
+}
+function terminar() {
+  if (Object.keys(BOX.items).length) { sonar("err"); FLASH = { t: "err", h: "Primero cierra la caja abierta", s: "No se puede terminar con una caja sin sellar." }; return pintarEmpaque(); }
+  if (!T.cajas.length) { sonar("err"); FLASH = { t: "err", h: "Este pedido no tiene cajas cerradas", s: "" }; return pintarEmpaque(); }
+  const falt = T.lineas.map(l => ({ l, f: l.pide - enCajas(l.pid) })).filter(x => x.f > 0);
+  const d = dialogo(`<h2>Terminar ${esc(T.nombre)}</h2>
+    ${falt.length ? `<p class="notice bad">${(() => { const u = falt.reduce((s, x) => s + x.f, 0); return `Faltan ${u} ${u === 1 ? "unidad" : "unidades"} de ${falt.length} ${falt.length === 1 ? "producto" : "productos"}.`; })()} Indica el motivo de cada uno.</p>
+      <div class="tbl" style="max-height:40vh"><table><tbody>${falt.map((x, i) => `<tr><td>${esc(x.l.nombre)}<div class="small">Faltan ${x.f}</div></td><td><select data-fm="${i}"><option>No hay en estante</option><option>Dañado</option><option>Se manda después</option><option>Otro</option></select></td></tr>`).join("")}</tbody></table></div>`
+      : '<p class="notice good">Todo el pedido quedó empacado. ✓</p>'}
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="tNo">Seguir empacando</button><button type="submit">Terminar pedido</button></div>`);
+  $("tNo").onclick = () => d.close();
+  $("dlgForm").onsubmit = async e => {
+    e.preventDefault();
+    const faltantes = falt.map((x, i) => ({ pid: x.l.pid, nombre: x.l.nombre, codigo: x.l.codigo, faltan: x.f, motivo: $("dlgForm").querySelector(`[data-fm="${i}"]`).value }));
+    try { await api("terminarTraslado", { traslado: T.nombre, faltantes }); d.close(); sonar("bien"); listaEmpacar(); }
+    catch (er) { sonar("err"); alert(er.message); }
+  };
+}
+
+// ---------------------------------------------------------------- TIENDA: recepción
+async function listaRecibir() {
+  cargando("Buscando cajas por recibir…");
+  try {
+    const ts = await api("porRecibir", {});
+    app.innerHTML = `<section class="card"><h1>Cajas por recibir${OP.rol === "TIENDA" && OP.tienda ? " en " + esc(OP.tienda) : OP.rol === "CEDIS" ? " en el CEDIS" : ""}</h1>
+      <p class="muted">Escanea la etiqueta de la caja para empezar. Antes de abrirla vas a revisar el sello.</p>
+      <form class="scan" id="fEt" autocomplete="off"><input id="eC" placeholder="Escanea la etiqueta de la caja" inputmode="none"><button type="submit">Abrir</button></form>
+      <p class="notice bad" id="eErr" hidden></p>
+      <div class="list">${ts.map(t => `<div class="card" style="padding:12px 14px"><div class="row between"><span><b class="mono">${esc(t.traslado)}</b>${t.tipo === "sin pedido" ? ` <span class="chip a">sin pedido</span> <span class="small">de ${esc(t.origen)} · ${esc(t.motivo)}</span>` : ""}</span><span class="chip ${t.recibidas ? "a" : ""}">${t.recibidas} de ${t.cajas} recibidas</span></div>
+        <div class="row">${t.lista.map(c => `<button type="button" class="${c.recibida ? "ghost" : ""} sm" data-tid="${t.trasladoId}" data-c="${c.caja}" ${c.recibida ? "disabled" : ""}>Caja ${c.caja}${c.recibida ? " ✓" : ""}</button>`).join("")}</div></div>`).join("") || '<p class="muted">No hay cajas en camino.</p>'}</div></section>`;
+    $("eC").focus();
+    app.querySelectorAll("[data-tid]").forEach(b => b.onclick = () => abrirCaja(+b.dataset.tid, +b.dataset.c));
+    $("fEt").onsubmit = e => {
+      e.preventDefault(); const v = limpio($("eC").value);
+      const m = v.match(/^77(\d{8})(\d{3})$/);
+      if (!m) { sonar("err"); $("eErr").textContent = "Esa no es una etiqueta de caja."; $("eErr").hidden = false; $("eC").select(); return; }
+      abrirCaja(+m[1], +m[2]);
+    };
+  } catch (e) { error(e, listaRecibir); }
+}
+let RC = null;   // caja en recepción { info, sello, selloRoto, items, inicio, hist }
+let RIDX = new Map();
+async function abrirCaja(tid, caja) {
+  cargando("Abriendo caja…");
+  try {
+    const info = await api("caja", { trasladoId: tid, caja });
+    if (info.estado === "recibida") throw new Error("Esta caja ya se recibió.");
+    RC = lsGet("despacho-rec-" + tid + "-" + caja, null) || { info, sello: "", selloRoto: false, items: {}, inicio: null, hist: [], paso: "sello" };
+    RC.info = info;
+    RIDX = indice(info.productos);
+    FLASH = null;
+    pintarRecepcion();
+  } catch (e) { error(e, listaRecibir); }
+}
+const rcKey = () => "despacho-rec-" + RC.info.trasladoId + "-" + RC.info.caja;
+function pintarRecepcion() {
+  const i = RC.info, u = Object.values(RC.items).reduce((s, x) => s + x.qty, 0);
+  if (RC.paso === "sello") {
+    app.innerHTML = `<section class="card"><h3>${esc(i.traslado)} · ${esc(i.tienda)}</h3><h1>Caja ${i.caja} de ${i.totalCajas}</h1>
+      <p class="notice"><b>Antes de abrir la caja:</b> revisa que el sello esté intacto y escanea su número.</p>
+      <form class="scan" id="fSel" autocomplete="off"><input id="rS" placeholder="Número del sello" inputmode="none"><button type="submit">Siguiente</button></form>
+      <div class="row"><button type="button" class="warn" id="bRoto">El sello está roto o no tiene sello</button><button type="button" class="ghost" id="bVol">Volver</button></div></section>`;
+    $("rS").focus();
+    $("fSel").onsubmit = e => { e.preventDefault(); const s = limpio($("rS").value); if (!s) return; RC.sello = s; RC.paso = "contar"; lsSet(rcKey(), RC); sonar("ok"); pintarRecepcion(); };
+    $("bRoto").onclick = () => { RC.selloRoto = true; RC.sello = limpio($("rS").value); RC.paso = "contar"; lsSet(rcKey(), RC); sonar("err");
+      FLASH = { t: "err", h: "Sello roto: queda registrado como incidente", s: "Toma una foto de la caja y cuenta todo con cuidado." }; pintarRecepcion(); };
+    $("bVol").onclick = listaRecibir;
+    return;
+  }
+  app.innerHTML = `<section class="card">
+    <div class="row between"><div><h3>${esc(i.traslado)} · sello ${esc(RC.sello || "—")}${RC.selloRoto ? " (roto)" : ""}</h3><h1>Caja ${i.caja} de ${i.totalCajas}</h1></div>
+      <div class="kpi"><span>Unidades contadas</span><b>${u}</b></div></div>
+    <form class="scan" id="fR" autocomplete="off"><input id="rc" placeholder="Escanea cada unidad" inputmode="none"><button type="submit">+1</button></form>
+    ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : '<div class="flash info">Escanea todo lo que trae la caja, una unidad a la vez. Al terminar, la app compara con lo que se envió.</div>'}
+    <div class="row"><button type="button" class="ok" id="bFin" ${u ? "" : "disabled"}>Terminar caja</button><button type="button" class="ghost" id="bUndo" ${RC.hist.length ? "" : "disabled"}>Quitar el último</button><button type="button" class="ghost" id="bMan">Ingresar a mano</button><button type="button" class="ghost" id="bVol">Dejar para después</button></div>
+  </section>
+  <section class="card"><h2>Contado en esta caja</h2>${u ? `<div class="tbl"><table><tbody>${Object.values(RC.items).map(x => `<tr><td>${esc(x.nombre)}${x.manual ? ' <span class="chip a">a mano</span>' : ""}${x.extra ? ' <span class="chip r">no viene en la lista</span>' : ""}</td><td class="n big">${x.qty}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Todavía nada.</p>'}</section>`;
+  const rc = $("rc"); rc.focus();
+  $("fR").onsubmit = e => { e.preventDefault(); const v = rc.value; rc.value = ""; contar(v); };
+  $("bUndo").onclick = () => { const h = RC.hist.pop(); if (!h) return; const x = RC.items[h.k]; x.qty -= h.qty; if (x.qty <= 0) delete RC.items[h.k]; lsSet(rcKey(), RC); FLASH = { t: "info", h: "Quitado: " + x.nombre }; pintarRecepcion(); };
+  $("bMan").onclick = recManual;
+  $("bFin").onclick = finCaja;
+  $("bVol").onclick = listaRecibir;
+}
+function sumarRec(k, base, qty, manual) {
+  if (!RC.inicio) RC.inicio = new Date().toISOString();
+  const x = RC.items[k] || (RC.items[k] = Object.assign({ qty: 0 }, base));
+  x.qty += qty; if (manual) x.manual = true;
+  RC.hist.push({ k, qty }); lsSet(rcKey(), RC);
+}
+function contar(v) {
+  const c = limpio(v); if (!c) return;
+  const p = RIDX.get(c);
+  if (p) { sumarRec(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, 1); sonar("ok"); FLASH = { t: "ok", h: "+1 " + p.nombre }; }
+  else { sumarRec("x:" + c, { pid: null, codigo: c, nombre: "Código " + c, extra: true }, 1); sonar("err"); FLASH = { t: "err", h: "Este producto no viene en la lista de la caja", s: "Se cuenta como sobrante. Apártalo." }; }
+  pintarRecepcion();
+}
+function recManual() {
+  const d = dialogo(`<h2>Ingresar a mano</h2>
+    <label class="f">Código, ISBN o referencia<input id="mC" autocomplete="off"></label>
+    <label class="f">Cantidad<input id="mQ" type="number" min="1" value="1"></label>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="mNo">Cancelar</button><button type="submit">Agregar</button></div>`, () => $("mC").focus());
+  $("mNo").onclick = () => d.close();
+  $("dlgForm").onsubmit = e => { e.preventDefault(); const c = limpio($("mC").value); const q = Math.max(1, Math.round(+$("mQ").value || 1)); if (!c) return; d.close();
+    const p = RIDX.get(c); if (p) sumarRec(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, q, true); else sumarRec("x:" + c, { pid: null, codigo: c, nombre: "Código " + c, extra: true }, q, true);
+    FLASH = { t: p ? "ok" : "err", h: `+${q} ${p ? p.nombre : "Código " + c}`, s: p ? "Ingreso manual" : "No viene en la lista de la caja" }; sonar(p ? "ok" : "err"); pintarRecepcion(); };
+}
+async function finCaja() {
+  const b = $("bFin"); b.disabled = true; b.textContent = "Comparando…";
+  try {
+    const items = Object.values(RC.items).map(({ pid, codigo, nombre, qty, manual }) => ({ pid, codigo, nombre, qty, manual }));
+    const r = await api("recibirCaja", { trasladoId: RC.info.trasladoId, traslado: RC.info.traslado, caja: RC.info.caja, selloLeido: RC.sello, selloRoto: RC.selloRoto, items, inicio: RC.inicio });
+    lsDel(rcKey());
+    const limpioOk = r.selloOk && !r.diferencias.length;
+    sonar(limpioOk ? "bien" : "err");
+    app.innerHTML = `<section class="card"><h3>${esc(RC.info.traslado)}</h3><h1>Caja ${RC.info.caja}: ${limpioOk ? "todo correcto ✓" : "con diferencias"}</h1>
+      <div class="kpis"><div class="kpi"><span>Recibidas</span><b>${r.unidades}</b></div><div class="kpi"><span>Sobrantes</span><b>${r.sobrantes}</b></div><div class="kpi"><span>Faltantes</span><b>${r.faltantes}</b></div></div>
+      ${r.selloOk ? '<p class="notice good">El sello coincide. ✓</p>' : `<p class="notice bad">Incidente de sello: ${RC.selloRoto ? "sello roto" : `se leyó ${esc(RC.sello || "nada")}, debía ser ${esc(r.selloEsperado)}`}. Queda registrado.</p>`}
+      ${r.diferencias.length ? `<div class="tbl"><table><thead><tr><th>Producto</th><th class="n">Enviado</th><th class="n">Recibido</th><th class="n">Diferencia</th></tr></thead><tbody>${r.diferencias.map(x => `<tr class="${x.diferencia < 0 ? "over" : "cur"}"><td>${esc(x.nombre)}<div class="small mono">${esc(x.codigo)}</div></td><td class="n">${x.enviado}</td><td class="n">${x.recibido}</td><td class="n big">${x.diferencia > 0 ? "+" : ""}${x.diferencia}</td></tr>`).join("")}</tbody></table></div>
+        <p class="small">Las diferencias quedan registradas a nombre de quien armó la caja (${esc(r.armo)}) y de quien la recibió.</p>` : ""}
+      <div class="row"><button type="button" id="bOtra">Recibir otra caja</button></div></section>`;
+    $("bOtra").onclick = listaRecibir;
+  } catch (e) { sonar("err"); b.disabled = false; b.textContent = "Terminar caja"; FLASH = { t: "err", h: "No se pudo guardar", s: esc(e.message) + ". Revisa la conexión e intenta de nuevo; lo contado no se pierde." }; pintarRecepcion(); }
+}
+
+// ---------------------------------------------------------------- indicadores
+async function indicadores() {
+  cargando("Calculando indicadores…");
+  const dias = lsGet("despacho-dias", 7);
+  try {
+    const r = await api("indicadores", { desde: new Date(Date.now() - dias * 864e5).toISOString() });
+    const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "—";
+    const ph = (u, h) => h > 0.01 ? Math.round(u / h) : "—";
+    app.innerHTML = `<section class="card"><div class="row between"><h1>Indicadores por operador</h1>
+      <label class="f">Últimos<select id="iD">${[1, 7, 30, 90].map(d => `<option value="${d}" ${d === dias ? "selected" : ""}>${d} ${d === 1 ? "día" : "días"}</option>`).join("")}</select></label></div>
+      <h2>CEDIS: empaque</h2><p class="small">Exactitud = cajas que llegaron sin ninguna diferencia, de las que ya se recibieron.</p>
+      <div class="tbl"><table><thead><tr><th>Operador</th><th class="n">Cajas</th><th class="n">Unidades</th><th class="n">Uds./hora</th><th class="n">Exactitud</th><th class="n">Sobrantes</th><th class="n">Faltantes</th><th class="n">A mano</th></tr></thead>
+      <tbody>${r.empaque.sort((a, b) => b.unidades - a.unidades).map(e => `<tr><td><b>${esc(e.nombre || e.operador)}</b><div class="small">${esc(e.operador)}</div></td><td class="n">${e.cajas}</td><td class="n">${e.unidades}</td><td class="n">${ph(e.unidades, e.horas)}</td>
+        <td class="n big">${pct(e.exactas, e.recibidas)}<div class="small">${e.recibidas} recibidas</div></td><td class="n">${e.sobrantes}</td><td class="n">${e.faltantes}</td><td class="n">${pct(e.manuales, e.unidades)}</td></tr>`).join("") || '<tr><td colspan="8" class="muted">Sin datos en este periodo.</td></tr>'}</tbody></table></div>
+      <h2>Tiendas: recepción</h2>
+      <div class="tbl"><table><thead><tr><th>Operador</th><th>Tienda</th><th class="n">Cajas</th><th class="n">Unidades</th><th class="n">Min. por caja</th><th class="n">Incidentes de sello</th></tr></thead>
+      <tbody>${r.recepcion.sort((a, b) => b.cajas - a.cajas).map(e => `<tr><td><b>${esc(e.nombre || e.operador)}</b><div class="small">${esc(e.operador)}</div></td><td>${esc(e.tienda)}</td><td class="n">${e.cajas}</td><td class="n">${e.unidades}</td><td class="n">${e.cajas ? Math.round(e.horas * 60 / e.cajas) : "—"}</td><td class="n">${e.incidentesSello}</td></tr>`).join("") || '<tr><td colspan="6" class="muted">Sin datos en este periodo.</td></tr>'}</tbody></table></div>
+      <p class="small">El detalle completo (cada caja, sello y diferencia) está en la hoja de cálculo del servidor.</p></section>`;
+    $("iD").onchange = () => { lsSet("despacho-dias", +$("iD").value); indicadores(); };
+  } catch (e) { error(e, indicadores); }
+}
+
+// ---------------------------------------------------------------- envío sin pedido (devoluciones, traslados entre tiendas, urgentes)
+// Los productos se reconocen con el catálogo del sistema (el mismo del inventario). Queda pendiente de aprobación de un supervisor.
+let CATV = null; const SHARDS = {};
+async function catVersion() { if (!CATV) { try { CATV = (await (await fetch("../checador/bazar.json?t=" + Date.now(), { cache: "no-store" })).json()).v; } catch (e) { CATV = String(Date.now()); } } return CATV; }
+async function shardInv(tipo, k) {
+  const id = tipo + k; if (SHARDS[id]) return SHARDS[id];
+  const v = await catVersion();
+  try { SHARDS[id] = await (await fetch(`../inventario/${tipo}/${k}.json?v=${encodeURIComponent(v)}`)).json(); } catch (e) { SHARDS[id] = {}; }
+  return SHARDS[id];
+}
+async function buscarProducto(c) {
+  const d = c.replace(/\D/g, "");
+  if (d && d === c) {
+    const s = await shardInv("c", d.slice(-2).padStart(2, "0"));
+    const x = s[d]; if (x) return { codigo: x[2] || d, ref: x[0] || "", nombre: x[1] || d, alterno: x[2] ? d : null };
+  }
+  const k = (d || "00").slice(-2).padStart(2, "0");
+  const r = await shardInv("r", k);
+  const y = r[c] || r[c.toUpperCase()]; if (y) return { codigo: y[0] || "", ref: c, nombre: y[1] || c, alterno: null };
+  return null;
+}
+function iniciarSP() {
+  const enCedis = OP.rol !== "TIENDA";
+  const d = dialogo(`<h2>Enviar sin pedido</h2><p class="small">Para devoluciones, traslados entre tiendas o envíos urgentes. Un supervisor tiene que aprobarlo antes de que se pueda recibir.</p>
+    <label class="f">Sale de<input id="spO" value="${esc(OP.rol === "TIENDA" ? OP.tienda : OP.origen || "BOD")}" ${OP.rol === "TIENDA" ? "readonly" : ""}></label>
+    <label class="f">Va para (código de la tienda o ${esc(OP.origen || "BOD")} para el CEDIS)<input id="spD" value="${enCedis ? "" : esc(OP.origen || "BOD")}" required></label>
+    <label class="f">Motivo<select id="spM"><option>Devolución al CEDIS</option><option>Traslado entre tiendas</option><option>Envío urgente</option><option>Otro</option></select></label>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="spNo">Cancelar</button><button type="submit">Empezar</button></div>`, () => $("spD").focus());
+  if (!enCedis) $("spM").value = "Devolución al CEDIS";
+  $("spNo").onclick = () => d.close();
+  $("dlgForm").onsubmit = e => {
+    e.preventDefault();
+    const destino = limpio($("spD").value), origen = limpio($("spO").value);
+    if (!destino || destino === origen) { $("spD").select(); return; }
+    d.close();
+    T = { sinPedido: true, id: null, nombre: null, tienda: destino, origen, motivo: $("spM").value, cajas: [] };
+    BOX = { items: {}, inicio: null, hist: [] }; FLASH = null;
+    lsSet("despacho-sp-actual", T); pintarSP();
+  };
+}
+function pintarSP() {
+  const uBox = Object.values(BOX.items).reduce((s, i) => s + i.qty, 0), n = T.cajas.length + 1;
+  const tot = T.cajas.reduce((s, c) => s + c.unidades, 0) + uBox;
+  app.innerHTML = `<section class="card">
+    <div class="row between"><div><h3>Sin pedido · ${esc(T.motivo)} · de ${esc(T.origen)} para ${esc(T.tienda)}</h3><h1 class="mono">${esc(T.nombre || "Envío nuevo")}</h1></div>
+      <button type="button" class="ghost sm" id="bMenu">Menú</button></div>
+    <div class="kpis"><div class="kpi"><span>Total enviado</span><b>${tot}</b></div><div class="kpi"><span>Caja ${n} (abierta)</span><b>${uBox}</b></div><div class="kpi"><span>Cajas cerradas</span><b>${T.cajas.length}</b></div></div>
+    <form class="scan" id="fScan" autocomplete="off"><input id="sc" placeholder="Escanea cada unidad" inputmode="none"><button type="submit">+1</button></form>
+    ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : '<div class="flash info">Escanea cada unidad que va en la caja. Solo se aceptan productos del catálogo.</div>'}
+    <div class="row">
+      <button type="button" class="ok" id="bCerrar" ${uBox ? "" : "disabled"}>Cerrar caja ${n} y sellar</button>
+      <button type="button" class="ghost" id="bDeshacer" ${BOX.hist.length ? "" : "disabled"}>Quitar el último</button>
+      <button type="button" class="ghost" id="bManual">Ingresar a mano</button>
+      <button type="button" class="ghost" id="bTerminar">Terminar y enviar a aprobación</button>
+      ${!T.cajas.length ? '<button type="button" class="ghost" id="bCancelar">Cancelar envío</button>' : ""}
+    </div></section>
+  <section class="card"><h2>Caja ${n}</h2>${uBox ? `<div class="tbl"><table><tbody>${Object.values(BOX.items).map(i => `<tr><td>${esc(i.nombre)}<div class="small mono">${esc(i.codigo || i.ref)}</div>${i.manual ? ' <span class="chip a">a mano</span>' : ""}</td><td class="n big">${i.qty}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Vacía.</p>'}
+    ${T.cajas.length ? `<h3>Cajas cerradas</h3><div class="list">${T.cajas.map(c => `<div class="row between"><span>Caja ${c.caja} · ${c.unidades} uds. · sello <b class="mono">${esc(c.sello)}</b></span><button type="button" class="ghost sm" data-re="${c.caja}">Etiqueta</button></div>`).join("")}</div>` : ""}</section>`;
+  const sc = $("sc"); sc.focus();
+  $("fScan").onsubmit = async e => { e.preventDefault(); const v = limpio(sc.value); sc.value = ""; if (v) agregarSP(v, 1, false); };
+  $("bMenu").onclick = menu;
+  $("bDeshacer").onclick = () => { const h = BOX.hist.pop(); if (!h) return; const it = BOX.items[h.pid]; it.qty -= h.qty; if (it.qty <= 0) delete BOX.items[h.pid]; guardarBox(); FLASH = { t: "info", h: "Quitado: " + it.nombre, s: "Sácalo de la caja." }; pintarSP(); };
+  $("bManual").onclick = () => {
+    const d = dialogo(`<h2>Ingresar a mano</h2><label class="f">Código, ISBN o referencia<input id="mC" autocomplete="off"></label>
+      <label class="f">Cantidad<input id="mQ" type="number" min="1" value="1"></label>
+      <label class="f">Motivo<select id="mM"><option>Código no se lee</option><option>Producto sin código</option><option>Paquete cerrado</option><option>Otro</option></select></label>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="mNo">Cancelar</button><button type="submit">Agregar</button></div>`, () => $("mC").focus());
+    $("mNo").onclick = () => d.close();
+    $("dlgForm").onsubmit = e => { e.preventDefault(); const c = limpio($("mC").value); if (!c) return; d.close(); agregarSP(c, Math.max(1, Math.round(+$("mQ").value || 1)), true, $("mM").value); };
+  };
+  $("bCerrar").onclick = cerrarCaja;
+  $("bTerminar").onclick = terminarSP;
+  if ($("bCancelar")) $("bCancelar").onclick = () => { if (Object.keys(BOX.items).length && !confirm("¿Cancelar el envío? Se borra lo escaneado en la caja abierta.")) return; lsDel("despacho-sp-actual"); lsDel("despacho-sp-caja"); menu(); };
+  app.querySelectorAll("[data-re]").forEach(b => b.onclick = () => { const c = T.cajas.find(x => x.caja === +b.dataset.re); imprimirEtiqueta(c.caja, c.sello, c.armo || OP.codigo, c.unidades); });
+}
+async function agregarSP(c, qty, manual, motivo) {
+  const p = await buscarProducto(c);
+  if (!p) { sonar("err"); FLASH = { t: "err", h: "Este código no existe en el catálogo", s: `Código ${esc(c)}. Apártalo y avisa a tu supervisor.` }; return pintarSP(); }
+  if (!BOX.inicio) BOX.inicio = new Date().toISOString();
+  const k = p.codigo || "r:" + p.ref;
+  const it = BOX.items[k] || (BOX.items[k] = { pid: null, codigo: p.codigo, ref: p.ref, nombre: p.nombre, alternos: [], qty: 0, manual: false });
+  if (p.alterno && !it.alternos.includes(p.alterno)) it.alternos.push(p.alterno);
+  it.qty += qty; if (manual) { it.manual = true; it.motivo = motivo; }
+  BOX.hist.push({ pid: k, qty }); guardarBox();
+  sonar("ok"); FLASH = { t: "ok", h: `+${qty} ${p.nombre}`, s: `Llevas ${it.qty} en esta caja` }; pintarSP();
+}
+function terminarSP() {
+  if (Object.keys(BOX.items).length) { sonar("err"); FLASH = { t: "err", h: "Primero cierra la caja abierta", s: "" }; return pintarSP(); }
+  if (!T.cajas.length) { sonar("err"); FLASH = { t: "err", h: "Todavía no hay cajas cerradas", s: "" }; return pintarSP(); }
+  const d = dialogo(`<h2>Enviar ${esc(T.nombre)} a aprobación</h2><p>${T.cajas.length} ${T.cajas.length === 1 ? "caja" : "cajas"}, ${T.cajas.reduce((s, c) => s + c.unidades, 0)} unidades para ${esc(T.tienda)}.</p>
+    <p class="small">Un supervisor lo revisa. Cuando lo apruebe, ${esc(T.tienda)} podrá recibirlo.</p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="tNo">Seguir</button><button type="submit">Enviar a aprobación</button></div>`);
+  $("tNo").onclick = () => d.close();
+  $("dlgForm").onsubmit = async e => { e.preventDefault();
+    try { await api("terminarTraslado", { traslado: T.nombre, faltantes: [] }); d.close(); lsDel("despacho-sp-actual"); lsDel("despacho-sp-caja"); sonar("bien"); menu(); }
+    catch (er) { sonar("err"); alert(er.message); } };
+}
+async function listaAprobar() {
+  cargando("Buscando envíos por aprobar…");
+  try {
+    const ls = await api("porAprobar", {});
+    app.innerHTML = `<section class="card"><h1>Envíos sin pedido por aprobar</h1>
+      ${ls.map((t, i) => `<div class="card" style="padding:12px 14px"><div class="row between"><span><b class="mono">${esc(t.traslado)}</b> · ${esc(t.motivo)}<br><span class="small">De ${esc(t.origen)} para <b>${esc(t.destino)}</b> · ${t.cajas} ${t.cajas === 1 ? "caja" : "cajas"}, ${t.unidades} uds. · armó ${esc(t.operador)}${t.fecha ? " · " + esc(hora(t.fecha)) : ""}</span></span>
+        <span class="row"><button type="button" class="warn sm" data-no="${i}">Rechazar</button><button type="button" class="ok sm" data-si="${i}">Aprobar</button></span></div>
+        <details><summary>Ver productos (${t.productos.length})</summary><div class="tbl" style="margin-top:8px"><table><tbody>${t.productos.map(p => `<tr><td>${esc(p.nombre)}<div class="small mono">${esc(p.codigo || p.ref)}</div></td><td class="n big">${p.qty}</td></tr>`).join("")}</tbody></table></div></details></div>`).join("") || '<p class="muted">No hay envíos pendientes de aprobación.</p>'}</section>`;
+    const accion = async (i, aprobado) => {
+      const nota = aprobado ? "" : prompt("¿Por qué se rechaza?") || "";
+      if (!aprobado && !nota) return;
+      try { await api("aprobar", { traslado: ls[i].traslado, aprobado, nota }); sonar("bien"); listaAprobar(); } catch (e) { sonar("err"); alert(e.message); }
+    };
+    app.querySelectorAll("[data-si]").forEach(b => b.onclick = () => accion(+b.dataset.si, true));
+    app.querySelectorAll("[data-no]").forEach(b => b.onclick = () => accion(+b.dataset.no, false));
+  } catch (e) { error(e, listaAprobar); }
+}
+
+// ---------------------------------------------------------------- gafetes (código de barras de cada operador)
+async function gafetes() {
+  cargando("Leyendo operadores…");
+  try {
+    const ops = await api("operadores", {});
+    app.innerHTML = `<section class="card"><div class="row between"><h1>Gafetes</h1><button type="button" id="gImp">Imprimir</button></div>
+      <p class="muted">Para agregar operadores, escríbelos en la pestaña Operadores de la hoja de cálculo. Imprime en papel normal, recorta y plastifica.</p>
+      <div id="gaf" class="gaf">${ops.map((o, i) => `<div class="gf"><b>${esc(o.nombre)}</b><span>${esc(o.rol === "TIENDA" ? "Tienda " + o.tienda : o.rol === "SUPERVISOR" ? "Supervisor" : "CEDIS")}</span><svg id="g${i}"></svg></div>`).join("")}</div></section>`;
+    ops.forEach((o, i) => { try { JsBarcode("#g" + i, o.codigo, { format: "CODE128", height: 50, fontSize: 14, margin: 4 }); } catch (e) {} });
+    // Se imprime en una ventana aparte, en papel normal (la etiqueta de caja usa 4 x 6 pulgadas)
+    $("gImp").onclick = () => {
+      const w = window.open("", "_blank"); if (!w) return alert("Permite las ventanas emergentes para imprimir.");
+      w.document.write(`<!doctype html><meta charset="utf-8"><title>Gafetes</title><style>body{font-family:Arial,sans-serif;margin:12mm}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm}
+        .gf{border:1px dashed #999;border-radius:4mm;padding:4mm;text-align:center;break-inside:avoid}.gf b{display:block;font-size:15pt}.gf span{font-size:9pt;color:#555}svg{width:100%}</style>
+        <div class="g">${$("gaf").innerHTML}</div><script>setTimeout(()=>print(),300)<\/script>`);
+      w.document.close();
+    };
+  } catch (e) { error(e, gafetes); }
+}
+
+inicio();
+</script>
+</body>
+</html>
