@@ -23,6 +23,18 @@ from sync_odoo import Odoo, as_text, clean, find_field, fields_get_es  # noqa: E
 
 ITER = 310000
 
+# Pestaña "Metadatos" del producto (para el boletín). Nombres técnicos vistos en el diagnóstico del 18/11/2026;
+# si cambian, se buscan por la etiqueta en español. Se pueden fijar en config.json con estas mismas claves.
+META = {
+    "meta_genero": ("x_studio_char_field_1j6_1jakaldk6", ["GENERO LITERARIO", "GENERO"]),
+    "meta_titulo": ("x_studio_char_field_49b_1jakalh9u", ["NOMBRE DEL LIBRO"]),
+    "meta_autor": ("x_studio_char_field_6jq_1jakal40e", []),
+    "meta_sinopsis": ("x_studio_sinopsis", ["SINOPSIS"]),
+    "meta_portada": ("x_studio_char_field_2jn_1jakakg4u", ["URL PORTADA"]),
+    "meta_paginas": ("x_studio_no_de_pginas", ["No DE PAGINAS", "NUMERO DE PAGINAS"]),
+}
+MIN_META = 10   # solo libros con al menos estas unidades en total (el boletín pide 15)
+
 
 def cifrar(datos: bytes, clave: str) -> dict:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -67,6 +79,7 @@ def main():
             ex[q["product_id"][0]][ubic] += disp
 
     # Localidad del estante (solo para el modo privado del checador)
+    pf = {}
     try:
         pf = fields_get_es(o, "product.product", ["string", "type"])
         f_loc = (find_field(pf, ["Localidad", "Ubicación en estante", "Estante"], ("char", "text", "many2one", "selection")) or [None])[0]
@@ -78,6 +91,27 @@ def main():
     for i in range(0, len(ids), 5000):
         for p in o.call("product.product", "read", [ids[i:i + 5000]], {"fields": ["barcode", "default_code", "create_date"] + ([f_loc] if f_loc else [])}):
             prods[p["id"]] = p
+
+    # Metadatos para el boletín (género literario, título limpio, autor, sinopsis, portada)
+    campos = {}
+    for k, (tecnico, labels) in META.items():
+        n = cfg.get(k) or (tecnico if tecnico in pf else None) or ((find_field(pf, labels, ("char", "text")) or [None])[0] if labels else None)
+        if n:
+            campos[k] = n
+    print("Metadatos para el boletín:", ", ".join(f"{k[5:]}={v}" for k, v in campos.items()) or "(no encontrados)")
+    meta = {}
+    if campos:
+        ricos = [pid for pid, c in ex.items() if sum(c.values()) >= MIN_META]
+        for i in range(0, len(ricos), 2000):
+            for p in o.call("product.product", "read", [ricos[i:i + 2000]], {"fields": ["barcode", "default_code"] + list(campos.values())}):
+                code = re.sub(r"\D", "", str(p.get("barcode") or "")) or "r:" + clean(p.get("default_code") or "")
+                v = {k: as_text(p.get(n)).strip() for k, n in campos.items()}
+                sin = re.sub(r"\s+", " ", v.get("meta_sinopsis", ""))
+                if len(sin) > 700:
+                    sin = sin[:700].rsplit(" ", 1)[0] + "…"
+                fila = [v.get("meta_genero", ""), v.get("meta_titulo", ""), v.get("meta_autor", ""), sin, v.get("meta_portada", ""), v.get("meta_paginas", "")]
+                if any(fila):
+                    meta[code] = fila
 
     L = sorted({u for c in ex.values() for u in c})
     li = {u: i for i, u in enumerate(L)}
@@ -117,6 +151,15 @@ def main():
         json.dump(sobre, f, separators=(",", ":"))
     print(f"Existencias protegidas: {len(P):,} productos con existencia en {len(L)} ubicaciones "
           f"({len(sobre['d']) // 1024:,} KB cifrados).")
+    if meta:
+        datos = json.dumps({"v": version, "c": ["genero", "titulo", "autor", "sinopsis", "portada", "paginas"], "p": meta},
+                           ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        sobre = cifrar(gzip.compress(datos, 9), clave)
+        sobre["v"] = version
+        os.makedirs(os.path.join(a.out, "boletin"), exist_ok=True)
+        with open(os.path.join(a.out, "boletin", "metadatos.enc"), "w", encoding="utf-8") as f:
+            json.dump(sobre, f, separators=(",", ":"))
+        print(f"Metadatos del boletín: {len(meta):,} libros ({len(sobre['d']) // 1024:,} KB cifrados).")
 
 
 if __name__ == "__main__":
