@@ -163,6 +163,10 @@ textarea { width: 100%; min-height: 220px; font: 13px/1.5 var(--f-mono); padding
       <div class="ed-form">
         <label>Asunto del correo<input type="text" id="tAsunto"></label>
         <label>Título<input type="text" id="tTitulo"></label>
+        <label>Largo de las descripciones<select id="tLargo">
+          <option value="ed-larga">Frase corta; sinopsis más larga en la editorial del mes</option>
+          <option value="corta">Frase corta para todos</option>
+          <option value="larga">Sinopsis más larga (2 a 3 oraciones) para todos</option></select></label>
         <label>Introducción<textarea id="tIntro" style="min-height:90px"></textarea></label>
         <details><summary>Pegar descripciones preparadas</summary>
           <div style="display:grid;gap:8px;margin-top:8px">
@@ -400,14 +404,15 @@ function tarjeta(b, extra) {
   const nuevo = b.alta && (Date.now() - new Date(b.alta + "T12:00:00")) / 864e5 <= 60;
   return `${b.port ? `<img src="${esc(b.port)}" alt="" loading="lazy" style="width:64px;height:auto;border-radius:3px;float:right;margin:0 0 6px 8px">` : ""}<div class="t">${esc(tituloLimpio(b))}</div>
     <div class="a">${esc(autorBonito(b.autM || b.aut) || "—")}${b.ed ? " · " : ""}${esc(b.ed)}</div>
-    <div class="row" style="gap:6px"><span class="pr">${fmtQ(b.precio)}</span><span class="chip">${esc(b.tema.toLowerCase())}</span>${nuevo ? '<span class="chip new">Novedad</span>' : ""}</div>
+    <div class="row" style="gap:6px"><span class="pr">${fmtQ(b.precio)}</span><span class="chip">${esc(b.tema.toLowerCase())}</span>${nuevo ? '<span class="chip new">Novedad</span>' : ""}${b.sin ? "" : '<span class="chip" style="background:var(--amber-bg);color:var(--amber)">Sin sinopsis</span>'}</div>
     <div class="met"><span>Existencia <b>${b.tot}</b></span><span>En <b>${b.tCon}</b> de ${b.nT} tiendas</span><span>Máx. <b>${Math.round(b.mxPct)}%</b> en ${esc(b.mxL)}</span>${b.alta ? `<span>Alta ${esc(b.alta)}</span>` : ""}</div>
     <div class="small-t mono">${esc(b.p[0] || "")}${b.p[1] ? " · Ref. " + esc(b.p[1]) : ""}</div>${extra || ""}`;
 }
 function pintar() {
   const n = RES.reduce((s, r) => s + r.elegidos.length, 0);
   $("bar").hidden = false;
-  $("barTxt").textContent = `${n} de 10 libros listos`;
+  const sinSin = RES.reduce((s, r) => s + r.elegidos.filter(b => !b.sin).length, 0);
+  $("barTxt").textContent = `${n} de 10 libros listos` + (sinSin ? ` · ${sinSin} sin sinopsis` : "");
   $("btnGuardar").disabled = n === 0;
   $("aviso").hidden = !!CF.ed;
   $("aviso").textContent = "Escribe la editorial destacada del mes para completar esa sección.";
@@ -467,9 +472,12 @@ $("cfCats").addEventListener("change", e => {
 });
 
 // ---------------------------------------------------------------- boletín para clientes (correo)
-let TXT = Object.assign({ asunto: "", titulo: "Lecturas para esta semana", intro: "Seleccionamos para ti las novedades que ya están en nuestras librerías: historias para todas las edades, ideas que inspiran y la editorial invitada del mes.", notas: {}, portadas: {}, urls: {},
+let TXT = Object.assign({ asunto: "", titulo: "Un mundo por descubrir esta semana", intro: "Cada semana nuestros libreros eligen diez libros para que sigas descubriendo: historias para todas las edades, ideas que inspiran y una editorial invitada. Todos te esperan ya en tu librería De Museo.", notas: {}, portadas: {}, urls: {},
   plantilla: "https://demuseo.com/producto/{slug}-{ref}/" }, lsGet("boletin-textos", {}));
 TXT.urls = TXT.urls || {};
+// Voz De Museo (19/11): si el título o la introducción seguían con el texto de antes, se actualizan
+if (TXT.titulo === "Lecturas para esta semana") TXT.titulo = "Un mundo por descubrir esta semana";
+if (TXT.intro === "Seleccionamos para ti las novedades que ya están en nuestras librerías: historias para todas las edades, ideas que inspiran y la editorial invitada del mes.") TXT.intro = "Cada semana nuestros libreros eligen diez libros para que sigas descubriendo: historias para todas las edades, ideas que inspiran y una editorial invitada. Todos te esperan ya en tu librería De Museo.";
 // Enlace a la página del libro en demuseo.com (WooCommerce): /producto/<título>-<PLU>/, por ejemplo
 // "Rembrandt: Las pinturas. 45th Ed. – 160408" → /producto/rembrandt-las-pinturas-45th-ed-160408/
 function slugWP(s) {
@@ -525,12 +533,21 @@ function tituloLimpio(b) {
   return capital(t);
 }
 // Frase de cada libro: la que escriba el librero o, si no, el inicio de la sinopsis
-function resumen(s) {
+// Corta: la primera oración (≈180 caracteres). Larga: hasta 3 oraciones (≈450 caracteres).
+function resumen(s, larga) {
   s = String(s || "").replace(/[\u0000-\u001f\u007f-\u009f\ufffd]/g, "").replace(/\s+/g, " ").trim(); if (!s) return "";
-  const f = s.match(/^(.{60,190}?[.!?…])(\s|$)/);
-  return f ? f[1] : (s.length > 180 ? s.slice(0, 180).replace(/\s+\S*$/, "") + "…" : s);
+  const max = larga ? 450 : 180;
+  const oraciones = s.match(/[^.!?…]+[.!?…]+(\s|$)/g) || [];
+  let out = "";
+  for (const o of oraciones.slice(0, larga ? 3 : 1)) { if ((out + o).length > max && out) break; out += o; }
+  out = out.trim();
+  if (out.length >= 40 && out.length <= max + 20) return out;
+  return s.length > max ? s.slice(0, max).replace(/\s+\S*$/, "") + "…" : s;
 }
-function notaDe(b) { return Object.prototype.hasOwnProperty.call(TXT.notas, b.clave) ? TXT.notas[b.clave] : resumen(b.sin); }
+// Largo de la descripción: "corta" para todos, "larga" para todos, o "ed-larga" (larga solo en la editorial del mes)
+const esLarga = ed => TXT.largo === "larga" || ((TXT.largo || "ed-larga") === "ed-larga" && ed);
+const esEd = b => (RES.find(r => r.cat.k === "ed")?.elegidos || []).includes(b);
+function notaDe(b) { return Object.prototype.hasOwnProperty.call(TXT.notas, b.clave) ? TXT.notas[b.clave] : resumen(b.sin, esLarga(esEd(b))); }
 const SIN_AUTOR = /^(SIN AUTOR|S\/A|VARIOS|V\.?\s*V\.?\s*A\.?\s*A\.?|VV\.?\s*AA\.?|ANONIMO|N\/A)$/i;
 function autorBonito(a) { const s = String(a || "").trim(); if (!s || SIN_AUTOR.test(s)) return ""; const m = s.split(","); return capital(m.length === 2 ? m[1].trim() + " " + m[0].trim() : s); }
 function libroHTML(b, ancho, grande) {
@@ -549,7 +566,7 @@ function libroHTML(b, ancho, grande) {
     <div style="font-family:${SERIF};font-style:italic;font-size:14px;color:${MUTED};margin:0 0 6px;">${e2(a)}</div>
     ${nota ? `<div style="font-family:${SANS};font-size:13px;line-height:1.5;color:${INK};margin:0 0 8px;">${e2(nota)}</div>` : ""}
     <div style="font-family:${SANS};font-size:15px;font-weight:700;color:${NAVY};letter-spacing:.5px;">${fmtQ(b.precio)}</div>
-    ${u ? `<div style="margin:10px 0 0;"><a href="${e2(u)}" target="_blank" style="display:inline-block;font-family:${SANS};font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${NAVY};text-decoration:none;border:1px solid ${GOLD};padding:7px 14px;">Ver en demuseo.com</a></div>` : ""}`;
+    ${u ? `<div style="margin:10px 0 0;"><a href="${e2(u)}" target="_blank" style="display:inline-block;font-family:${SANS};font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${NAVY};text-decoration:none;border:1px solid ${GOLD};padding:7px 14px;">Descúbrelo en línea</a></div>` : ""}`;
 }
 function filaDos(libros, grande) {
   const w = grande ? 170 : 130;
@@ -567,14 +584,14 @@ function correoHTML() {
   const S = Object.fromEntries(RES.map(r => [r.cat.k, r.elegidos]));
   const fecha = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "long", year: "numeric" });
   const asunto = TXT.asunto || asuntoSugerido();
-  const pre = `${TXT.titulo}: ${seleccion().slice(0, 3).map(x => tituloLimpio(x.b)).join(", ")} y más.`;
+  const pre = `Diez libros elegidos para ti: ${seleccion().slice(0, 3).map(x => tituloLimpio(x.b)).join(", ")} y más.`;
   const sec = [];
-  if (S.ed?.length) sec.push(seccionHTML("Editorial del mes", capital(CF.ed), filaDos(S.ed, true), CREAM));
-  if (S.inf?.length) sec.push(seccionHTML("Para los más pequeños", "Infantil", filaDos(S.inf)));
-  if (S.juv?.length) sec.push(seccionHTML("Para lectores jóvenes", "Juvenil", filaDos(S.juv), CREAM));
+  if (S.ed?.length) sec.push(seccionHTML("La editorial invitada", capital(CF.ed), filaDos(S.ed, true), CREAM));
+  if (S.inf?.length) sec.push(seccionHTML("Para pequeños exploradores", "Infantil", filaDos(S.inf)));
+  if (S.juv?.length) sec.push(seccionHTML("Mundos por descubrir", "Juvenil", filaDos(S.juv), CREAM));
   if (S.lit?.length) sec.push(seccionHTML("Grandes historias", "Literatura", filaDos(S.lit)));
   const aut = S.aut || [], ens = S.ens || [];
-  if (aut.length || ens.length) sec.push(seccionHTML("Ideas para crecer", "Autoayuda y ensayo", filaDos([...aut, ...ens]), CREAM));
+  if (aut.length || ens.length) sec.push(seccionHTML("Para pensar y crecer", "Autoayuda y ensayo", filaDos([...aut, ...ens]), CREAM));
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="x-apple-disable-message-reformatting"><title>${e2(asunto)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&display=swap" rel="stylesheet">
@@ -587,22 +604,23 @@ function correoHTML() {
   <tr><td align="center" style="background:${DEEP};padding:30px 20px 26px;"><img src="${SITIO}checador/logo.png" width="230" alt="De Museo" style="display:block;width:230px;height:auto;border:0;"></td></tr>
   <tr><td style="height:3px;background:${GOLD};font-size:0;line-height:0;">&nbsp;</td></tr>
   <tr><td class="px" align="center" style="padding:40px 48px 30px;">
-    <div style="font-family:${SANS};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${GOLD};margin:0 0 12px;">Novedades · ${e2(fecha)}</div>
+    <div style="font-family:${SANS};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${GOLD};margin:0 0 12px;">Selección de la semana · ${e2(fecha)}</div>
     <div style="font-family:${SERIF};font-size:34px;line-height:1.15;color:${INK};font-weight:700;margin:0 0 16px;">${e2(TXT.titulo)}</div>
     <div style="font-family:${SERIF};font-size:16px;line-height:1.6;color:${MUTED};font-style:italic;">${e2(TXT.intro)}</div></td></tr>
   ${sec.join("\n")}
   <tr><td align="center" style="background:${DEEP};padding:34px 30px;">
-    <div style="font-family:${SERIF};font-size:22px;line-height:1.3;color:#ffffff;font-weight:700;margin:0 0 8px;">Te esperamos en tu librería De Museo</div>
-    <div style="font-family:${SANS};font-size:14px;line-height:1.6;color:#d8dcf0;">Pregunta por estos títulos en cualquiera de nuestras tiendas. Nuestros libreros te ayudan a encontrar tu próxima lectura.</div></td></tr>
+    <div style="font-family:${SERIF};font-size:22px;line-height:1.3;color:#ffffff;font-weight:700;margin:0 0 8px;">Tu próximo descubrimiento te espera</div>
+    <div style="font-family:${SANS};font-size:14px;line-height:1.6;color:#d8dcf0;">Encuentra estos libros en cualquiera de nuestras librerías De Museo. Nuestros libreros estarán encantados de recomendarte el siguiente.</div></td></tr>
   <tr><td align="center" style="padding:22px 30px 28px;font-family:${SANS};font-size:11px;line-height:1.6;color:${MUTED};">
     Precios en quetzales, válidos en tiendas físicas De Museo hasta agotar existencias.<br>
     Recibes este correo porque te registraste para recibir novedades de De Museo. <a href="{{baja}}" style="color:${MUTED};">Dejar de recibir estos correos</a>.</td></tr>
 </table></td></tr></table></body></html>`;
 }
 function asuntoSugerido() {
-  const s = seleccion(); if (!s.length) return "Novedades De Museo";
-  return `Novedades De Museo: ${tituloLimpio(s[0].b)} y ${s.length - 1} lecturas más`;
+  const s = seleccion(); if (!s.length) return "Un mundo por descubrir · De Museo";
+  return `${tituloLimpio(s[0].b)} y ${s.length - 1} descubrimientos más · De Museo`;
 }
+
 function pintarCorreo() {
   if (!RES.length) return;
   $("cli").hidden = false;
@@ -613,7 +631,9 @@ function pintarCorreo() {
 function pintarEditor() {
   $("tAsunto").value = TXT.asunto; $("tTitulo").value = TXT.titulo; $("tIntro").value = TXT.intro;
   $("tLibros").innerHTML = seleccion().map(({ cat, b }) => `<div class="ed-book"><b>${esc(tituloLimpio(b))}</b><span class="small-t">${esc(cat)}</span>
-    <textarea data-nota="${esc(b.clave)}" rows="2" placeholder="Frase opcional: por qué leerlo">${esc(notaDe(b))}</textarea>
+    ${b.sin ? "" : '<span class="chip" style="background:var(--amber-bg);color:var(--amber)">Sin sinopsis en el sistema: escribe una frase o pídela</span>'}
+    <textarea data-nota="${esc(b.clave)}" rows="${esLarga(esEd(b)) ? 4 : 2}" placeholder="Voz De Museo: invita a descubrir el libro en 2 o 3 frases">${esc(notaDe(b))}</textarea>
+    ${Object.prototype.hasOwnProperty.call(TXT.notas, b.clave) && b.sin ? `<button type="button" class="ghost small" data-restaurar="${esc(b.clave)}" style="justify-self:start">Volver a la sinopsis</button>` : ""}
     <input type="text" data-port="${esc(b.clave)}" placeholder="Portada: pega la dirección de una imagen (opcional)" value="${esc(TXT.portadas[b.clave] || "")}">
     <div class="row" style="gap:6px;flex-wrap:nowrap"><input type="text" data-url="${esc(b.clave)}" value="${esc(urlDe(b))}" style="flex:1" title="Página del libro en demuseo.com"><a href="${esc(urlDe(b))}" target="_blank" rel="noopener" class="small-t" style="white-space:nowrap">Probar ↗</a></div></div>`).join("");
 }
@@ -624,6 +644,9 @@ $("tLibros").addEventListener("input", e => {
   if (ur) { TXT.urls[ur] = e.target.value.trim(); const a = e.target.nextElementSibling; if (a) a.href = e.target.value.trim(); }
   guardarTXT(); clearTimeout(window._tp); window._tp = setTimeout(pintarCorreo, 400);
 });
+$("tLargo").value = TXT.largo || "ed-larga";
+$("tLargo").addEventListener("change", () => { TXT.largo = $("tLargo").value; guardarTXT(); pintarEditor(); pintarCorreo(); });
+$("tLibros").addEventListener("click", e => { const r = e.target.closest("[data-restaurar]"); if (!r) return; delete TXT.notas[r.dataset.restaurar]; guardarTXT(); pintarEditor(); pintarCorreo(); });
 $("bPegar").addEventListener("click", () => {
   const sel = seleccion().map(x => x.b); let ok = 0; const no = [];
   for (const linea of $("tPegar").value.split(/\r?\n/)) {
@@ -658,7 +681,7 @@ $("btnCerrarCopia").addEventListener("click", () => { $("copia").hidden = true; 
 $("btnXls").addEventListener("click", () => {
   const filas = seleccion().map(({ cat, b }, i) => ({ "#": i + 1, "Sección": cat, "Título": b.tit, "Autor": b.aut, "Editorial": b.ed, "Tema": b.tema, "Precio": b.precio,
     "Código de barras": b.p[0] || "", "Referencia": b.p[1] || "", "Existencia total": b.tot, "Tiendas con existencia": `${b.tCon} de ${b.nT}`,
-    "Ubicación con más": `${b.mxL} (${Math.round(b.mxPct)}%)`, "Fecha de alta": b.alta, "Página web": urlDe(b), "Existencia por ubicación": b.locs.sort((x, y) => y[1] - x[1]).map(([l, n]) => `${l} ${n}`).join(" · ") }));
+    "Ubicación con más": `${b.mxL} (${Math.round(b.mxPct)}%)`, "Fecha de alta": b.alta, "Página web": urlDe(b), "Descripción en el boletín": notaDe(b), "Sinopsis del sistema": b.sin || "", "Existencia por ubicación": b.locs.sort((x, y) => y[1] - x[1]).map(([l, n]) => `${l} ${n}`).join(" · ") }));
   const ws = XLSX.utils.json_to_sheet(filas); ws["!cols"] = [4, 18, 44, 24, 18, 22, 8, 15, 10, 10, 12, 16, 12, 60].map(w => ({ wch: w }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Boletín");
   XLSX.writeFile(wb, `Boletin_${new Date().toISOString().slice(0, 10)}.xlsx`);
