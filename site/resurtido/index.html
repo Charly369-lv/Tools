@@ -8,7 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* Resurtido: qué mandar de la bodega a cada tienda, calculado cada noche con la venta de cada tienda. */
+/* Resurtido desde la Bodega Central a las tiendas.
+   Flujo en 3 pasos: 1) elegir tiendas  2) revisar lo que va a cada una  3) aprobar todo junto.
+   El análisis (faltantes, devoluciones, proveedores) va aparte para no estorbar la operación. */
 :root {
   --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
   --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
@@ -25,75 +27,140 @@
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
 .pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.inner { max-width: 1200px; margin: 0 auto; }
-header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 16px; }
+.inner { max-width: 1100px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 14px; }
 .mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
-.mast img { display: block; width: min(200px, 50vw); height: auto; }
-.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; }
-main { padding-block: 20px 56px; }
+.mast img { display: block; width: min(180px, 46vw); height: auto; }
+.mast nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.mast nav button { background: transparent; border: 2px solid rgba(255,255,255,.3); color: #fff; min-height: 36px; padding: 4px 12px; font-size: 14px; }
+.mast nav button.on { background: #fff; color: var(--navy-deep); border-color: #fff; }
+main { padding-block: 18px 120px; }
 main .inner { display: grid; gap: 16px; }
-h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
-h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+main .inner > *, .card > * { min-width: 0; }
+h1 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(24px, 5vw, 32px); line-height: 1.1; }
+h2 { margin: 0; font-size: 18px; font-weight: 800; }
+h3 { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 p { margin: 0; }
 .muted { color: var(--muted); font-size: 14px; }
 .small { font-size: 12px; color: var(--muted); }
 .mono { font-family: var(--f-mono); font-size: 12px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 12px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 12px; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .between { justify-content: space-between; }
-button { font: 700 15px var(--f-body); border-radius: 8px; cursor: pointer; padding: 9px 15px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 42px; }
+button { font: 700 15px var(--f-body); border-radius: 10px; cursor: pointer; padding: 9px 16px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 44px; }
 button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
-button.small-b { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+button.ok { background: var(--green); border-color: var(--green); }
+button.sm { min-height: 34px; padding: 4px 12px; font-size: 13px; }
 button:disabled { opacity: .45; cursor: not-allowed; }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-input, select { font: 15px var(--f-body); padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
-input.q { width: 72px; text-align: right; padding: 5px 7px; font-weight: 700; }
+button:focus-visible, input:focus-visible, select:focus-visible, .scard:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+input, select { font: 15px var(--f-body); padding: 9px 11px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); min-width: 0; max-width: 100%; }
 .notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
 .notice.bad { background: var(--red-bg); }
 .notice.good { background: var(--green-bg); }
+a { color: inherit; }
+
+/* Pasos */
+.steps { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 13px; font-weight: 700; color: var(--muted); }
+.steps span { display: inline-flex; align-items: center; gap: 6px; }
+.steps i { font-style: normal; width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--soft); color: var(--muted); font-size: 12px; }
+.steps .on { color: var(--ink); }
+.steps .on i { background: var(--navy); color: #fff; }
+.steps .done i { background: var(--green); color: #fff; }
+.steps b { color: var(--line); }
+
+/* Tarjetas de tienda */
+.stores { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.scard { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 8px; cursor: pointer; text-align: left; }
+.scard:hover { border-color: var(--navy); }
+.scard.sel { border-color: var(--navy); box-shadow: 0 0 0 2px var(--navy) inset; }
+.scard.hecho { cursor: default; opacity: .75; }
+.scard .code { font-size: 26px; font-weight: 900; letter-spacing: .02em; line-height: 1; }
+.scard .nm { font-size: 13px; color: var(--muted); }
+.scard .uds { font-size: 15px; }
+.scard .uds b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.scard .chk { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 900; color: #fff; }
+.scard.sel .chk { background: var(--navy); border-color: var(--navy); }
+.tag { display: inline-block; font-size: 12px; font-weight: 800; border-radius: 6px; padding: 2px 8px; background: var(--soft); }
+.tag.red { background: var(--red-bg); color: var(--red); }
+.tag.green { background: var(--green-bg); color: var(--green); }
+.tag.amber { background: var(--amber-bg); color: var(--amber); }
+
+/* Barra fija inferior con la acción principal */
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--navy-deep); color: #fff; padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 24px rgba(0,0,0,.18); }
+.dock .inner { display: flex; gap: 10px 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.dock b { font-size: 20px; }
+.dock button { border-color: #fff; }
+.dock button.ghost { color: #fff; border-color: rgba(255,255,255,.4); }
+.dock button.prim { background: var(--gold); border-color: var(--gold); color: #1d2340; }
+
+/* Revisión de una tienda */
+.sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.lines { display: grid; }
+.ln { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.ln:last-child { border-bottom: 0; }
+.ln.off .info { opacity: .45; }
+.ln .t { font-weight: 700; line-height: 1.25; }
+.ln .why { font-size: 13px; color: var(--muted); }
+.ln .why b { color: var(--ink); }
+.sw { width: 24px; height: 24px; accent-color: var(--navy); }
+.step { display: inline-flex; align-items: center; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; }
+.step button { min-height: 38px; width: 38px; padding: 0; border: 0; border-radius: 0; background: var(--soft); color: var(--ink); font-size: 20px; }
+.step input { width: 52px; border: 0; border-radius: 0; text-align: center; font-weight: 800; font-size: 17px; padding: 6px 2px; -moz-appearance: textfield; }
+.step input::-webkit-outer-spin-button, .step input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .kpi { background: var(--soft); border-radius: 10px; padding: 10px 12px; }
-.kpi span { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.kpi span { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 .kpi b { font-size: 24px; font-variant-numeric: tabular-nums; }
 .kpi.bad b { color: var(--red); }
+details > summary { cursor: pointer; font-weight: 700; }
+
+/* Análisis */
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 2px solid var(--line); }
 .tabs button { background: transparent; color: var(--muted); border: 0; border-bottom: 3px solid transparent; border-radius: 0; min-height: 40px; padding: 6px 10px; margin-bottom: -2px; }
 .tabs button.on { color: var(--ink); border-bottom-color: var(--navy); }
-.tabs .n { font-size: 12px; background: var(--soft); border-radius: 999px; padding: 1px 7px; margin-left: 4px; color: var(--ink); }
-.tbl { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 10px; }
+.tbl { overflow: auto; max-height: 65vh; border: 1px solid var(--line); border-radius: 10px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 7px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
-th { position: sticky; top: 0; background: var(--surface); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); z-index: 1; }
+th { position: sticky; top: 0; background: var(--surface); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); z-index: 1; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
-tr.off td { opacity: .45; }
-.t { font-weight: 700; }
-.chip { display: inline-block; font-size: 12px; font-weight: 800; border-radius: 6px; padding: 1px 7px; background: var(--soft); }
-.chip.A { background: var(--green-bg); color: var(--green); }
-.chip.B { background: var(--amber-bg); color: var(--amber); }
-.chip.C { background: var(--soft); color: var(--muted); }
-.chip.bad { background: var(--red-bg); color: var(--red); }
-.bar { position: sticky; top: 0; z-index: 5; background: var(--navy-deep); color: #fff; border-radius: 12px; padding: 10px 14px; display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
-.bar b { font-size: 18px; }
-.bar button { border-color: #fff; }
-.bar button.ghost { color: #fff; border-color: rgba(255,255,255,.45); }
-dialog { border: 0; border-radius: 14px; padding: 0; max-width: min(520px, calc(100vw - 32px)); width: 100%; background: var(--surface); color: var(--ink); }
+
+/* Plan */
+.seg { display: inline-flex; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; border-radius: 0; background: transparent; color: var(--ink); min-height: 40px; }
+.seg button.on { background: var(--navy); color: #fff; }
+.plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.plan .f { display: grid; gap: 6px; font-size: 13px; font-weight: 800; color: var(--muted); align-content: start; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips .c { display: inline-flex; align-items: center; gap: 6px; background: var(--soft); color: var(--ink); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; font-weight: 700; }
+.chips .c button { min-height: 24px; width: 24px; padding: 0; border-radius: 50%; border: 0; background: var(--line); color: var(--ink); font-size: 14px; }
+.chips .q { min-height: 32px; padding: 2px 12px; font-size: 13px; background: transparent; color: var(--ink); border-color: var(--line); }
+.chips .q.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.pick { position: relative; }
+.pick input { width: 100%; }
+.pick .lst { position: absolute; z-index: 30; left: 0; right: 0; top: 100%; margin-top: 4px; background: var(--surface); border: 2px solid var(--line); border-radius: 10px; max-height: 260px; overflow: auto; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+.pick .lst button { display: block; width: 100%; text-align: left; background: transparent; color: var(--ink); border: 0; border-radius: 0; min-height: 38px; font-weight: 600; font-size: 14px; border-bottom: 1px solid var(--line); }
+.pick .lst button:hover, .pick .lst button:focus-visible { background: var(--soft); }
+.bar2 { height: 6px; border-radius: 999px; background: var(--soft); overflow: hidden; margin-top: 4px; min-width: 60px; }
+.bar2 i { display: block; height: 100%; background: var(--green); }
+.bar2 i.low { background: var(--red); }
+dialog { border: 0; border-radius: 14px; padding: 0; max-width: min(540px, calc(100vw - 32px)); width: 100%; background: var(--surface); color: var(--ink); }
 dialog::backdrop { background: rgba(5, 10, 30, .55); }
 dialog form { padding: 18px 20px; display: grid; gap: 12px; }
-.card > *, main .inner > * { min-width: 0; }
-#filtros select, #filtros input { max-width: 100%; }
-@media (max-width: 640px) { .hide-m { display: none; } #filtros > * { flex: 1 1 100%; } }
+@media (max-width: 640px) { .hide-m { display: none; } .ln { grid-template-columns: auto minmax(0, 1fr); } .ln .step { grid-column: 2; justify-self: start; } }
 </style>
 </head>
 <body>
-<header class="mast pad"><div class="inner"><img src="../checador/logo.png" alt="De Museo"><span class="mast-t">Resurtido de tiendas</span></div></header>
+<header class="mast pad"><div class="inner"><img src="../checador/logo.png" alt="De Museo"><nav id="nav" hidden>
+  <button type="button" data-v="inicio">Resurtir</button><button type="button" data-v="analisis">Análisis</button></nav></div></header>
 <main class="pad"><div class="inner" id="app">
   <section class="card" id="claveCard">
-    <h2>Resurtido de tiendas</h2>
-    <p class="muted">Cada noche se calcula qué mandar de la bodega a cada tienda según lo que vende, lo que tiene y lo que ya va en camino. Escribe la clave para abrir los datos.</p>
+    <h1>Resurtido de tiendas</h1>
+    <p class="muted">Qué mandar de la Bodega Central a cada tienda, calculado cada noche con lo que vende cada una. Escribe la clave para abrir los datos.</p>
     <form id="claveForm" class="row" autocomplete="off"><input type="password" id="clave" placeholder="Clave" autocomplete="off"><button type="submit">Abrir</button></form>
     <p class="notice bad" id="claveErr" hidden></p>
   </section>
 </div></main>
+<div class="dock pad" id="dock" hidden><div class="inner" id="dockIn"></div></div>
 <dialog id="dlg"><form id="dlgForm" method="dialog"></form></dialog>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -106,12 +173,42 @@ const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLow
 const fmt = n => Number(n || 0).toLocaleString("es-GT");
 const app = $("app");
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-const MOT = ["", "La bodega no alcanza para todas las tiendas", "No hay en bodega"];
+// Nombres claros en lugar de A, B, C
+const CLASE = { A: ["Más vendido", "green"], B: ["Se vende", "amber"], C: ["Ocasional", ""] };
 
-let D = null, T = null, TAB = lsGet("resurtido-tab", "ped"), FIL = { q: "", clase: "", prov: "" };
-let ED = {};
-const SEL = new Set();   // tiendas marcadas para aprobar juntas   // ediciones del supervisor: { pid: { on, q } } para la tienda actual
+let D = null, VIEW = "inicio", T = null, ATAB = "fal", FIL = "";
+let SEL = new Set();   // tiendas marcadas para resurtir hoy
+// Plan: automático (por clase de venta) o personalizado (días a cubrir + proveedores/categorías)
+let PLAN = lsGet("resurtido-plan", { modo: "auto", dias: 15, provs: [], cats: [], nombre: "" });
+let CALC = null;   // resultado del plan personalizado (se recalcula cuando cambia)
+// El plan se guarda con nombres (los números internos cambian cada noche)
+function planDesdeNombres(g) {
+  return { modo: g.modo || "auto", dias: Math.max(1, +g.dias || 15), nombre: g.nombre || "",
+    provs: (g.provs || []).map(n => D.prov.indexOf(n)).filter(i => i >= 0), cats: (g.cats || []).map(n => D.cat.indexOf(n)).filter(i => i >= 0) };
+}
+const planANombres = (pl, nombre) => ({ modo: pl.modo, dias: pl.dias, nombre: nombre ?? pl.nombre ?? "", provs: pl.provs.map(i => D.prov[i]), cats: pl.cats.map(i => D.cat[i]) });
+function cambiarPlan(cambios) { Object.assign(PLAN, cambios); CALC = null; lsSet("resurtido-plan", planANombres(PLAN)); pintarInicio(); }
+const planesGuardados = () => lsGet("resurtido-planes", []);
+function resumenPlan() {
+  if (PLAN.modo === "auto") return "Automático: más vendidos para " + D.cfg.semanas_A + " semanas, los que se venden para " + D.cfg.semanas_B + " y los ocasionales se reponen.";
+  const q = [PLAN.provs.length ? PLAN.provs.map(i => D.prov[i]).join(", ") : "", PLAN.cats.length ? PLAN.cats.map(catNom).join(", ") : ""].filter(Boolean).join(" · ");
+  return `Surtir <b>${PLAN.dias} días</b> de venta de ${q ? esc(q) : "todo el catálogo"}.`;
+}
+function selector(idQ, idL, items, elegir) {
+  const q = $(idQ), L = $(idL); if (!q) return;
+  const mostrar = () => {
+    const w = norm(q.value).split(/\s+/).filter(Boolean);
+    const r = items.filter(x => w.every(p => x.z.includes(p))).slice(0, 40);
+    L.innerHTML = r.map(x => `<button type="button" data-i="${x.i}">${esc(x.label)}${x.sub ? `<div class="small">${esc(x.sub)}</div>` : ""}</button>`).join("") || '<p class="small" style="padding:10px">Sin resultados</p>';
+    L.hidden = false;
+    L.querySelectorAll("[data-i]").forEach(b => b.onclick = () => elegir(+b.dataset.i));
+  };
+  q.onfocus = mostrar; q.oninput = mostrar;
+  q.onkeydown = e => { if (e.key === "Escape") { L.hidden = true; q.blur(); } if (e.key === "Enter") { e.preventDefault(); const b = L.querySelector("[data-i]"); if (b) b.click(); } };
+  document.addEventListener("pointerdown", e => { if (!e.target.closest(".pick")) L.hidden = true; }, { once: true });
+}
 
+// ---------------------------------------------------------------- abrir datos
 async function descifrar(sobre, clave) {
   const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
   const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(sobre.s), iterations: sobre.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
@@ -125,10 +222,12 @@ async function abrir(clave, silencioso) {
     const r = await fetch("resurtido.enc?t=" + Date.now(), { cache: "no-store" });
     if (!r.ok) throw new Error("falta");
     D = await descifrar(await r.json(), clave);
-    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}   // misma clave que surtido, boletín y checador
-    T = lsGet("resurtido-tienda", null);
-    if (!D.tiendas.includes(T)) T = D.tiendas[0];
-    cargarEd(); pintar();
+    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}   // misma clave que el checador
+    limpiarViejos();
+    SEL = new Set(lsGet(selKey(), null) || hoyTocan());
+    PLAN = planDesdeNombres(lsGet("resurtido-plan", null) || { modo: "auto", dias: 15, provs: [], cats: [] });
+    $("nav").hidden = false;
+    ir("inicio");
   } catch (e) {
     if (silencioso) { lsDel("surtido-clave"); return; }
     $("claveErr").textContent = e.message === "clave" ? "Clave incorrecta." : e.message === "falta" ? "Todavía no se ha calculado el resurtido. Corre la sincronización en GitHub." : "No se pudieron abrir los datos en este navegador.";
@@ -137,191 +236,313 @@ async function abrir(clave, silencioso) {
 }
 $("claveForm").onsubmit = e => { e.preventDefault(); const c = $("clave").value.trim(); if (c) abrir(c); };
 (() => { let c = null; try { c = localStorage.getItem("surtido-clave"); } catch (e) {} if (c) { try { c = JSON.parse(c); } catch (e) {} abrir(String(c), true); } })();
+$("nav").querySelectorAll("[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v));
 
-// ---------------------------------------------------------------- datos de la tienda
-const P = pid => D.p[String(pid)] || ["", "", "Producto " + pid, 0, 0, 0];
-const prov = pid => D.prov[P(pid)[3]] || "";
-const S = () => D.s[T];
-const edKey = () => `resurtido-ed-${T}-${D.v}`;
-function cargarEd() {
-  ED = lsGet(edKey(), {});
-  // Limpia ediciones de otras fechas de cálculo
-  try { for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k && k.startsWith("resurtido-ed-") && !k.endsWith("-" + D.v)) localStorage.removeItem(k); } } catch (e) {}
-}
-const guardarEd = () => lsSet(edKey(), ED);
-// Líneas del pedido: sugeridas (con bodega) + oportunidades marcadas
-function lineasPedido(t) {
-  t = t || T;
-  const ed = t === T ? ED : lsGet(`resurtido-ed-${t}-${D.v}`, {}), s = D.s[t];
-  const out = [];
-  for (const x of s.l) {
-    if (x[7] <= 0) continue;
-    const e = ed[x[0]] || {};
-    const on = e.on !== false, q = e.q != null ? e.q : x[7];
-    out.push({ pid: x[0], q: on ? q : 0, x, tipo: "sug" });
-  }
-  for (const x of s.o) {
-    const e = ed["o" + x[0]];
-    if (e && e.on) out.push({ pid: x[0], q: e.q != null ? e.q : x[4], x, tipo: "opo" });
-  }
-  return out;
-}
-const totPedido = t => { const ls = lineasPedido(t).filter(l => l.q > 0); return { lineas: ls.length, uds: ls.reduce((s, l) => s + l.q, 0) }; };
-function pasa(pid, clase) {
-  if (FIL.clase && clase !== FIL.clase) return false;
-  if (FIL.prov && String(P(pid)[3]) !== FIL.prov) return false;
-  if (FIL.q) { const p = P(pid); const t = norm(p[2] + " " + p[0] + " " + p[1] + " " + prov(pid)); if (!norm(FIL.q).split(/\s+/).every(w => t.includes(w))) return false; }
+// ---------------------------------------------------------------- estado guardado en este equipo (por cálculo)
+const sigPlan = () => PLAN.modo === "auto" ? "auto" : "p" + PLAN.dias + "-" + [...PLAN.provs].sort().join(".") + "-" + [...PLAN.cats].sort().join(".");
+const selKey = () => "resurtido-sel-" + D.v, aprKey = () => "resurtido-apr-" + D.v, edKey = t => `resurtido-ed-${t}-${sigPlan()}-${D.v}`;
+const catNom = i => { const c = String(D.cat[i] || ""); return c.split("/").map(x => x.trim().replace(/^\d+\s+/, "")).slice(-2).join(" / "); };
+// ¿El producto entra en el plan? (proveedor o categoría; la categoría incluye sus subcategorías)
+function entra(pid) {
+  if (PLAN.modo === "auto") return true;
+  const p = P(pid);
+  if (PLAN.provs.length && !PLAN.provs.includes(p[3])) return false;
+  if (PLAN.cats.length) { const c = String(D.cat[p[6]] || ""); if (!PLAN.cats.some(i => { const k = String(D.cat[i]); return c === k || c.startsWith(k + " /"); })) return false; }
   return true;
 }
+const ritmoDia = r => (0.5 * r[1] + 0.3 * r[2] + 0.2 * r[3]) / 28;   // r = [pid, sem 1-4, sem 5-8, sem 9-12, tiene, en camino]
+// Plan personalizado: objetivo = venta diaria × días; la bodega se reparte a la tienda con menos días de cobertura
+function calcular() {
+  const sig = sigPlan(); if (CALC && CALC.sig === sig) return CALC;
+  const nec = new Map(), out = {};
+  for (const t of D.tiendas) {
+    out[t] = [];
+    for (const r of D.s[t].v) {
+      if (!entra(r[0])) continue;
+      const rd = ritmoDia(r), n = Math.ceil(rd * PLAN.dias - 1e-9) - r[4] - r[5];
+      if (n > 0) { const a = nec.get(r[0]) || []; a.push({ t, r, rd, n, asg: 0 }); nec.set(r[0], a); }
+    }
+  }
+  for (const [pid, arr] of nec) {
+    let disp = P(pid)[7] || 0;
+    while (disp > 0) {
+      let m = null, mc = Infinity;
+      for (const y of arr) { if (y.asg >= y.n) continue; const c = (y.r[4] + y.r[5] + y.asg) / Math.max(y.rd, 0.005); if (c < mc) { mc = c; m = y; } }
+      if (!m) break; m.asg++; disp--;
+    }
+    for (const y of arr) out[y.t].push([pid, "", y.r[1], y.r[1] + y.r[2] + y.r[3], y.r[4], y.r[5], P(pid)[7] || 0, y.asg, y.n, y.asg >= y.n ? 0 : y.asg ? 1 : 2]);
+  }
+  for (const t of D.tiendas) out[t].sort((a, b) => b[3] - a[3]);
+  return (CALC = { sig, l: out });
+}
+const lineasBase = t => PLAN.modo === "auto" ? D.s[t].l : calcular().l[t];
+function limpiarViejos() {
+  try { for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k && /^resurtido-(ed|sel|apr)-/.test(k) && !k.endsWith(D.v)) localStorage.removeItem(k); } } catch (e) {}
+}
+const DIAS = ["dom", "lun", "mar", "mie", "jue", "vie", "sab"];
+function hoyTocan() { const d = DIAS[new Date().getDay()]; return D.tiendas.filter(t => (D.cfg.calendario[t] || []).map(x => x.slice(0, 3).toLowerCase()).includes(d)); }
+const aprobados = () => lsGet(aprKey(), {});
+const guardarSel = () => lsSet(selKey(), [...SEL]);
 
-// ---------------------------------------------------------------- pantalla
-function pintar() {
-  const s = S(), tot = totPedido(), bor = D.bor[T];
-  const sinBod = s.l.filter(x => x[9] === 2).length;
-  const hoyToca = (D.cfg.calendario[T] || []).map(d => d.slice(0, 3).toLowerCase());
+// ---------------------------------------------------------------- datos
+const P = pid => D.p[String(pid)] || ["", "", "Producto " + pid, 0, 0, 0];
+const prov = pid => D.prov[P(pid)[3]] || "";
+// Ediciones del supervisor por tienda: { pid: {on, q} }, oportunidades con prefijo "o"
+const ed = t => lsGet(edKey(t), {});
+function setEd(t, k, v) { const e = ed(t); e[k] = Object.assign(e[k] || {}, v); lsSet(edKey(t), e); }
+function lineas(t) {
+  const e = ed(t), s = D.s[t], out = [];
+  for (const x of lineasBase(t)) if (x[7] > 0) { const m = e[x[0]] || {}; out.push({ k: String(x[0]), pid: x[0], on: m.on !== false, q: m.q != null ? m.q : x[7], x, tipo: x[4] <= 0 && x[1] !== "C" ? "urg" : "rep" }); }
+  for (const x of s.o) { if (!entra(x[0])) continue; const m = e["o" + x[0]] || {}; out.push({ k: "o" + x[0], pid: x[0], on: !!m.on, q: m.q != null ? m.q : x[4], x, tipo: "opo" }); }
+  return out;
+}
+const tot = t => { const ls = lineas(t).filter(l => l.on && l.q > 0); return { n: ls.length, u: ls.reduce((a, l) => a + l.q, 0) }; };
+const urgentes = t => lineasBase(t).filter(x => x[7] > 0 && x[4] <= 0 && x[1] !== "C").length;
+const sinBodega = t => lineasBase(t).filter(x => x[9] === 2).length;
+// Estadística de la tienda para lo que entra en el plan
+function estad(t) {
+  let u12 = 0, q12 = 0, ex = 0, pe = 0, rd = 0, ago = 0;
+  for (const r of D.s[t].v) { if (!entra(r[0])) continue; const u = r[1] + r[2] + r[3]; u12 += u; q12 += u * (P(r[0])[4] || 0); ex += r[4]; pe += r[5]; rd += ritmoDia(r); if (r[4] <= 0 && r[1] > 0) ago++; }
+  const m = tot(t).u;
+  return { u12, q12, ex, pe, rd, ago, m, hoy: rd ? ex / rd : null, despues: rd ? (ex + pe + m) / rd : null };
+}
+const diasTxt = d => d == null ? "—" : d > 365 ? "+1 año" : Math.round(d) + " días";
+function fechaLocal(v) { const d = new Date(v.replace(" ", "T") + "Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }); }
+
+// ---------------------------------------------------------------- navegación
+function ir(v, t) {
+  VIEW = v; if (t) T = t;
+  $("nav").querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v === (v === "tienda" ? "inicio" : v)));
+  ({ inicio: pintarInicio, tienda: pintarTienda, analisis: pintarAnalisis })[v]();
+  window.scrollTo({ top: 0 });
+}
+function dock(html) { $("dock").hidden = !html; $("dockIn").innerHTML = html || ""; }
+function pasos(n) {
+  const L = ["Elige las tiendas", "Revisa cada una", "Aprueba"];
+  return `<div class="steps">${L.map((t, i) => `<span class="${i + 1 === n ? "on" : i + 1 < n ? "done" : ""}"><i>${i + 1 < n ? "✓" : i + 1}</i>${t}</span>`).join("<b>—</b>")}</div>`;
+}
+
+// ---------------------------------------------------------------- paso 1: tiendas
+function pintarInicio() {
+  const apr = aprobados(), pend = D.tiendas.filter(t => !apr[t]);
+  for (const t of [...SEL]) if (apr[t] || !D.tiendas.includes(t)) SEL.delete(t);
+  const toca = hoyTocan();
   app.innerHTML = `
   <section class="card">
-    <div class="row between">
-      <div><h3>Calculado ${esc(fechaLocal(D.v))} · desde ${esc(D.origen)}</h3><h2>${esc(D.nombres[T] || T)}</h2></div>
-      <label class="row small" style="font-weight:700">Tienda
-        <select id="tienda">${D.tiendas.map(t => `<option value="${t}" ${t === T ? "selected" : ""}>${esc(t)} · ${esc(D.nombres[t] || "")}</option>`).join("")}</select></label>
+    ${pasos(1)}
+    <div><h1>¿Qué tiendas surtes hoy?</h1>
+    <p class="muted">Desde la ${esc(D.origen === "BOD" ? "Bodega Central" : D.origen)} · cálculo del ${esc(fechaLocal(D.v))}. Toca una tienda para marcarla; con <b>Revisar</b> ves y ajustas lo que lleva.</p></div>
+    <div class="row">
+      <button type="button" class="ghost sm" id="sTodas">Marcar todas</button>
+      ${toca.length ? `<button type="button" class="ghost sm" id="sHoy">Solo las de hoy (${toca.length})</button>` : ""}
+      <button type="button" class="ghost sm" id="sNinguna">Quitar todas</button>
     </div>
-    <div class="kpis">
-      <div class="kpi"><span>Para mandar</span><b>${fmt(tot.uds)}</b><div class="small">${fmt(tot.lineas)} productos</div></div>
-      <div class="kpi ${s.agA ? "bad" : ""}"><span>Más vendidos agotados aquí</span><b>${fmt(s.agA)}</b><div class="small">de ${fmt(s.nA)} productos A</div></div>
-      <div class="kpi ${sinBod ? "bad" : ""}"><span>Faltan en bodega</span><b>${fmt(sinBod)}</b><div class="small">se venden aquí y no hay</div></div>
-      <div class="kpi"><span>Para devolver</span><b>${fmt(s.d.reduce((a, x) => a + x[1], 0))}</b><div class="small">uds. sin venta en 12 semanas</div></div>
-    </div>
-    ${bor ? `<p class="notice">Hay un pedido en borrador para esta tienda (${esc(bor.nombre)}). Al aprobar, se reemplaza por lo que ves aquí.</p>` : ""}
-    ${hoyToca.length ? `<p class="small">Días de resurtido de esta tienda: ${esc(hoyToca.join(", "))}.</p>` : ""}
   </section>
-  <div class="bar"><span><b>${fmt(tot.uds)}</b> unidades · ${fmt(tot.lineas)} productos para ${esc(T)}</span>
-    <span class="row"><button type="button" class="ghost" id="xls">Excel</button><button type="button" id="aprobar" ${tot.uds ? "" : "disabled"}>Aprobar y crear pedido</button></span></div>
   <section class="card">
-    <div class="tabs" role="tablist">
-      ${[["ped", "Pedido sugerido", s.l.filter(x => x[7] > 0).length], ["opo", "Oportunidades", s.o.length], ["fal", "Faltan en bodega", sinBod], ["dev", "Para devolver", s.d.length], ["prov", "Proveedores", ""], ["todas", "Todas las tiendas", ""]]
-        .map(([k, t, n]) => `<button type="button" role="tab" data-tab="${k}" class="${TAB === k ? "on" : ""}">${t}${n !== "" ? `<span class="n">${fmt(n)}</span>` : ""}</button>`).join("")}
-    </div>
-    <div class="row" id="filtros"></div>
-    <div id="vista"></div>
+    <div class="row between"><h2>Plan de resurtido</h2>
+      <div class="row">${planesGuardados().length ? `<select id="pGuard" aria-label="Planes guardados"><option value="">Planes guardados…</option>${planesGuardados().map((g, i) => `<option value="${i}">${esc(g.nombre)}</option>`).join("")}</select>` : ""}
+      ${PLAN.modo === "pers" ? `<button type="button" class="ghost sm" id="pSave">Guardar plan</button>` : ""}</div></div>
+    <div class="seg" role="group" aria-label="Tipo de plan"><button type="button" data-modo="auto" class="${PLAN.modo === "auto" ? "on" : ""}">Automático (recomendado)</button><button type="button" data-modo="pers" class="${PLAN.modo === "pers" ? "on" : ""}">Personalizado</button></div>
+    ${PLAN.modo === "pers" ? `<div class="plan">
+      <div class="f">Días de venta a cubrir
+        <div class="chips">${[7, 15, 30, 45].map(d => `<button type="button" class="q ${PLAN.dias === d ? "on" : ""}" data-dias="${d}">${d} días</button>`).join("")}
+          <input type="number" id="pDias" min="1" max="180" value="${PLAN.dias}" aria-label="Otro número de días" style="width:80px"></div></div>
+      <div class="f">Proveedores <span class="small" style="font-weight:600">(vacío = todos)</span>
+        <div class="chips">${PLAN.provs.map(i => `<span class="c">${esc(D.prov[i])}<button type="button" data-xprov="${i}" aria-label="Quitar">×</button></span>`).join("")}</div>
+        <div class="pick"><input id="pProvQ" placeholder="Buscar proveedor o editorial…" autocomplete="off"><div class="lst" id="pProvL" hidden></div></div></div>
+      <div class="f">Categorías <span class="small" style="font-weight:600">(vacío = todas)</span>
+        <div class="chips">${PLAN.cats.map(i => `<span class="c">${esc(catNom(i))}<button type="button" data-xcat="${i}" aria-label="Quitar">×</button></span>`).join("")}</div>
+        <div class="pick"><input id="pCatQ" placeholder="Buscar categoría…" autocomplete="off"><div class="lst" id="pCatL" hidden></div></div></div>
+    </div>` : ""}
+    <p class="notice">${resumenPlan()}</p>
   </section>
-  <section class="card"><details><summary>¿Cómo se calcula?</summary>
+  <section class="stores">${D.tiendas.map(t => {
+    const a = apr[t], tt = tot(t), u = urgentes(t), sel = SEL.has(t);
+    return `<div class="scard ${sel ? "sel" : ""} ${a ? "hecho" : ""}" role="button" tabindex="0" aria-pressed="${sel}" data-t="${t}">
+      ${a ? "" : `<span class="chk" aria-hidden="true">${sel ? "✓" : ""}</span>`}
+      <div><div class="code">${esc(t)}</div><div class="nm">${esc(D.nombres[t] || "")}</div></div>
+      ${a ? `<div><span class="tag green">Aprobado</span> <span class="mono">${esc(a)}</span></div>`
+        : `<div class="uds"><b>${fmt(tt.u)}</b> unidades · ${fmt(tt.n)} productos</div>
+           ${PLAN.modo === "pers" ? (() => { const e = estad(t); return `<div class="small">Le alcanza hoy: <b>${diasTxt(e.hoy)}</b> · con el envío: <b>${diasTxt(e.despues)}</b></div>`; })() : ""}
+           <div class="row" style="gap:6px">${u ? `<span class="tag red">${u} agotados que se venden</span>` : `<span class="tag green">Sin agotados urgentes</span>`}${D.bor[t] ? '<span class="tag amber">Borrador listo</span>' : ""}</div>
+           <div><button type="button" class="ghost sm" data-rev="${t}">Revisar →</button></div>`}
+    </div>`;
+  }).join("")}</section>
+  <section class="card"><details ${PLAN.modo === "pers" ? "open" : ""}><summary>Estadística por tienda${PLAN.modo === "pers" ? " del plan" : ""}</summary>
+    <p class="small" style="margin:6px 0 8px">Últimas 12 semanas${PLAN.modo === "pers" ? ", solo lo que entra en el plan" : ""}. "Le alcanza" = días que dura lo que tiene al ritmo de venta actual.</p>
+    <div class="tbl"><table class="stat"><thead><tr><th>Tienda</th><th class="n">Vendió (uds.)</th><th class="n hide-m">Venta</th><th class="n">Tiene</th><th>Le alcanza hoy</th><th class="n">Se manda</th><th>Le alcanzará</th><th class="n hide-m">Agotados</th></tr></thead><tbody>
+    ${(() => { const meta = PLAN.modo === "pers" ? PLAN.dias : D.cfg.semanas_A * 7; const E = D.tiendas.map(t => [t, estad(t)]);
+      const fila = ([t, e]) => `<tr><td><b>${esc(t)}</b></td><td class="n">${fmt(e.u12)}</td><td class="n hide-m">Q${fmt(Math.round(e.q12))}</td><td class="n">${fmt(e.ex)}</td>
+        <td>${diasTxt(e.hoy)}<div class="bar2"><i class="${e.hoy != null && e.hoy < meta / 2 ? "low" : ""}" style="width:${e.hoy == null ? 0 : Math.min(100, e.hoy / meta * 100)}%"></i></div></td>
+        <td class="n"><b>${fmt(e.m)}</b></td><td>${diasTxt(e.despues)}<div class="bar2"><i style="width:${e.despues == null ? 0 : Math.min(100, e.despues / meta * 100)}%"></i></div></td><td class="n hide-m">${fmt(e.ago)}</td></tr>`;
+      const T0 = E.reduce((a, [, e]) => ({ u12: a.u12 + e.u12, q12: a.q12 + e.q12, ex: a.ex + e.ex, pe: a.pe + e.pe, rd: a.rd + e.rd, ago: a.ago + e.ago, m: a.m + e.m }), { u12: 0, q12: 0, ex: 0, pe: 0, rd: 0, ago: 0, m: 0 });
+      T0.hoy = T0.rd ? T0.ex / T0.rd : null; T0.despues = T0.rd ? (T0.ex + T0.pe + T0.m) / T0.rd : null;
+      return E.map(fila).join("") + fila(["Total", T0]).replace("<tr>", '<tr style="font-weight:800">'); })()}
+    </tbody></table></div></details></section>
+  <section class="card"><details><summary>¿Cómo se calcula lo que va a cada tienda?</summary>
     <div class="muted" style="display:grid;gap:6px;margin-top:8px">
-      <p><b>Clase A, B, C</b> por tienda: A son los productos que hacen el 80% de la venta de la tienda (en quetzales, 12 semanas), B el siguiente 15% y C el resto.</p>
-      <p><b>Objetivo:</b> A = ${D.cfg.semanas_A} semanas de venta (mínimo ${D.cfg.minimo_A} piezas), B = ${D.cfg.semanas_B} semanas, C = reponer lo vendido en las últimas 4 semanas. El ritmo pesa más lo reciente (50% últimas 4 semanas, 30% las 4 anteriores, 20% las 4 anteriores).</p>
-      <p><b>Sugerido</b> = objetivo − lo que hay en la tienda − lo que ya va en camino. Si la bodega no alcanza, se reparte primero a las A y a la tienda con menos semanas de cobertura.</p>
-      <p><b>Oportunidades:</b> lo más vendido en la cadena, que hay en bodega y esta tienda no tiene ni ha vendido. Márcalas para agregarlas al pedido.</p>
+      <p><b>Más vendido</b> = los productos que hacen el 80% de la venta de esa tienda. Se le deja para ${D.cfg.semanas_A} semanas de venta (mínimo ${D.cfg.minimo_A} piezas).</p>
+      <p><b>Se vende</b> = el siguiente 15%. Se le deja para ${D.cfg.semanas_B} semanas. <b>Ocasional</b> = se repone lo que vendió en el último mes.</p>
+      <p>A eso se le resta lo que la tienda ya tiene y lo que ya va en camino. Si la bodega no alcanza para todas, se reparte primero a donde más se vende y menos tienen.</p>
+      <p>La venta reciente pesa más: últimas 4 semanas 50%, las 4 anteriores 30%, las 4 anteriores 20%.</p>
+      <p><b>Plan personalizado:</b> para cada producto del proveedor o categoría elegidos se calcula su venta por día en cada tienda y se le manda lo necesario para los días que pidas, menos lo que tiene y lo que va en camino.</p>
     </div></details></section>`;
-  $("tienda").onchange = e => { T = e.target.value; lsSet("resurtido-tienda", T); cargarEd(); FIL = { q: "", clase: "", prov: "" }; pintar(); };
-  app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { TAB = b.dataset.tab; lsSet("resurtido-tab", TAB); pintar(); });
-  $("xls").onclick = excel;
-  $("aprobar").onclick = () => aprobar([T]);
-  pintarFiltros(); pintarVista();
+  app.querySelectorAll("[data-t]").forEach(c => {
+    const t = c.dataset.t; if (apr[t]) return;
+    const tog = () => { SEL.has(t) ? SEL.delete(t) : SEL.add(t); guardarSel(); pintarInicio(); };
+    c.onclick = e => { if (e.target.closest("[data-rev]")) return; tog(); };
+    c.onkeydown = e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); tog(); } };
+  });
+  app.querySelectorAll("[data-rev]").forEach(b => b.onclick = () => { SEL.add(b.dataset.rev); guardarSel(); ir("tienda", b.dataset.rev); });
+  $("sTodas").onclick = () => { pend.forEach(t => SEL.add(t)); guardarSel(); pintarInicio(); };
+  $("sNinguna").onclick = () => { SEL.clear(); guardarSel(); pintarInicio(); };
+  if ($("sHoy")) $("sHoy").onclick = () => { SEL = new Set(toca.filter(t => !apr[t])); guardarSel(); pintarInicio(); };
+  app.querySelectorAll("[data-modo]").forEach(b => b.onclick = () => cambiarPlan({ modo: b.dataset.modo }));
+  app.querySelectorAll("[data-dias]").forEach(b => b.onclick = () => cambiarPlan({ dias: +b.dataset.dias }));
+  if ($("pDias")) $("pDias").onchange = e => cambiarPlan({ dias: Math.min(180, Math.max(1, Math.round(+e.target.value || 15))) });
+  app.querySelectorAll("[data-xprov]").forEach(b => b.onclick = () => cambiarPlan({ provs: PLAN.provs.filter(i => i !== +b.dataset.xprov) }));
+  app.querySelectorAll("[data-xcat]").forEach(b => b.onclick = () => cambiarPlan({ cats: PLAN.cats.filter(i => i !== +b.dataset.xcat) }));
+  selector("pProvQ", "pProvL", D.pr.map(r => r[0]).filter(i => !PLAN.provs.includes(i)).map(i => ({ i, label: D.prov[i], z: norm(D.prov[i]) })),
+    i => cambiarPlan({ provs: [...PLAN.provs, i] }));
+  selector("pCatQ", "pCatL", D.cat.map((c, i) => ({ i, label: catNom(i), sub: c, z: norm(c) })).filter(x => !PLAN.cats.includes(x.i)).sort((a, b) => a.sub.localeCompare(b.sub)),
+    i => cambiarPlan({ cats: [...PLAN.cats, i] }));
+  if ($("pGuard")) $("pGuard").onchange = e => { const g = planesGuardados()[+e.target.value]; if (g) { PLAN = planDesdeNombres(g); CALC = null; lsSet("resurtido-plan", planANombres(PLAN)); pintarInicio(); } };
+  if ($("pSave")) $("pSave").onclick = () => {
+    const d = dialogo(`<h2>Guardar plan</h2><p class="muted">${resumenPlan()}</p><label class="small" style="font-weight:700;display:grid;gap:4px">Nombre<input id="pNom" value="${esc(PLAN.nombre || "")}" placeholder="Ej.: Planeta 15 días (lunes)"></label>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="pNo">Cancelar</button><button type="submit">Guardar</button></div>`);
+    setTimeout(() => $("pNom").focus(), 50); $("pNo").onclick = () => d.close();
+    $("dlgForm").onsubmit = ev => { ev.preventDefault(); const n = $("pNom").value.trim(); if (!n) return; const ps = planesGuardados().filter(g => g.nombre !== n); ps.push(planANombres(PLAN, n)); lsSet("resurtido-planes", ps); PLAN.nombre = n; lsSet("resurtido-plan", planANombres(PLAN)); d.close(); pintarInicio(); };
+  };
+  const sel = [...SEL], u = sel.reduce((a, t) => a + tot(t).u, 0);
+  dock(sel.length ? `<span><b>${sel.length}</b> ${sel.length === 1 ? "tienda" : "tiendas"} · <b>${fmt(u)}</b> unidades</span>
+    <span class="row"><button type="button" class="ghost" id="dRev">Revisar ${esc(sel[0])} →</button><button type="button" class="prim" id="dApr">Aprobar ${sel.length === 1 ? "" : "las " + sel.length}</button></span>`
+    : `<span>Marca las tiendas que vas a surtir.</span>`);
+  if ($("dRev")) { $("dRev").onclick = () => ir("tienda", sel[0]); $("dApr").onclick = () => aprobar(sel); }
 }
-function fechaLocal(v) { const d = new Date(v.replace(" ", "T") + "Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
-function pintarFiltros() {
-  const f = $("filtros");
-  if (["prov", "todas"].includes(TAB)) { f.innerHTML = ""; return; }
-  const ids = new Set((TAB === "opo" ? S().o : TAB === "dev" ? S().d : S().l).map(x => P(x[0])[3]));
-  const provs = [...ids].map(i => [i, D.prov[i]]).sort((a, b) => a[1].localeCompare(b[1]));
-  f.innerHTML = `<input type="search" id="fq" placeholder="Buscar título, código o proveedor" value="${esc(FIL.q)}" style="flex:1 1 220px">
-    ${["ped", "fal"].includes(TAB) ? `<select id="fc"><option value="">Todas las clases</option>${["A", "B", "C"].map(c => `<option ${FIL.clase === c ? "selected" : ""}>${c}</option>`).join("")}</select>` : ""}
-    <select id="fp" style="max-width:260px"><option value="">Todos los proveedores</option>${provs.map(([i, n]) => `<option value="${i}" ${FIL.prov === String(i) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>
-    ${TAB === "ped" ? `<button type="button" class="ghost small-b" id="todos">Marcar todo</button><button type="button" class="ghost small-b" id="ninguno">Quitar todo</button>` : ""}`;
-  let tq; $("fq").oninput = e => { clearTimeout(tq); tq = setTimeout(() => { FIL.q = e.target.value; pintarVista(); }, 200); };
-  if ($("fc")) $("fc").onchange = e => { FIL.clase = e.target.value; pintarVista(); };
-  $("fp").onchange = e => { FIL.prov = e.target.value; pintarVista(); };
-  if ($("todos")) { $("todos").onclick = () => marcarVisibles(true); $("ninguno").onclick = () => marcarVisibles(false); }
+
+// ---------------------------------------------------------------- paso 2: revisar una tienda
+function porque(l) {
+  const x = l.x;
+  if (l.tipo === "opo") return `Se vende en ${x[2]} tiendas como más vendido · aquí no hay · bodega tiene ${x[3]} libres`;
+  const sem = x[2] / 4, s = sem >= 1 ? `vende <b>${Math.round(sem * 10) / 10}</b> por semana` : `vendió <b>${x[3]}</b> en 12 semanas`;
+  return `${s} · tiene <b>${x[4]}</b>${x[5] ? ` · <b>${x[5]}</b> en camino` : ""}${PLAN.modo === "auto" ? "" : ` · para ${PLAN.dias} días le faltan <b>${x[8]}</b>`}${x[9] === 1 ? ` · la bodega solo alcanza para ${x[7]}` : ""}`;
 }
-function marcarVisibles(on) {
-  for (const x of S().l) if (x[7] > 0 && pasa(x[0], x[1])) { ED[x[0]] = Object.assign(ED[x[0]] || {}, { on }); }
-  guardarEd(); pintar();
+function filaLinea(l) {
+  const p = P(l.pid), c = l.tipo === "opo" || !l.x[1] ? null : CLASE[l.x[1]];
+  return `<div class="ln ${l.on ? "" : "off"}">
+    <input type="checkbox" class="sw" data-on="${l.k}" ${l.on ? "checked" : ""} aria-label="${l.tipo === "opo" ? "Agregar" : "Incluir"} ${esc(p[2])}">
+    <div class="info"><div class="t">${esc(p[2])}${p[5] ? ' <span class="tag">bazar</span>' : ""}</div>
+      <div class="why">${c ? `<span class="tag ${c[1]}">${c[0]}</span> ` : ""}${porque(l)}</div>
+      <div class="small"><span class="mono">${esc(p[1] || p[0])}</span> · ${esc(prov(l.pid))}</div></div>
+    <div class="step" ${l.on ? "" : 'style="opacity:.45"'}><button type="button" data-m="${l.k}" aria-label="Menos">−</button><input type="number" inputmode="numeric" min="0" data-q="${l.k}" value="${l.q}" aria-label="Unidades"><button type="button" data-p="${l.k}" aria-label="Más">+</button></div>
+  </div>`;
 }
-const celdaProd = pid => { const p = P(pid); return `<td><div class="t">${esc(p[2])}${p[5] ? ' <span class="chip">bazar</span>' : ""}</div><div class="small"><span class="mono">${esc(p[1] || "")}${p[0] ? " · " + esc(p[0]) : ""}</span> · ${esc(prov(pid))}</div></td>`; };
-const MAX = 600;
-function pintarVista() {
-  const v = $("vista"), s = S();
-  if (TAB === "ped") {
-    const ls = s.l.filter(x => x[7] > 0 && pasa(x[0], x[1]));
-    v.innerHTML = tabla(["", "Producto", "Clase", "Vendió 4 sem.", "Vendió 12 sem.", "Tiene", "En camino", "Bodega", "Mandar"], ls.slice(0, MAX).map(x => {
-      const e = ED[x[0]] || {}, on = e.on !== false, q = e.q != null ? e.q : x[7];
-      return `<tr class="${on ? "" : "off"}"><td><input type="checkbox" data-on="${x[0]}" ${on ? "checked" : ""} aria-label="Incluir"></td>${celdaProd(x[0])}
-        <td><span class="chip ${x[1]}">${x[1]}</span></td><td class="n">${x[2]}</td><td class="n">${x[3]}</td><td class="n">${x[4]}</td><td class="n">${x[5] || ""}</td><td class="n">${x[6]}</td>
-        <td class="n"><input class="q" type="number" min="0" step="1" data-q="${x[0]}" value="${q}">${x[9] === 1 ? `<div class="small" title="${esc(MOT[1])}">pedía ${x[8]}</div>` : ""}</td></tr>`;
-    }), ls.length);
-    v.querySelectorAll("[data-on]").forEach(c => c.onchange = () => { const k = c.dataset.on; ED[k] = Object.assign(ED[k] || {}, { on: c.checked }); guardarEd(); pintar(); });
-    v.querySelectorAll("[data-q]").forEach(i => i.onchange = () => { const k = i.dataset.q; ED[k] = Object.assign(ED[k] || {}, { q: Math.max(0, Math.round(+i.value || 0)), on: true }); guardarEd(); pintar(); });
-  } else if (TAB === "opo") {
-    const ls = s.o.filter(x => pasa(x[0]));
-    v.innerHTML = `<p class="muted">Se venden bien en otras tiendas, hay en bodega y aquí no hay. Márcalas para agregarlas al pedido.</p>` +
-      tabla(["", "Producto", "Vendió la cadena 12 sem.", "Es A en", "Bodega libre", "Mandar"], ls.slice(0, MAX).map(x => {
-        const e = ED["o" + x[0]] || {}, on = !!e.on, q = e.q != null ? e.q : x[4];
-        return `<tr class="${on ? "" : "off"}"><td><input type="checkbox" data-oo="${x[0]}" ${on ? "checked" : ""} aria-label="Agregar"></td>${celdaProd(x[0])}
-          <td class="n">${fmt(x[1])}</td><td class="n">${x[2]} tiendas</td><td class="n">${x[3]}</td><td class="n"><input class="q" type="number" min="0" data-oq="${x[0]}" value="${q}"></td></tr>`;
-      }), ls.length);
-    v.querySelectorAll("[data-oo]").forEach(c => c.onchange = () => { const k = "o" + c.dataset.oo; ED[k] = Object.assign(ED[k] || {}, { on: c.checked }); guardarEd(); pintar(); });
-    v.querySelectorAll("[data-oq]").forEach(i => i.onchange = () => { const k = "o" + i.dataset.oq; ED[k] = Object.assign(ED[k] || {}, { q: Math.max(0, Math.round(+i.value || 0)), on: true }); guardarEd(); pintar(); });
-  } else if (TAB === "fal") {
-    const ls = s.l.filter(x => x[9] === 2 && pasa(x[0], x[1]));
-    v.innerHTML = `<p class="muted">Se venden en esta tienda y no hay en bodega. Sirve para compras y para pedir traslados de otras tiendas.</p>` +
-      tabla(["Producto", "Clase", "Vendió 4 sem.", "Vendió 12 sem.", "Tiene", "Necesita"], ls.slice(0, MAX).map(x =>
-        `<tr>${celdaProd(x[0])}<td><span class="chip ${x[1]}">${x[1]}</span></td><td class="n">${x[2]}</td><td class="n">${x[3]}</td><td class="n">${x[4]}</td><td class="n">${x[8]}</td></tr>`), ls.length);
-  } else if (TAB === "dev") {
-    const ls = s.d.filter(x => pasa(x[0]));
-    v.innerHTML = `<p class="muted">Lo que esta tienda tiene sin ninguna venta en 12 semanas (y con más de 90 días en el sistema). Revisa si está en piso, si conviene moverlo a otra tienda o devolverlo al CEDIS.</p>` +
-      tabla(["Producto", "Tiene", "Se vende en"], ls.slice(0, MAX).map(x => `<tr>${celdaProd(x[0])}<td class="n">${x[1]}</td><td class="small">${esc(seVendeEn(x[0]))}</td></tr>`), ls.length);
-  } else if (TAB === "prov") {
-    const loc = D.prs[T] || {};
-    const filas = D.pr.slice(0, 300).map(r => {
-      const [i, u, q, ext, exb, np] = r, st = u + ext ? Math.round(u / (u + ext) * 100) : 0, cob = u ? (ext / (u / 12)) : null, l = loc[String(i)] || [0, 0];
-      return `<tr><td class="t">${esc(D.prov[i])}</td><td class="n">${fmt(u)}</td><td class="n">Q${fmt(q)}</td><td class="n">${fmt(l[0])}</td><td class="n">${fmt(ext)}</td><td class="n">${fmt(exb)}</td>
-        <td class="n">${st}%</td><td class="n">${cob == null ? "—" : cob > 99 ? "+99" : cob.toFixed(1)}</td><td class="n hide-m">${fmt(np)}</td></tr>`;
-    });
-    v.innerHTML = `<p class="muted">Toda la cadena, últimas 12 semanas, ordenado por venta. <b>% vendido</b> = vendido ÷ (vendido + existencia en tiendas). <b>Semanas de cobertura</b> = existencia en tiendas ÷ venta semanal: más de 12 indica exceso, menos de 3 indica que hace falta mandar.</p>` +
-      tabla(["Proveedor / editorial", "Uds. cadena", "Venta cadena", "Uds. " + T, "Exist. tiendas", "Exist. bodega", "% vendido", "Sem. cobertura", "Productos vendidos"], filas, D.pr.length);
+function pintarTienda() {
+  const t = T, s = D.s[t], ls = lineas(t), apr = aprobados()[t];
+  const pasa = l => { if (!FIL) return true; const p = P(l.pid), z = norm(p[2] + " " + p[0] + " " + p[1] + " " + prov(l.pid)); return norm(FIL).split(/\s+/).every(w => z.includes(w)); };
+  const grupo = g => ls.filter(l => l.tipo === g && pasa(l));
+  const urg = grupo("urg"), rep = grupo("rep"), opo = grupo("opo");
+  const sinBod = sinBodega(t), tt = tot(t);
+  const sel = [...SEL], i = sel.indexOf(t), sig = sel[i + 1];
+  const seccion = (titulo, desc, arr, extra) => `<section class="card"><div class="sec-h"><div><h2>${titulo} <span class="tag">${arr.length}</span></h2><p class="muted">${desc}</p></div>${extra || ""}</div>
+    ${arr.length ? `<div class="lines">${arr.slice(0, 400).map(filaLinea).join("")}</div>${arr.length > 400 ? `<p class="small">Se muestran 400 de ${arr.length}. Usa la búsqueda.</p>` : ""}` : '<p class="muted">Nada aquí.</p>'}</section>`;
+  app.innerHTML = `
+  <section class="card">
+    ${pasos(2)}
+    <div class="row between"><div><h3>${i >= 0 ? `Tienda ${i + 1} de ${sel.length}` : "Revisión"}</h3><h1>${esc(t)} <span class="muted" style="font-family:var(--f-body);font-size:16px;font-weight:600">${esc(D.nombres[t] || "")}</span></h1></div>
+      <button type="button" class="ghost sm" id="tVolver">← Tiendas</button></div>
+    ${apr ? `<p class="notice good">Esta tienda ya se aprobó hoy (${esc(apr)}).</p>` : ""}
+    ${D.bor[t] ? `<p class="notice">Hay un borrador del sistema para esta tienda (${esc(D.bor[t].nombre)}). Al aprobar se reemplaza por lo que ves aquí.</p>` : ""}
+    <div class="kpis">
+      <div class="kpi"><span>Va a llevar</span><b>${fmt(tt.u)}</b><div class="small">${fmt(tt.n)} productos</div></div>
+      ${PLAN.modo === "auto" ? `<div class="kpi ${s.agA ? "bad" : ""}"><span>Más vendidos agotados</span><b>${fmt(s.agA)}</b><div class="small">de ${fmt(s.nA)}</div></div>`
+        : (() => { const e = estad(t); return `<div class="kpi ${e.ago ? "bad" : ""}"><span>Agotados del plan</span><b>${fmt(e.ago)}</b><div class="small">le alcanza ${diasTxt(e.hoy)} → ${diasTxt(e.despues)}</div></div>`; })()}
+      <div class="kpi ${sinBod ? "bad" : ""}"><span>No hay en bodega</span><b>${fmt(sinBod)}</b><div class="small"><a href="#" id="verFal">ver cuáles</a></div></div>
+    </div>
+    <input type="search" id="fq" placeholder="Buscar título, código o proveedor" value="${esc(FIL)}">
+  </section>
+  ${seccion("Urgente: se venden y se acabaron", "Primero esto. La tienda los vende y hoy tiene 0.", urg)}
+  ${seccion("Reponer", "Para que no se acaben antes del próximo envío.", rep,
+    `<span class="row"><button type="button" class="ghost sm" id="rTodo">Incluir todo</button><button type="button" class="ghost sm" id="rNada">Quitar todo</button></span>`)}
+  ${seccion("Probar algo nuevo (opcional)", "Se venden bien en otras tiendas y aquí no hay. Márcalos si quieres agregarlos.", opo)}`;
+  // eventos
+  $("tVolver").onclick = () => ir("inicio");
+  $("verFal").onclick = e => { e.preventDefault(); ATAB = "fal"; ir("analisis"); };
+  let tq; $("fq").oninput = e => { clearTimeout(tq); tq = setTimeout(() => { FIL = e.target.value; const pos = e.target.selectionStart; pintarTienda(); const f = $("fq"); f.focus(); try { f.setSelectionRange(pos, pos); } catch (er) {} }, 250); };
+  const redibujar = () => { const y = window.scrollY; pintarTienda(); window.scrollTo({ top: y }); };
+  app.querySelectorAll("[data-on]").forEach(c => c.onchange = () => { setEd(t, c.dataset.on, { on: c.checked }); redibujar(); });
+  const qDe = k => ls.find(l => l.k === k).q;
+  app.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { const k = b.dataset.m; setEd(t, k, { q: Math.max(0, qDe(k) - 1), on: true }); redibujar(); });
+  app.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { const k = b.dataset.p; setEd(t, k, { q: qDe(k) + 1, on: true }); redibujar(); });
+  app.querySelectorAll("[data-q]").forEach(inp => inp.onchange = () => { setEd(t, inp.dataset.q, { q: Math.max(0, Math.round(+inp.value || 0)), on: true }); redibujar(); });
+  const todos = on => { for (const l of rep) setEd(t, l.k, { on }); redibujar(); };
+  $("rTodo").onclick = () => todos(true); $("rNada").onclick = () => todos(false);
+  dock(`<span><b>${esc(t)}</b> lleva <b>${fmt(tt.u)}</b> unidades</span>
+    <span class="row"><button type="button" class="ghost" id="dExcel">Excel</button>${sig ? `<button type="button" class="ghost" id="dSig">Siguiente: ${esc(sig)} →</button>` : `<button type="button" class="ghost" id="dVolver">← Tiendas</button>`}
+    ${apr ? "" : `<button type="button" class="prim" id="dApr">Aprobar ${sel.length > 1 && i >= 0 ? "las " + sel.length : esc(t)}</button>`}</span>`);
+  $("dExcel").onclick = () => excel([t]);
+  if ($("dSig")) $("dSig").onclick = () => { FIL = ""; ir("tienda", sig); };
+  if ($("dVolver")) $("dVolver").onclick = () => ir("inicio");
+  if ($("dApr")) $("dApr").onclick = () => aprobar(i >= 0 ? sel : [t]);
+}
+
+// ---------------------------------------------------------------- análisis (aparte de la operación)
+function pintarAnalisis() {
+  dock("");
+  const tiendaSel = T && D.tiendas.includes(T) ? T : D.tiendas[0]; T = tiendaSel;
+  const s = D.s[T];
+  const tabs = [["fal", "No hay en bodega"], ["dev", "Para devolver"], ["prov", "Proveedores"], ["res", "Resumen por tienda"]];
+  let cuerpo = "";
+  const prodTd = pid => { const p = P(pid); return `<td><b>${esc(p[2])}</b><div class="small"><span class="mono">${esc(p[1] || p[0])}</span> · ${esc(prov(pid))}</div></td>`; };
+  if (ATAB === "fal") {
+    // Consolidado: lo que se vende en las tiendas y no hay en bodega (para compras)
+    const m = new Map();
+    for (const t of D.tiendas) for (const x of lineasBase(t)) if (x[9] === 2) { const y = m.get(x[0]) || { pid: x[0], n: 0, v: 0, ts: [], A: 0 }; y.n += x[8]; y.v += x[3]; y.ts.push(t); if (x[1] === "A") y.A++; m.set(x[0], y); }
+    const arr = [...m.values()].sort((a, b) => b.A - a.A || b.v - a.v);
+    cuerpo = `<p class="muted">Se venden en las tiendas y ya no hay en la Bodega Central. Es la lista para <b>compras</b> (o para pedir traslados entre tiendas).</p>
+      <div class="tbl"><table><thead><tr><th>Producto</th><th class="n">Más vendido en</th><th class="n">Vendido 12 sem.</th><th class="n">Necesitan</th><th class="hide-m">Tiendas</th></tr></thead><tbody>
+      ${arr.slice(0, 800).map(y => `<tr>${prodTd(y.pid)}<td class="n">${y.A}</td><td class="n">${fmt(y.v)}</td><td class="n">${fmt(y.n)}</td><td class="small hide-m">${y.ts.join(", ")}</td></tr>`).join("") || '<tr><td colspan="5" class="muted">Nada.</td></tr>'}</tbody></table></div>`;
+  } else if (ATAB === "dev") {
+    cuerpo = `<div class="row"><label class="small" style="font-weight:700">Tienda <select id="aT">${D.tiendas.map(t => `<option ${t === T ? "selected" : ""}>${t}</option>`).join("")}</select></label></div>
+      <p class="muted">Lo que ${esc(T)} tiene sin ninguna venta en 12 semanas (y con más de 90 días en el sistema). Revisa si está en piso, si conviene moverlo a otra tienda o devolverlo al CEDIS.</p>
+      <div class="tbl"><table><thead><tr><th>Producto</th><th class="n">Tiene</th><th class="hide-m">Se vende en</th></tr></thead><tbody>
+      ${s.d.slice(0, 500).map(x => `<tr>${prodTd(x[0])}<td class="n">${x[1]}</td><td class="small hide-m">${esc(D.tiendas.filter(t => t !== T && D.s[t].l.some(y => y[0] === x[0])).join(", ") || "—")}</td></tr>`).join("") || '<tr><td colspan="3" class="muted">Nada.</td></tr>'}</tbody></table></div>`;
+  } else if (ATAB === "prov") {
+    cuerpo = `<p class="muted">Toda la cadena, últimas 12 semanas, ordenado por venta. <b>% vendido</b> = vendido ÷ (vendido + lo que hay en tiendas). <b>Le alcanza</b> = semanas que dura lo que hay en tiendas al ritmo actual: más de 12 es exceso, menos de 3 hace falta mandar.</p>
+      <div class="tbl"><table><thead><tr><th>Proveedor / editorial</th><th class="n">Unidades</th><th class="n">Venta</th><th class="n hide-m">En tiendas</th><th class="n hide-m">En bodega</th><th class="n">% vendido</th><th class="n">Le alcanza</th></tr></thead><tbody>
+      ${D.pr.slice(0, 300).map(([i, u, q, ext, exb]) => { const st = u + ext ? Math.round(u / (u + ext) * 100) : 0, c = u ? ext / (u / 12) : null;
+        return `<tr><td><b>${esc(D.prov[i])}</b></td><td class="n">${fmt(u)}</td><td class="n">Q${fmt(q)}</td><td class="n hide-m">${fmt(ext)}</td><td class="n hide-m">${fmt(exb)}</td><td class="n">${st}%</td>
+          <td class="n">${c == null ? "—" : `<span class="tag ${c > 12 ? "amber" : c < 3 ? "red" : "green"}">${c > 99 ? "+99" : c.toFixed(1)} sem.</span>`}</td></tr>`; }).join("")}</tbody></table></div>`;
   } else {
-    const filas = D.tiendas.map(t => {
-      const s2 = D.s[t], tp = totPedido(t), uds = tp.uds, lin = tp.lineas;
-      return `<tr><td><input type="checkbox" data-sel="${t}" ${SEL.has(t) ? "checked" : ""} ${uds ? "" : "disabled"} aria-label="Marcar ${t}"></td><td class="t"><a href="#" data-ir="${t}">${esc(t)}</a> <span class="small">${esc(D.nombres[t] || "")}</span></td><td class="n">${fmt(uds)}</td><td class="n">${fmt(lin)}</td>
-        <td class="n">${fmt(s2.agA)} de ${fmt(s2.nA)}</td><td class="n">${fmt(s2.l.filter(x => x[9] === 2).length)}</td><td class="n">${fmt(s2.d.reduce((a, x) => a + x[1], 0))}</td><td>${D.bor[t] ? esc(D.bor[t].nombre) : ""}</td></tr>`;
-    });
-    v.innerHTML = `<p class="muted">Marca las tiendas que se surten juntas y apruébalas de una vez. En Despachos, el CEDIS las recoge en un solo recorrido ("Surtir varias tiendas") y después reparte por tienda.</p>
-      <div class="row"><button type="button" class="ghost small-b" id="selTodas">Marcar todas</button><button type="button" class="ghost small-b" id="selNinguna">Quitar todas</button>
-      <button type="button" id="aprVarias" ${SEL.size ? "" : "disabled"}>Aprobar ${SEL.size} ${SEL.size === 1 ? "tienda" : "tiendas"} · ${fmt([...SEL].reduce((a, t) => a + totPedido(t).uds, 0))} uds.</button></div>` +
-      tabla(["", "Tienda", "Uds. a mandar", "Productos", "A agotados", "Faltan en bodega", "Para devolver", "Borrador"], filas, filas.length);
-    v.querySelectorAll("[data-sel]").forEach(c => c.onchange = () => { c.checked ? SEL.add(c.dataset.sel) : SEL.delete(c.dataset.sel); pintarVista(); });
-    $("selTodas").onclick = () => { D.tiendas.forEach(t => { if (totPedido(t).uds) SEL.add(t); }); pintarVista(); };
-    $("selNinguna").onclick = () => { SEL.clear(); pintarVista(); };
-    $("aprVarias").onclick = () => aprobar([...SEL]);
-    v.querySelectorAll("[data-ir]").forEach(a => a.onclick = e => { e.preventDefault(); T = a.dataset.ir; lsSet("resurtido-tienda", T); cargarEd(); TAB = "ped"; pintar(); window.scrollTo({ top: 0 }); });
+    cuerpo = `<div class="tbl"><table><thead><tr><th>Tienda</th><th class="n">Unidades sugeridas</th><th class="n">Agotados urgentes</th><th class="n">Más vendidos agotados</th><th class="n hide-m">No hay en bodega</th><th class="n hide-m">Para devolver</th></tr></thead><tbody>
+      ${D.tiendas.map(t => { const s2 = D.s[t]; return `<tr><td><b>${esc(t)}</b> <span class="small">${esc(D.nombres[t] || "")}</span></td><td class="n">${fmt(tot(t).u)}</td><td class="n">${urgentes(t)}</td><td class="n">${s2.agA} de ${s2.nA}</td><td class="n hide-m">${s2.l.filter(x => x[9] === 2).length}</td><td class="n hide-m">${fmt(s2.d.reduce((a, x) => a + x[1], 0))}</td></tr>`; }).join("")}</tbody></table></div>`;
   }
-}
-function tabla(cab, filas, total) {
-  return `<div class="tbl"><table><thead><tr>${cab.map((c, i) => `<th class="${i > 1 && !["Clase", "Se vende en", "Borrador"].includes(c) ? "n" : ""}">${esc(c)}</th>`).join("")}</tr></thead><tbody>
-    ${filas.join("") || `<tr><td colspan="${cab.length}" class="muted">Nada que mostrar.</td></tr>`}</tbody></table></div>
-    ${total > filas.length ? `<p class="small">Se muestran ${fmt(filas.length)} de ${fmt(total)}. Usa los filtros o el Excel para ver todo.</p>` : ""}`;
-}
-function seVendeEn(pid) {
-  const out = [];
-  for (const t of D.tiendas) { if (t === T) continue; const x = D.s[t].l.find(y => y[0] === pid); if (x) out.push(t); }
-  return out.join(", ") || "—";
+  app.innerHTML = `<section class="card"><div class="row between"><h1>Análisis</h1><button type="button" class="ghost sm" id="aXls">Excel completo</button></div>
+    <div class="tabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-at="${k}" class="${ATAB === k ? "on" : ""}">${n}</button>`).join("")}</div>${cuerpo}</section>`;
+  app.querySelectorAll("[data-at]").forEach(b => b.onclick = () => { ATAB = b.dataset.at; pintarAnalisis(); });
+  if ($("aT")) $("aT").onchange = e => { T = e.target.value; pintarAnalisis(); };
+  $("aXls").onclick = () => excel(D.tiendas, true);
 }
 
 // ---------------------------------------------------------------- Excel
-function excel() {
-  const s = S(), wb = XLSX.utils.book_new();
+function excel(tiendas, todo) {
+  const wb = XLSX.utils.book_new();
   const fp = pid => { const p = P(pid); return { "Código": p[0], "Referencia": p[1], "Producto": p[2], "Proveedor": prov(pid), "Precio": p[4] }; };
-  const add = (n, rows) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{ "": "Sin datos" }]), n);
-  add("Pedido", lineasPedido().filter(l => l.q > 0).map(l => Object.assign(fp(l.pid), { "Tipo": l.tipo === "opo" ? "Oportunidad" : "Sugerido", "Clase": l.tipo === "opo" ? "" : l.x[1], "Mandar": l.q })));
-  add("Sugerido completo", s.l.map(x => Object.assign(fp(x[0]), { "Clase": x[1], "Vendió 4 sem.": x[2], "Vendió 12 sem.": x[3], "Tiene": x[4], "En camino": x[5], "Bodega": x[6], "Necesita": x[8], "Asignado": x[7], "Nota": MOT[x[9]] })));
-  add("Oportunidades", s.o.map(x => Object.assign(fp(x[0]), { "Vendió la cadena 12 sem.": x[1], "Es A en (tiendas)": x[2], "Bodega libre": x[3], "Sugerido": x[4] })));
-  add("Para devolver", s.d.map(x => Object.assign(fp(x[0]), { "Tiene": x[1] })));
-  const loc = D.prs[T] || {};
-  add("Proveedores", D.pr.map(([i, u, q, ext, exb, np]) => ({ "Proveedor": D.prov[i], "Uds. cadena 12 sem.": u, "Venta cadena Q": q, ["Uds. " + T]: (loc[String(i)] || [0])[0], "Existencia tiendas": ext, "Existencia bodega": exb, "% vendido": u + ext ? Math.round(u / (u + ext) * 100) : 0, "Productos vendidos": np })));
-  XLSX.writeFile(wb, `Resurtido_${T}_${D.v.slice(0, 10)}.xlsx`);
+  const add = (n, rows) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{ "": "Sin datos" }]), n.slice(0, 31));
+  const filas = [];
+  for (const t of tiendas) for (const l of lineas(t)) if (l.on && l.q > 0) filas.push(Object.assign({ "Tienda": t }, fp(l.pid), { "Tipo": l.tipo === "urg" ? "Urgente" : l.tipo === "rep" ? "Reponer" : "Probar", "Mandar": l.q }));
+  add("Pedido", filas);
+  if (todo) {
+    add("Proveedores", D.pr.map(([i, u, q, ext, exb, np]) => ({ "Proveedor": D.prov[i], "Unidades 12 sem.": u, "Venta Q": q, "En tiendas": ext, "En bodega": exb, "% vendido": u + ext ? Math.round(u / (u + ext) * 100) : 0, "Productos vendidos": np })));
+    const fal = []; for (const t of D.tiendas) for (const x of lineasBase(t)) if (x[9] === 2) fal.push(Object.assign({ "Tienda": t }, fp(x[0]), { "Clase": x[1] ? CLASE[x[1]][0] : "", "Vendió 12 sem.": x[3], "Tiene": x[4], "Necesita": x[8] }));
+    add("No hay en bodega", fal);
+    const dev = []; for (const t of D.tiendas) for (const x of D.s[t].d) dev.push(Object.assign({ "Tienda": t }, fp(x[0]), { "Tiene": x[1] }));
+    add("Para devolver", dev);
+  }
+  XLSX.writeFile(wb, `Resurtido_${tiendas.length === 1 ? tiendas[0] : "tiendas"}_${D.v.slice(0, 10)}.xlsx`);
 }
 
-// ---------------------------------------------------------------- aprobar: crea el pedido en el sistema (vía el servidor de Despachos)
+// ---------------------------------------------------------------- paso 3: aprobar (crea los pedidos con el servidor de Despachos)
 const CFG = () => lsGet("despacho-cfg", null), OP = () => lsGet("despacho-op", null);
 async function api(accion, datos, op) {
   const c = CFG();
@@ -338,8 +559,8 @@ async function enviarPedido(t, ls, cod, estado) {
   const partes = []; for (let i = 0; i < ls.length; i += 120) partes.push(ls.slice(i, i + 120).map(l => [l.pid, l.q]));
   let pedido = 0;
   for (let i = 0; i < partes.length; i++) {
-    estado(`${t}: enviando parte ${i + 1} de ${partes.length}…`);
-    const r = await api("resurtido", pedido ? { pedido, lineas: partes[i], tienda: t } : { tienda: t, borrador: D.bor[t] ? D.bor[t].id : 0, lineas: partes[i] }, cod);
+    estado(`${t}: enviando ${partes.length > 1 ? `parte ${i + 1} de ${partes.length}` : "pedido"}…`);
+    const r = await api("resurtido", pedido ? { pedido, lineas: partes[i], tienda: t } : { tienda: t, borrador: D.bor[t] ? D.bor[t].id : 0, lineas: partes[i], plan: PLAN.modo === "auto" ? "" : (PLAN.nombre || `${PLAN.dias} días ${PLAN.provs.map(i => D.prov[i]).concat(PLAN.cats.map(catNom)).join(", ")}`).slice(0, 60) }, cod);
     pedido = r.pedido;
   }
   estado(`${t}: confirmando…`);
@@ -347,42 +568,44 @@ async function enviarPedido(t, ls, cod, estado) {
 }
 function aprobar(tiendas) {
   if (!CFG()) {
-    dialogo(`<h2>Falta conectar el servidor</h2><p class="muted">Para crear pedidos se usa el mismo servidor de la app de Despachos. Abre <a href="../despacho/">Despachos</a> en este equipo, configúralo una vez y regresa.</p><div class="row" style="justify-content:flex-end"><button type="submit">Entendido</button></div>`);
+    dialogo(`<h2>Falta conectar el servidor</h2><p class="muted">Los pedidos se crean con el mismo servidor de Despachos. Abre <a href="../despacho/">Despachos</a> en este equipo, configúralo una vez y regresa.</p><div class="row" style="justify-content:flex-end"><button type="submit">Entendido</button></div>`);
     return;
   }
-  const plan = tiendas.map(t => ({ t, ls: lineasPedido(t).filter(l => l.q > 0) })).filter(x => x.ls.length);
+  const apr = aprobados();
+  const plan = tiendas.filter(t => !apr[t]).map(t => ({ t, ls: lineas(t).filter(l => l.on && l.q > 0) })).filter(x => x.ls.length);
   if (!plan.length) return;
-  const tot = plan.reduce((s, x) => s + x.ls.reduce((a, l) => a + l.q, 0), 0), op = OP();
-  const d = dialogo(`<h2>Aprobar ${plan.length === 1 ? "pedido para " + esc(plan[0].t) : plan.length + " pedidos"}</h2>
-    <p>${fmt(tot)} unidades de ${esc(D.origen)} a ${plan.map(x => esc(x.t)).join(", ")}. Quedan listos para empacar en Despachos${plan.length > 1 ? " (con \"Surtir varias tiendas\" se recogen juntos)" : ""}.</p>
+  const total = plan.reduce((s, x) => s + x.ls.reduce((a, l) => a + l.q, 0), 0), op = OP();
+  const d = dialogo(`${pasos(3)}<h2>Aprobar ${plan.length === 1 ? "el pedido de " + esc(plan[0].t) : plan.length + " pedidos"}</h2>
+    <div class="tbl" style="max-height:34vh"><table><tbody>${plan.map(x => `<tr><td><b>${esc(x.t)}</b></td><td class="n">${fmt(x.ls.length)} productos</td><td class="n"><b>${fmt(x.ls.reduce((a, l) => a + l.q, 0))}</b> uds.</td></tr>`).join("")}
+      <tr><td><b>Total</b></td><td></td><td class="n"><b>${fmt(total)}</b> uds.</td></tr></tbody></table></div>
+    <p class="muted">Se crea un pedido por tienda y aparecen en Despachos. ${plan.length > 1 ? "Ahí el CEDIS los recoge todos juntos con <b>Surtir varias tiendas</b> y luego reparte por tienda." : ""}</p>
     <label class="small" style="font-weight:700;display:grid;gap:4px">Tu código de supervisor<input id="opCod" value="${esc(op && op.rol === "SUPERVISOR" ? op.codigo : "")}" autocomplete="off" style="text-transform:uppercase"></label>
     <p class="notice bad" id="apErr" hidden></p><p class="small" id="apEst"></p>
-    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="apNo">Cancelar</button><button type="submit" id="apSi">Aprobar</button></div>`);
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="apNo">Cancelar</button><button type="submit" class="ok" id="apSi">Aprobar ${fmt(total)} unidades</button></div>`);
   $("apNo").onclick = () => d.close();
+  setTimeout(() => $("opCod").focus(), 50);
   $("dlgForm").onsubmit = async e => {
     e.preventDefault();
-    const cod = $("opCod").value.trim().toUpperCase();
-    if (!cod) return;
+    const cod = $("opCod").value.trim().toUpperCase(); if (!cod) return;
     $("apSi").disabled = true; $("apErr").hidden = true;
-    let yo;
-    try { yo = await api("login", { codigo: cod }, cod); if (yo.rol !== "SUPERVISOR") throw new Error("Solo un supervisor puede aprobar pedidos."); }
+    try { const yo = await api("login", { codigo: cod }, cod); if (yo.rol !== "SUPERVISOR") throw new Error("Solo un supervisor puede aprobar pedidos."); }
     catch (er) { $("apErr").textContent = er.message; $("apErr").hidden = false; $("apSi").disabled = false; return; }
     const hechos = [], fallos = [];
     for (const x of plan) {
       try {
         const nombre = await enviarPedido(x.t, x.ls, cod, m => $("apEst").textContent = m);
-        hechos.push({ t: x.t, nombre, uds: x.ls.reduce((a, l) => a + l.q, 0) });
-        lsDel(`resurtido-ed-${x.t}-${D.v}`); delete D.bor[x.t]; SEL.delete(x.t);
-        if (x.t === T) ED = {};
+        hechos.push({ t: x.t, nombre, u: x.ls.reduce((a, l) => a + l.q, 0) });
+        const a = aprobados(); a[x.t] = nombre; lsSet(aprKey(), a);
+        lsDel(edKey(x.t)); delete D.bor[x.t]; SEL.delete(x.t); guardarSel();
       } catch (er) { fallos.push(`${x.t}: ${er.message}`); }
     }
     d.close();
-    dialogo(`<h2>${hechos.length ? "Pedidos creados ✓" : "No se pudo crear"}</h2>
-      ${hechos.length ? `<div class="tbl"><table><tbody>${hechos.map(h => `<tr><td class="t">${esc(h.t)}</td><td class="mono">${esc(h.nombre)}</td><td class="n">${fmt(h.uds)} uds.</td></tr>`).join("")}</tbody></table></div>
-        <p class="muted">Ya aparecen en Despachos. ${hechos.length > 1 ? "Usa \"Surtir varias tiendas a la vez\" para recogerlos en un solo recorrido y repartir por tienda." : ""} Lo aprobado cuenta como "en camino" en el cálculo de mañana.</p>` : ""}
+    dialogo(`<h2>${hechos.length ? "Listo ✓" : "No se pudo crear"}</h2>
+      ${hechos.length ? `<div class="tbl"><table><tbody>${hechos.map(h => `<tr><td><b>${esc(h.t)}</b></td><td class="mono">${esc(h.nombre)}</td><td class="n">${fmt(h.u)} uds.</td></tr>`).join("")}</tbody></table></div>
+        <p class="muted">Ya están en Despachos para empacar${hechos.length > 1 ? " (usa <b>Surtir varias tiendas a la vez</b>)" : ""}. Mañana el cálculo los cuenta como "en camino".</p>` : ""}
       ${fallos.length ? `<p class="notice bad">${fallos.map(esc).join("<br>")}</p>` : ""}
-      <div class="row" style="justify-content:flex-end"><button type="submit">Listo</button></div>`);
-    $("dlgForm").onsubmit = ev => { ev.preventDefault(); $("dlg").close(); pintar(); };
+      <div class="row" style="justify-content:flex-end"><button type="submit">Volver a las tiendas</button></div>`);
+    $("dlgForm").onsubmit = ev => { ev.preventDefault(); $("dlg").close(); ir("inicio"); };
   };
 }
 </script>
