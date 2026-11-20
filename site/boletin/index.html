@@ -270,7 +270,7 @@ async function cargarCatalogo() {
 
 (async () => {
   try {
-    const [, enc] = await Promise.all([cargarCatalogo(), fetch("../surtido/existencias.enc?t=" + Date.now(), { cache: "no-store" })]);
+    const [, enc] = await Promise.all([cargarCatalogo(), fetch("../datos/existencias.enc?t=" + Date.now(), { cache: "no-store" })]);
     if (!enc.ok) throw new Error("existencias");
     SOBRE = await enc.json();
     let c = null; try { c = localStorage.getItem("surtido-clave"); } catch (e) {}
