@@ -55,6 +55,17 @@ jobs:
           pip install --quiet cryptography
           python sync/existencias.py --out site
 
+      # Resurtido automático BOD → tiendas (cifrado). Si falla, lo demás se publica igual.
+      - name: Resurtido de tiendas
+        continue-on-error: true
+        env:
+          ODOO_URL: ${{ secrets.ODOO_URL }}
+          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_USER: ${{ secrets.ODOO_USER }}
+          ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+          CLAVE_EXISTENCIAS: ${{ secrets.CLAVE_EXISTENCIAS }}
+        run: python sync/resurtido.py --out site
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
