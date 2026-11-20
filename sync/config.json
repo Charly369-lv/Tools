@@ -5,6 +5,21 @@
   "campo_precio_bazar": "",
   "campo_precio": "",
   "resurtido": {
+    "origen": "BOD",
+    "tiendas": [
+      "PRADE",
+      "CONCE",
+      "ANTIG",
+      "MIRAF",
+      "PORTA",
+      "INTER",
+      "COBAN",
+      "AMERI",
+      "ZONA1",
+      "SANC",
+      "VIDER",
+      "MAJAD"
+    ],
     "crear_borradores": false,
     "calendario": {
       "MAJAD": [
