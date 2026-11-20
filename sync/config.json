@@ -29,6 +29,17 @@
     },
     "semanas_A": 4,
     "semanas_B": 3,
-    "minimo_A": 2
+    "minimo_A": 2,
+    "empaques": [
+      {
+        "contiene": "HEM HEXA",
+        "unidades": 6
+      },
+      {
+        "contiene": "HEM SQ",
+        "unidades": 25
+      }
+    ],
+    "empaque_redondeo": 0.5
   }
 }

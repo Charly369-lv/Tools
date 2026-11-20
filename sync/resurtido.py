@@ -48,6 +48,10 @@ DEF = {
     "semanas_A": 4, "semanas_B": 3, "minimo_A": 2,
     "oportunidad_unidades": 2, "oportunidad_min_bodega": 6, "oportunidades_max": 150,
     "devolver_max": 300,
+    # Productos que salen de la bodega en caja cerrada: el sugerido se redondea a cajas completas.
+    # Primero se usa el empaque del producto en el sistema (Inventario → Empaques); si no tiene, estas reglas por nombre.
+    "empaques": [],          # p. ej. [{"contiene": "HEM HEXA", "unidades": 6}, {"contiene": "HEM SQ", "unidades": 25}]
+    "empaque_redondeo": 0.5, # se manda una caja más si lo que falta llega a esta fracción de caja
     "excluir": ["BOD", "CDV", "DPROV", "REVIS", "BDAÑA", "TEMPS", "TEMBS", "ALDIS", "BDSA", "FLYS", "BDCS", "SG", "WALLM", "MOVIL"],
     "tiendas": [],   # vacío = todas las que venden (menos las excluidas)
     "crear_borradores": False,
@@ -171,6 +175,40 @@ def main():
             PROV.append(n)
         return PROVI[n]
     precio = lambda pid: float((P.get(pid) or {}).get("list_price") or 0)
+
+    # Cajas cerradas: empaque del sistema (el más chico mayor a 1) o regla por nombre
+    EMPS = {}
+    try:
+        for g in o.search_read_all("product.packaging", [["qty", ">", 1]], ["product_id", "qty"]):
+            if g.get("product_id"):
+                q = int(round(float(g["qty"])))
+                EMPS[g["product_id"][0]] = min(q, EMPS.get(g["product_id"][0], q))
+        print(f"  Empaques del sistema: {len(EMPS):,} productos")
+    except SystemExit as e:
+        print("  Aviso: no se pudieron leer los empaques del sistema:", str(e)[:150])
+    reglas = [(re.sub(r"\s+", " ", clean(r.get("contiene", "")).upper()), int(r.get("unidades") or 1)) for r in cfg.get("empaques") or [] if r.get("contiene")]
+    _emp = {}
+
+    def emp(pid):
+        if pid in _emp:
+            return _emp[pid]
+        u = EMPS.get(pid, 0)
+        if not u and reglas:
+            nom = re.sub(r"\s+", " ", clean((P.get(pid) or {}).get("name") or "").upper())
+            u = next((n for k, n in reglas if k and k in nom), 0)
+        _emp[pid] = max(1, u)
+        return _emp[pid]
+    FR = float(cfg.get("empaque_redondeo", 0.5))
+
+    def a_cajas(n, pid, ex):
+        """Redondea lo que falta a cajas completas: sube si llega a la fracción; si la tienda está en 0, al menos una caja."""
+        u = emp(pid)
+        if u <= 1 or n <= 0:
+            return n
+        c = int(n // u) + (1 if (n % u) / u >= FR else 0)
+        if c == 0 and ex <= 0:
+            c = 1
+        return c * u
     es_bazar = lambda pid: bool(BAZAR.search(as_text((P.get(pid) or {}).get("categ_id"))))
 
     # ---------------------------------------------------------------- cálculo por tienda
@@ -194,7 +232,7 @@ def main():
             else:
                 obj = max(int(round(v[0])), 1 if ex <= 0 else 0)
             CL[(t, pid)], RATE[(t, pid)] = clase, r
-            n = int(obj - ex - pe)
+            n = a_cajas(int(obj - ex - pe), pid, ex)
             if n > 0:
                 NEED[(t, pid)] = n
 
@@ -213,10 +251,11 @@ def main():
         for t in ts:
             r = max(RATE[(t, pid)], 0.05)
             heapq.heappush(h, (rango[CL[(t, pid)]], (EX.get((t, pid), 0) + PEN.get((t, pid), 0)) / r, t))
-        while disp > 0 and h:
+        u = emp(pid)   # en cajas cerradas se reparte de caja en caja
+        while disp >= u and h:
             rg, cob, t = heapq.heappop(h)
-            ASIG[(t, pid)] += 1
-            disp -= 1
+            ASIG[(t, pid)] += u
+            disp -= u
             if ASIG[(t, pid)] < NEED[(t, pid)]:
                 r = max(RATE[(t, pid)], 0.05)
                 heapq.heappush(h, (rg, (EX.get((t, pid), 0) + PEN.get((t, pid), 0) + ASIG[(t, pid)]) / r, t))
@@ -255,7 +294,7 @@ def main():
                 break
             if (nA[pid] >= 3 or cadena[pid] >= 20) and EX.get((t, pid), 0) <= 0 and sum(V.get((t, pid), [0, 0, 0])) <= 0 \
                     and PEN.get((t, pid), 0) <= 0 and REST.get(pid, 0) >= int(cfg["oportunidad_min_bodega"]) and not es_bazar(pid):
-                O.append([pid, int(cadena[pid]), nA[pid], int(REST[pid]), int(cfg["oportunidad_unidades"])])
+                O.append([pid, int(cadena[pid]), nA[pid], int(REST[pid]), emp(pid) if emp(pid) > 1 else int(cfg["oportunidad_unidades"])])
                 usados.add(pid)
         D = []
         for (tt, pid), ex in EX.items():
@@ -340,12 +379,12 @@ def main():
             CATI[cat] = len(CAT)
             CAT.append(cat)
         return [code, ref, nom, prov_de(pid), int(pr) if pr == int(pr) else round(pr, 2), 1 if es_bazar(pid) else 0,
-                CATI[cat], int(max(0, BODD.get(pid, 0)))]
+                CATI[cat], int(max(0, BODD.get(pid, 0))), emp(pid)]
     CAT, CATI = [], {}
     PP = {str(pid): prod_fila(pid) for pid in sorted(usados)}
     version = time.strftime("%Y-%m-%d %H:%M", time.gmtime())
     datos = {"v": version, "origen": ORIG, "dia": dia, "tiendas": tiendas, "nombres": {t: WH[t]["name"] for t in tiendas},
-             "cfg": {k: cfg[k] for k in ("semanas_A", "semanas_B", "minimo_A", "crear_borradores", "calendario")},
+             "cfg": {k: cfg[k] for k in ("semanas_A", "semanas_B", "minimo_A", "crear_borradores", "calendario", "empaque_redondeo")},
              "prov": PROV, "cat": CAT, "p": PP, "s": S, "bor": BOR, "pr": PR, "prs": PRS}
     sobre = cifrar(gzip.compress(json.dumps(datos, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), 9), clave)
     sobre["v"] = version
