@@ -1,7 +1,7 @@
 """Existencias por ubicación, cifradas con clave, para la app de surtido.
 
 Lee las existencias de todas las ubicaciones internas y las guarda cifradas (AES-256-GCM con una
-clave derivada por PBKDF2-SHA256) en site/surtido/existencias.enc. Sin la clave el archivo no se
+clave derivada por PBKDF2-SHA256) en site/datos/existencias.enc. Sin la clave el archivo no se
 puede leer, aunque el sitio sea público. La clave vive solo en el secreto CLAVE_EXISTENCIAS.
 
 Uso: python sync/existencias.py --out site
@@ -145,7 +145,7 @@ def main():
     datos = json.dumps({"v": version, "L": L, "p": P, "r": R}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     sobre = cifrar(gzip.compress(datos, 9), clave)
     sobre["v"] = version
-    out = os.path.join(a.out, "surtido")
+    out = os.path.join(a.out, "datos")   # lo usan Mayoreo Walmart, checador y boletín
     os.makedirs(out, exist_ok=True)
     with open(os.path.join(out, "existencias.enc"), "w", encoding="utf-8") as f:
         json.dump(sobre, f, separators=(",", ":"))
