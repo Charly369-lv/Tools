@@ -3,5 +3,17 @@
   "campo_editorial": "",
   "campo_tema": "",
   "campo_precio_bazar": "",
-  "campo_precio": ""
+  "campo_precio": "",
+  "resurtido": {
+    "crear_borradores": false,
+    "calendario": {
+      "MAJAD": [
+        "lun",
+        "jue"
+      ]
+    },
+    "semanas_A": 4,
+    "semanas_B": 3,
+    "minimo_A": 2
+  }
 }
