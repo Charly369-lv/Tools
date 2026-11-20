@@ -250,6 +250,15 @@ function entra(pid) {
   if (PLAN.cats.length) { const c = String(D.cat[p[6]] || ""); if (!PLAN.cats.some(i => { const k = String(D.cat[i]); return c === k || c.startsWith(k + " /"); })) return false; }
   return true;
 }
+// Caja cerrada: unidades por caja (1 = se manda suelto)
+const caja = pid => Math.max(1, +P(pid)[8] || 1);
+function aCajas(n, pid, ex) {
+  const u = caja(pid); if (u <= 1 || n <= 0) return n;
+  let c = Math.floor(n / u) + ((n % u) / u >= (D.cfg.empaque_redondeo ?? 0.5) ? 1 : 0);
+  if (c === 0 && ex <= 0) c = 1;
+  return c * u;
+}
+const cajasTxt = (q, pid) => { const u = caja(pid); if (u <= 1) return ""; const c = q / u; return Number.isInteger(c) ? `${c} ${c === 1 ? "caja" : "cajas"} de ${u}` : `⚠ no es caja completa (de ${u})`; };
 const ritmoDia = r => (0.5 * r[1] + 0.3 * r[2] + 0.2 * r[3]) / 28;   // r = [pid, sem 1-4, sem 5-8, sem 9-12, tiene, en camino]
 // Plan personalizado: objetivo = venta diaria × días; la bodega se reparte a la tienda con menos días de cobertura
 function calcular() {
@@ -259,16 +268,16 @@ function calcular() {
     out[t] = [];
     for (const r of D.s[t].v) {
       if (!entra(r[0])) continue;
-      const rd = ritmoDia(r), n = Math.ceil(rd * PLAN.dias - 1e-9) - r[4] - r[5];
+      const rd = ritmoDia(r), n = aCajas(Math.ceil(rd * PLAN.dias - 1e-9) - r[4] - r[5], r[0], r[4]);
       if (n > 0) { const a = nec.get(r[0]) || []; a.push({ t, r, rd, n, asg: 0 }); nec.set(r[0], a); }
     }
   }
   for (const [pid, arr] of nec) {
-    let disp = P(pid)[7] || 0;
-    while (disp > 0) {
+    let disp = P(pid)[7] || 0; const u = caja(pid);   // en cajas cerradas se reparte de caja en caja
+    while (disp >= u) {
       let m = null, mc = Infinity;
       for (const y of arr) { if (y.asg >= y.n) continue; const c = (y.r[4] + y.r[5] + y.asg) / Math.max(y.rd, 0.005); if (c < mc) { mc = c; m = y; } }
-      if (!m) break; m.asg++; disp--;
+      if (!m) break; m.asg += u; disp -= u;
     }
     for (const y of arr) out[y.t].push([pid, "", y.r[1], y.r[1] + y.r[2] + y.r[3], y.r[4], y.r[5], P(pid)[7] || 0, y.asg, y.n, y.asg >= y.n ? 0 : y.asg ? 1 : 2]);
   }
@@ -425,7 +434,7 @@ function porque(l) {
   const x = l.x;
   if (l.tipo === "opo") return `Se vende en ${x[2]} tiendas como más vendido · aquí no hay · bodega tiene ${x[3]} libres`;
   const sem = x[2] / 4, s = sem >= 1 ? `vende <b>${Math.round(sem * 10) / 10}</b> por semana` : `vendió <b>${x[3]}</b> en 12 semanas`;
-  return `${s} · tiene <b>${x[4]}</b>${x[5] ? ` · <b>${x[5]}</b> en camino` : ""}${PLAN.modo === "auto" ? "" : ` · para ${PLAN.dias} días le faltan <b>${x[8]}</b>`}${x[9] === 1 ? ` · la bodega solo alcanza para ${x[7]}` : ""}`;
+  return `${s} · tiene <b>${x[4]}</b>${x[5] ? ` · <b>${x[5]}</b> en camino` : ""}${PLAN.modo === "auto" ? "" : ` · para ${PLAN.dias} días le faltan <b>${x[8]}</b>`}${x[9] === 1 ? ` · la bodega solo alcanza para ${x[7]}` : ""}${caja(l.pid) > 1 ? ` · <b>viene en cajas de ${caja(l.pid)}</b>` : ""}`;
 }
 function filaLinea(l) {
   const p = P(l.pid), c = l.tipo === "opo" || !l.x[1] ? null : CLASE[l.x[1]];
@@ -434,7 +443,8 @@ function filaLinea(l) {
     <div class="info"><div class="t">${esc(p[2])}${p[5] ? ' <span class="tag">bazar</span>' : ""}</div>
       <div class="why">${c ? `<span class="tag ${c[1]}">${c[0]}</span> ` : ""}${porque(l)}</div>
       <div class="small"><span class="mono">${esc(p[1] || p[0])}</span> · ${esc(prov(l.pid))}</div></div>
-    <div class="step" ${l.on ? "" : 'style="opacity:.45"'}><button type="button" data-m="${l.k}" aria-label="Menos">−</button><input type="number" inputmode="numeric" min="0" data-q="${l.k}" value="${l.q}" aria-label="Unidades"><button type="button" data-p="${l.k}" aria-label="Más">+</button></div>
+    <div style="display:grid;gap:3px;justify-items:end"><div class="step" ${l.on ? "" : 'style="opacity:.45"'}><button type="button" data-m="${l.k}" aria-label="Menos${caja(l.pid) > 1 ? " una caja" : ""}">−</button><input type="number" inputmode="numeric" min="0" step="${caja(l.pid)}" data-q="${l.k}" value="${l.q}" aria-label="Unidades"><button type="button" data-p="${l.k}" aria-label="Más${caja(l.pid) > 1 ? " una caja" : ""}">+</button></div>
+      ${caja(l.pid) > 1 ? `<span class="small" style="${l.q % caja(l.pid) ? "color:var(--amber);font-weight:700" : ""}">${cajasTxt(l.q, l.pid)}</span>` : ""}</div>
   </div>`;
 }
 function pintarTienda() {
@@ -472,8 +482,9 @@ function pintarTienda() {
   const redibujar = () => { const y = window.scrollY; pintarTienda(); window.scrollTo({ top: y }); };
   app.querySelectorAll("[data-on]").forEach(c => c.onchange = () => { setEd(t, c.dataset.on, { on: c.checked }); redibujar(); });
   const qDe = k => ls.find(l => l.k === k).q;
-  app.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { const k = b.dataset.m; setEd(t, k, { q: Math.max(0, qDe(k) - 1), on: true }); redibujar(); });
-  app.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { const k = b.dataset.p; setEd(t, k, { q: qDe(k) + 1, on: true }); redibujar(); });
+  const pidDe = k => +String(k).replace(/^o/, "");
+  app.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { const k = b.dataset.m, u = caja(pidDe(k)), q = qDe(k); setEd(t, k, { q: Math.max(0, q % u ? q - (q % u) : q - u), on: true }); redibujar(); });
+  app.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { const k = b.dataset.p, u = caja(pidDe(k)), q = qDe(k); setEd(t, k, { q: q + (u - (q % u || 0) || u), on: true }); redibujar(); });
   app.querySelectorAll("[data-q]").forEach(inp => inp.onchange = () => { setEd(t, inp.dataset.q, { q: Math.max(0, Math.round(+inp.value || 0)), on: true }); redibujar(); });
   const todos = on => { for (const l of rep) setEd(t, l.k, { on }); redibujar(); };
   $("rTodo").onclick = () => todos(true); $("rNada").onclick = () => todos(false);
@@ -530,7 +541,7 @@ function excel(tiendas, todo) {
   const fp = pid => { const p = P(pid); return { "Código": p[0], "Referencia": p[1], "Producto": p[2], "Proveedor": prov(pid), "Precio": p[4] }; };
   const add = (n, rows) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{ "": "Sin datos" }]), n.slice(0, 31));
   const filas = [];
-  for (const t of tiendas) for (const l of lineas(t)) if (l.on && l.q > 0) filas.push(Object.assign({ "Tienda": t }, fp(l.pid), { "Tipo": l.tipo === "urg" ? "Urgente" : l.tipo === "rep" ? "Reponer" : "Probar", "Mandar": l.q }));
+  for (const t of tiendas) for (const l of lineas(t)) if (l.on && l.q > 0) filas.push(Object.assign({ "Tienda": t }, fp(l.pid), { "Tipo": l.tipo === "urg" ? "Urgente" : l.tipo === "rep" ? "Reponer" : "Probar", "Mandar": l.q, "Cajas": caja(l.pid) > 1 ? cajasTxt(l.q, l.pid) : "" }));
   add("Pedido", filas);
   if (todo) {
     add("Proveedores", D.pr.map(([i, u, q, ext, exb, np]) => ({ "Proveedor": D.prov[i], "Unidades 12 sem.": u, "Venta Q": q, "En tiendas": ext, "En bodega": exb, "% vendido": u + ext ? Math.round(u / (u + ext) * 100) : 0, "Productos vendidos": np })));

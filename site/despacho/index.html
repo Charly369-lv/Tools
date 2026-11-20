@@ -276,11 +276,18 @@ function indice(lineas) {
   return m;
 }
 let IDX = new Map();
+// Cajas cerradas con su propio código: un escaneo cuenta todas las unidades de la caja
+function indiceCajas(lineas) {
+  const m = new Map();
+  for (const l of lineas) for (const c of (l.cajas || [])) if (c.codigo && c.qty > 1) m.set(limpio(c.codigo), { l, qty: c.qty });
+  return m;
+}
+let CJ = new Map(), RCJ = new Map();
 async function empacar(id) {
   cargando("Abriendo pedido…");
   try {
     T = await api("traslado", { id });
-    IDX = indice(T.lineas);
+    IDX = indice(T.lineas); CJ = indiceCajas(T.lineas);
     BOX = lsGet(boxKey(), null) || { items: {}, inicio: null, hist: [] };
     pintarEmpaque();
   } catch (e) { error(e, () => empacar(id)); }
@@ -337,21 +344,22 @@ function agregar(l, qty, manual, motivo) {
   const falta = l.pide - enCajas(l.pid) - enBox(l.pid);
   if (qty > falta) {
     sonar("err");
-    FLASH = { t: "err", h: falta <= 0 ? `Ya está completo: ${l.nombre}` : `Solo faltan ${falta}: ${l.nombre}`, s: `El pedido pide ${l.pide}. No lo metas en la caja.` };
+    FLASH = { t: "err", h: falta <= 0 ? `Ya está completo: ${l.nombre}` : `Solo faltan ${falta}: ${l.nombre}`, s: qty > 1 && !manual ? `Esta caja trae ${qty}. No la metas: ábrela y escanea las piezas sueltas.` : `El pedido pide ${l.pide}. No lo metas en la caja.` };
     return pintarEmpaque();
   }
   if (!BOX.inicio) BOX.inicio = new Date().toISOString();
-  const it = BOX.items[l.pid] || (BOX.items[l.pid] = { pid: l.pid, codigo: l.codigo, ref: l.ref, nombre: l.nombre, alternos: l.alternos || [], qty: 0, manual: false });
+  const it = BOX.items[l.pid] || (BOX.items[l.pid] = { pid: l.pid, codigo: l.codigo, ref: l.ref, nombre: l.nombre, alternos: l.alternos || [], cajas: l.cajas || [], qty: 0, manual: false });
   it.qty += qty; if (manual) { it.manual = true; it.motivo = motivo; }
   BOX.hist.push({ pid: l.pid, qty });
   guardarBox();
   const f = falta - qty;
   sonar("ok");
-  FLASH = { t: "ok", h: `+${qty} ${l.nombre}`, s: f ? `Faltan ${f} de ${l.pide}` : `Completo (${l.pide} de ${l.pide}) ✓` };
+  FLASH = { t: "ok", h: `+${qty} ${l.nombre}${qty > 1 && !manual ? " (caja cerrada)" : ""}`, s: f ? `Faltan ${f} de ${l.pide}` : `Completo (${l.pide} de ${l.pide}) ✓` };
   pintarEmpaque();
 }
 function escanear(v) {
   const c = limpio(v); if (!c) return;
+  const cj = CJ.get(c); if (cj) return agregar(cj.l, cj.qty, false);
   const l = IDX.get(c);
   if (!l) { sonar("err"); FLASH = { t: "err", h: "Este producto NO va en este pedido", s: `Código ${esc(c)}. Sácalo de la caja.` }; return pintarEmpaque(); }
   agregar(l, 1, false);
@@ -388,7 +396,7 @@ function cerrarCaja() {
     const sello = limpio($("sS").value); if (!sello) return;
     const bt = $("dlgForm").querySelector("[type=submit]"); bt.disabled = true; bt.textContent = "Guardando…";
     try {
-      const items = Object.values(BOX.items).map(({ pid, codigo, ref, nombre, alternos, qty, manual, motivo }) => ({ pid, codigo, ref, nombre, alternos, qty, manual, motivo }));
+      const items = Object.values(BOX.items).map(({ pid, codigo, ref, nombre, alternos, cajas, qty, manual, motivo }) => ({ pid, codigo, ref, nombre, alternos, cajas, qty, manual, motivo }));
       const r = await api("guardarCaja", { traslado: T.nombre, trasladoId: T.id, tienda: T.tienda, sello, items, inicio: BOX.inicio,
         sinPedido: !!T.sinPedido, origen: T.origen, motivo: T.motivo });
       if (T.sinPedido) { T.nombre = r.traslado; T.id = r.trasladoId; }
@@ -438,7 +446,7 @@ function terminar() {
 // 2) Repartir: se escanea cada unidad y la app dice a qué tienda va (una caja abierta por tienda).
 // Cada caja se guarda en el pedido de su tienda, igual que al empacar un pedido solo.
 let OLA = null;   // { ids, pedidos:[{id,nombre,tienda,lineas,cajas}], ubic, fase, rec:{pid:n}, boxes:{id:{items,inicio}}, hist:[] }
-let OIDX = new Map();
+let OIDX = new Map(), OCJ = new Map();
 const olaGuardar = () => lsSet("despacho-ola", { ids: OLA.ids, fase: OLA.fase, rec: OLA.rec, boxes: OLA.boxes, hist: OLA.hist });
 async function listaOla() {
   cargando("Buscando pedidos por empacar…");
@@ -463,8 +471,11 @@ async function abrirOla(est) {
   try {
     const r = await api("ola", { ids: est.ids });
     OLA = Object.assign({}, est, { pedidos: r.pedidos.sort((a, b) => a.tienda.localeCompare(b.tienda)), ubic: r.ubicaciones || {} });
-    OIDX = new Map();
-    for (const p of OLA.pedidos) for (const l of p.lineas) for (const c of [l.codigo, l.ref, ...(l.alternos || [])]) if (c && !OIDX.has(limpio(c))) OIDX.set(limpio(c), l.pid);
+    OIDX = new Map(); OCJ = new Map();
+    for (const p of OLA.pedidos) for (const l of p.lineas) {
+      for (const c of [l.codigo, l.ref, ...(l.alternos || [])]) if (c && !OIDX.has(limpio(c))) OIDX.set(limpio(c), l.pid);
+      for (const c of (l.cajas || [])) if (c.codigo && c.qty > 1) OCJ.set(limpio(c.codigo), { pid: l.pid, qty: c.qty });
+    }
     for (const p of OLA.pedidos) OLA.boxes[p.id] = OLA.boxes[p.id] || { items: {}, inicio: null };
     olaGuardar(); FLASH = null;
     (OLA.fase === "rep" ? pintarRepartir : pintarRecolectar)();
@@ -504,11 +515,11 @@ function pintarRecolectar() {
   const sc = $("sc"); sc.focus();
   $("fScan").onsubmit = e => {
     e.preventDefault(); const c = limpio(sc.value); sc.value = ""; if (!c) return;
-    const pid = OIDX.get(c), x = pid && ps.find(y => y.pid === pid);
+    const cj = OCJ.get(c), pid = cj ? cj.pid : OIDX.get(c), n = cj ? cj.qty : 1, x = pid && ps.find(y => y.pid === pid);
     if (!x) { sonar("err"); FLASH = { t: "err", h: "Este producto no va en ninguno de estos pedidos", s: "Regrésalo a su lugar." }; return pintarRecolectar(); }
-    if ((OLA.rec[pid] || 0) >= x.falta) { sonar("err"); FLASH = { t: "err", h: `Ya tienes todo: ${esc(x.nombre)}`, s: `Se necesitan ${x.falta}. Regresa el sobrante.` }; return pintarRecolectar(); }
-    OLA.rec[pid] = (OLA.rec[pid] || 0) + 1; olaGuardar(); sonar("ok");
-    FLASH = { t: "ok", h: `+1 ${esc(x.nombre)}`, s: `Llevas ${OLA.rec[pid]} de ${x.falta}` }; pintarRecolectar();
+    if ((OLA.rec[pid] || 0) + n > x.falta) { sonar("err"); FLASH = { t: "err", h: (OLA.rec[pid] || 0) >= x.falta ? `Ya tienes todo: ${esc(x.nombre)}` : `Esa caja trae ${n} y solo faltan ${x.falta - (OLA.rec[pid] || 0)}`, s: `Se necesitan ${x.falta}. Regresa el sobrante.` }; return pintarRecolectar(); }
+    OLA.rec[pid] = (OLA.rec[pid] || 0) + n; olaGuardar(); sonar("ok");
+    FLASH = { t: "ok", h: `+${n} ${esc(x.nombre)}${cj ? " (caja cerrada)" : ""}`, s: `Llevas ${OLA.rec[pid]} de ${x.falta}` }; pintarRecolectar();
   };
   $("oSalir").onclick = () => { if (confirm("¿Salir de la ola? Puedes retomarla después desde el menú.")) menu(); };
   $("oImp").onclick = () => imprimirRecoleccion(ps.filter(x => x.falta));
@@ -556,27 +567,33 @@ function pintarRepartir() {
   app.querySelectorAll("[data-et]").forEach(b => b.onclick = () => { const p = OLA.pedidos.find(x => x.id === +b.dataset.et); const c = p.cajas[p.cajas.length - 1]; const prev = T; T = p; imprimirEtiqueta(c.caja, c.sello, c.armo || OP.codigo, c.unidades); T = prev; });
 }
 // A qué tienda va una unidad: a la que más le falta de ese producto (empate: orden alfabético)
-function destinoDe(pid) {
+function destinoDe(pid, n) {
+  n = n || 1;
   let mejor = null, mf = 0;
-  for (const p of OLA.pedidos) { const l = p.lineas.find(x => x.pid === pid); if (!l) continue; const f = olaFalta(p, l); if (f > mf) { mf = f; mejor = { p, l, f }; } }
+  for (const p of OLA.pedidos) { const l = p.lineas.find(x => x.pid === pid); if (!l) continue; const f = olaFalta(p, l); if (f >= n && f > mf) { mf = f; mejor = { p, l, f }; } }
   return mejor;
 }
 function olaAgregar(p, l, qty, manual, motivo) {
   const b = OLA.boxes[p.id];
   if (!b.inicio) b.inicio = new Date().toISOString();
-  const it = b.items[l.pid] || (b.items[l.pid] = { pid: l.pid, codigo: l.codigo, ref: l.ref, nombre: l.nombre, alternos: l.alternos || [], qty: 0, manual: false });
+  const it = b.items[l.pid] || (b.items[l.pid] = { pid: l.pid, codigo: l.codigo, ref: l.ref, nombre: l.nombre, alternos: l.alternos || [], cajas: l.cajas || [], qty: 0, manual: false });
   it.qty += qty; if (manual) { it.manual = true; it.motivo = motivo; }
   OLA.hist.push({ id: p.id, pid: l.pid, qty }); OLA.ultimo = p.id; olaGuardar();
 }
 function repartir(v) {
   const c = limpio(v); if (!c) return;
-  const pid = OIDX.get(c);
+  const cj = OCJ.get(c), pid = cj ? cj.pid : OIDX.get(c), q = cj ? cj.qty : 1;
   if (!pid) { sonar("err"); FLASH = { t: "err", h: "Este producto no va en ninguna tienda de esta ola", s: `Código ${esc(c)}. Apártalo.` }; return pintarRepartir(); }
-  const d = destinoDe(pid);
-  if (!d) { sonar("err"); const n = OLA.pedidos.flatMap(p => p.lineas).find(l => l.pid === pid); FLASH = { t: "err", h: `Ya está completo en todas las tiendas: ${esc(n ? n.nombre : c)}`, s: "Es un sobrante: apártalo y regrésalo a su lugar." }; return pintarRepartir(); }
-  olaAgregar(d.p, d.l, 1, false);
+  const d = destinoDe(pid, q);
+  if (!d) {
+    sonar("err"); const n = OLA.pedidos.flatMap(p => p.lineas).find(l => l.pid === pid), alguna = destinoDe(pid, 1);
+    FLASH = cj && alguna ? { t: "err", h: `Ninguna tienda necesita la caja completa de ${q}`, s: "Abre la caja y escanea las piezas sueltas." }
+      : { t: "err", h: `Ya está completo en todas las tiendas: ${esc(n ? n.nombre : c)}`, s: "Es un sobrante: apártalo y regrésalo a su lugar." };
+    return pintarRepartir();
+  }
+  olaAgregar(d.p, d.l, q, false);
   sonar("ok");
-  FLASH = { t: "ok", tienda: d.p.tienda, h: esc(d.l.nombre), s: d.f - 1 ? `Le faltan ${d.f - 1} más a ${esc(d.p.tienda)}` : `${esc(d.p.tienda)} completo de este producto ✓` };
+  FLASH = { t: "ok", tienda: d.p.tienda, h: esc(d.l.nombre) + (cj ? ` · caja cerrada de ${q}` : ""), s: d.f - q ? `Le faltan ${d.f - q} más a ${esc(d.p.tienda)}` : `${esc(d.p.tienda)} completo de este producto ✓` };
   pintarRepartir();
 }
 function olaDeshacer() {
@@ -612,7 +629,7 @@ function olaCerrar(id) {
     e.preventDefault(); const sello = limpio($("sS").value); if (!sello) return;
     const bt = $("dlgForm").querySelector("[type=submit]"); bt.disabled = true; bt.textContent = "Guardando…";
     try {
-      const items = Object.values(b.items).map(({ pid, codigo, ref, nombre, alternos, qty, manual, motivo }) => ({ pid, codigo, ref, nombre, alternos, qty, manual, motivo }));
+      const items = Object.values(b.items).map(({ pid, codigo, ref, nombre, alternos, cajas, qty, manual, motivo }) => ({ pid, codigo, ref, nombre, alternos, cajas, qty, manual, motivo }));
       const r = await api("guardarCaja", { traslado: p.nombre, trasladoId: p.id, tienda: p.tienda, sello, items, inicio: b.inicio });
       p.cajas.push({ caja: r.caja, sello, unidades: r.unidades, armo: OP.codigo, contenido: items });
       OLA.boxes[id] = { items: {}, inicio: null }; OLA.hist = OLA.hist.filter(h => h.id !== id); olaGuardar();
@@ -689,7 +706,7 @@ async function abrirCaja(tid, caja) {
     if (info.estado === "recibida") throw new Error("Esta caja ya se recibió.");
     RC = lsGet("despacho-rec-" + tid + "-" + caja, null) || { info, sello: "", selloRoto: false, items: {}, inicio: null, hist: [], paso: "sello" };
     RC.info = info;
-    RIDX = indice(info.productos);
+    RIDX = indice(info.productos); RCJ = indiceCajas(info.productos);
     FLASH = null;
     pintarRecepcion();
   } catch (e) { error(e, listaRecibir); }
@@ -732,6 +749,8 @@ function sumarRec(k, base, qty, manual) {
 }
 function contar(v) {
   const c = limpio(v); if (!c) return;
+  const cj = RCJ.get(c);
+  if (cj) { const p = cj.l; sumarRec(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, cj.qty); sonar("ok"); FLASH = { t: "ok", h: `+${cj.qty} ${p.nombre} (caja cerrada)` }; return pintarRecepcion(); }
   const p = RIDX.get(c);
   if (p) { sumarRec(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, 1); sonar("ok"); FLASH = { t: "ok", h: "+1 " + p.nombre }; }
   else { sumarRec("x:" + c, { pid: null, codigo: c, nombre: "Código " + c, extra: true }, 1); sonar("err"); FLASH = { t: "err", h: "Este producto no viene en la lista de la caja", s: "Se cuenta como sobrante. Apártalo." }; }
