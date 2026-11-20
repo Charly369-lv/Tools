@@ -415,7 +415,7 @@ function setEx(on) {
 let MINE = ""; try { MINE = localStorage.getItem("dm-mi-tienda") || ""; } catch (e) {}
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 async function sobre() {
-  if (!SOBRE) { const r = await fetch("../surtido/existencias.enc?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("sin"); SOBRE = await r.json(); }
+  if (!SOBRE) { const r = await fetch("../datos/existencias.enc?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("sin"); SOBRE = await r.json(); }
   return SOBRE;
 }
 async function abrirStock(clave, silencioso) {
