@@ -49,6 +49,7 @@ DEF = {
     "oportunidad_unidades": 2, "oportunidad_min_bodega": 6, "oportunidades_max": 150,
     "devolver_max": 300,
     "excluir": ["BOD", "CDV", "DPROV", "REVIS", "BDAÑA", "TEMPS", "TEMBS", "ALDIS", "BDSA", "FLYS", "BDCS", "SG", "WALLM", "MOVIL"],
+    "tiendas": [],   # vacío = todas las que venden (menos las excluidas)
     "crear_borradores": False,
     "calendario": {},
 }
@@ -105,7 +106,13 @@ def main():
         sumar(m["product_id"][0], pref(m["location_id"]), m["date"], float(m.get(qf) or 0))
     for m in dev:
         sumar(m["product_id"][0], pref(m["location_dest_id"]), m["date"], -float(m.get(qf) or 0))
-    tiendas = sorted({t for (t, _) in V if t in WH and t not in excluir})
+    if cfg.get("tiendas"):   # lista fija: solo estas tiendas se surten desde la bodega central
+        tiendas = [t.upper() for t in cfg["tiendas"] if t.upper() in WH and t.upper() != ORIG]
+        faltan = [t for t in cfg["tiendas"] if t.upper() not in WH]
+        if faltan:
+            print("  Aviso: estos códigos no existen como almacén:", ", ".join(faltan))
+    else:
+        tiendas = sorted({t for (t, _) in V if t in WH and t not in excluir})
     print(f"  {len(sal):,} salidas, {len(dev):,} devoluciones. Tiendas con venta: {', '.join(tiendas)}")
 
     # ---------------------------------------------------------------- existencias
@@ -258,7 +265,13 @@ def main():
         D = D[:int(cfg["devolver_max"])]
         usados.update(pid for pid, _ in D)
         aA = sum(1 for (tt, pid), c in CL.items() if tt == t and c == "A" and EX.get((t, pid), 0) <= 0)
-        S[t] = {"l": L, "o": O, "d": D, "agA": aA, "nA": sum(1 for (tt, _), c in CL.items() if tt == t and c == "A")}
+        # Venta de todo lo que se vendió en la tienda (para los planes personalizados: días a cubrir, proveedor, categoría)
+        VV = []
+        for (tt, pid), v in V.items():
+            if tt == t and sum(v) > 0:
+                VV.append([pid, int(round(v[0])), int(round(v[1])), int(round(v[2])), int(max(0, EX.get((t, pid), 0))), int(PEN.get((t, pid), 0))])
+                usados.add(pid)
+        S[t] = {"l": L, "o": O, "d": D, "v": VV, "agA": aA, "nA": sum(1 for (tt, _), c in CL.items() if tt == t and c == "A")}
 
     # Ranking de proveedores (cadena y por tienda)
     R = collections.defaultdict(lambda: [0.0, 0.0, 0.0, 0.0, 0])   # unidades, venta Q, existencia tiendas, existencia bodega, productos vendidos
@@ -322,12 +335,18 @@ def main():
         if ref and nom.startswith(f"[{ref}]"):
             nom = nom[len(ref) + 2:].strip()
         pr = precio(pid)
-        return [code, ref, nom, prov_de(pid), int(pr) if pr == int(pr) else round(pr, 2), 1 if es_bazar(pid) else 0]
+        cat = as_text(p.get("categ_id")) or "Sin categoría"
+        if cat not in CATI:
+            CATI[cat] = len(CAT)
+            CAT.append(cat)
+        return [code, ref, nom, prov_de(pid), int(pr) if pr == int(pr) else round(pr, 2), 1 if es_bazar(pid) else 0,
+                CATI[cat], int(max(0, BODD.get(pid, 0)))]
+    CAT, CATI = [], {}
     PP = {str(pid): prod_fila(pid) for pid in sorted(usados)}
     version = time.strftime("%Y-%m-%d %H:%M", time.gmtime())
     datos = {"v": version, "origen": ORIG, "dia": dia, "tiendas": tiendas, "nombres": {t: WH[t]["name"] for t in tiendas},
              "cfg": {k: cfg[k] for k in ("semanas_A", "semanas_B", "minimo_A", "crear_borradores", "calendario")},
-             "prov": PROV, "p": PP, "s": S, "bor": BOR, "pr": PR, "prs": PRS}
+             "prov": PROV, "cat": CAT, "p": PP, "s": S, "bor": BOR, "pr": PR, "prs": PRS}
     sobre = cifrar(gzip.compress(json.dumps(datos, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), 9), clave)
     sobre["v"] = version
     os.makedirs(os.path.join(a.out, "resurtido"), exist_ok=True)
