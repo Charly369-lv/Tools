@@ -1,0 +1,110 @@
+name: Correos automáticos
+
+on:
+  schedule:
+    - cron: "0 13 * * 1"   # lunes 7:00 a. m. de Guatemala: Top 25 y remarcaje
+    - cron: "0 13 1 * *"   # día 1 de cada mes, 7:00 a. m.: ranking del bazar
+  workflow_dispatch:
+    inputs:
+      que:
+        description: "Qué enviar"
+        type: choice
+        options: [semanales, ranking, todos]
+        default: semanales
+      solo_a:
+        description: "Prueba: mandar TODO solo a este correo (bórralo para enviar a las tiendas)"
+        required: false
+        default: "ingrid@demuseo.com"
+
+permissions:
+  contents: write   # para guardar la foto del remarcaje después de enviar
+
+concurrency:
+  group: correos
+  cancel-in-progress: false
+
+jobs:
+  semanales:
+    if: github.event.schedule == '0 13 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.que != 'ranking')
+    runs-on: ubuntu-latest
+    env:
+      ODOO_URL: ${{ secrets.ODOO_URL }}
+      ODOO_DB: ${{ secrets.ODOO_DB }}
+      ODOO_USER: ${{ secrets.ODOO_USER }}
+      ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+      GMAIL_USER: ${{ secrets.GMAIL_USER }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      SOLO_A: ${{ inputs.solo_a }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Top 25 más vendidos
+        id: top
+        continue-on-error: true
+        run: |
+          python sync/top25.py --vista-previa correos/top25
+          python sync/enviar_correos.py top25 correos/top25 --solo-a "$SOLO_A"
+
+      - name: Lista de remarcaje
+        id: rem
+        continue-on-error: true
+        run: |
+          python sync/remarcaje.py --vista-previa correos/remarcaje --guardar-estado
+          python sync/enviar_correos.py remarcaje correos/remarcaje --solo-a "$SOLO_A"
+
+      # La foto del remarcaje solo se guarda si los correos salieron (y no era prueba),
+      # así la próxima semana compara contra lo que las tiendas sí recibieron.
+      - name: Guardar foto del remarcaje
+        if: steps.rem.outcome == 'success' && env.SOLO_A == ''
+        run: |
+          git config user.name "Correos De Museo"
+          git config user.email "actions@users.noreply.github.com"
+          git add sync/remarcaje_estado.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Remarcaje: foto del $(date +%d/%m/%Y)"
+          for i in 1 2 3; do git pull --rebase -q && git push -q && break; sleep 5; done
+
+      - name: Copia de los correos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: correos-semanales
+          path: correos
+          retention-days: 14
+
+      - name: ¿Falló algo?
+        if: steps.top.outcome == 'failure' || steps.rem.outcome == 'failure'
+        run: |
+          echo "Top 25: ${{ steps.top.outcome }} · Remarcaje: ${{ steps.rem.outcome }}"
+          exit 1
+
+  ranking:
+    if: github.event.schedule == '0 13 1 * *' || (github.event_name == 'workflow_dispatch' && inputs.que != 'semanales')
+    runs-on: ubuntu-latest
+    env:
+      ODOO_URL: ${{ secrets.ODOO_URL }}
+      ODOO_DB: ${{ secrets.ODOO_DB }}
+      ODOO_USER: ${{ secrets.ODOO_USER }}
+      ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+      GMAIL_USER: ${{ secrets.GMAIL_USER }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      SOLO_A: ${{ inputs.solo_a }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ranking del bazar del mes anterior
+        run: |
+          python sync/ranking_bazar.py --vista-previa correos/ranking
+          python sync/enviar_correos.py ranking correos/ranking --solo-a "$SOLO_A"
+      - name: Copia de los correos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: correos-ranking
+          path: correos
+          retention-days: 30
