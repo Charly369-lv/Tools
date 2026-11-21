@@ -717,10 +717,32 @@ function pintarRecepcion() {
   if (RC.paso === "sello") {
     app.innerHTML = `<section class="card"><h3>${esc(i.traslado)} · ${esc(i.tienda)}</h3><h1>Caja ${i.caja} de ${i.totalCajas}</h1>
       <p class="notice"><b>Antes de abrir la caja:</b> revisa que el sello esté intacto y escanea su número.</p>
+      ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : ""}
       <form class="scan" id="fSel" autocomplete="off"><input id="rS" placeholder="Número del sello" inputmode="none"><button type="submit">Siguiente</button></form>
       <div class="row"><button type="button" class="warn" id="bRoto">El sello está roto o no tiene sello</button><button type="button" class="ghost" id="bVol">Volver</button></div></section>`;
     $("rS").focus();
-    $("fSel").onsubmit = e => { e.preventDefault(); const s = limpio($("rS").value); if (!s) return; RC.sello = s; RC.paso = "contar"; lsSet(rcKey(), RC); sonar("ok"); pintarRecepcion(); };
+    $("fSel").onsubmit = async e => {
+      e.preventDefault(); const s = limpio($("rS").value); if (!s) return;
+      const bt = $("fSel").querySelector("button"); bt.disabled = true;
+      let v;
+      try { v = await api("verificarSello", { trasladoId: i.trasladoId, traslado: i.traslado, caja: i.caja, sello: s }); }
+      catch (er) { bt.disabled = false; sonar("err"); FLASH = { t: "err", h: er.message }; return pintarRecepcion(); }
+      if (v.ok) { RC.sello = s; RC.paso = "contar"; lsSet(rcKey(), RC); sonar("ok"); FLASH = { t: "ok", h: "Sello correcto ✓", s: "Ya puedes abrir la caja." }; return pintarRecepcion(); }
+      sonar("err");
+      const o = v.deOtra, mia = o && (OP.rol !== "TIENDA" || o.tienda === OP.tienda);
+      app.innerHTML = `<section class="card"><h3>${esc(i.traslado)} · caja ${i.caja}</h3>
+        <div class="flash err" style="font-size:20px">⛔ ${o ? "Las etiquetas están cambiadas" : "El sello no coincide"}<small>No abras la caja.</small></div>
+        ${o ? `<p>El sello <b class="mono">${esc(s)}</b> es de la <b>caja ${o.caja}</b> de <b class="mono">${esc(o.traslado)}</b>, que va para <b>${esc(o.tienda)}</b>. La etiqueta pegada es de otra caja (debía traer el sello <b class="mono">${esc(v.esperado)}</b>).</p>
+          ${o.estado === "recibida" ? '<p class="notice bad">Esa caja ya aparece como recibida. Avisa a tu supervisor.</p>'
+            : mia ? `<p class="notice">Esta caja sí es para <b>${esc(o.tienda)}</b>. Puedes recibirla como la caja correcta.</p><div class="row"><button type="button" id="bOtra">Recibir como caja ${o.caja} de ${esc(o.traslado)}</button></div>`
+            : `<p class="notice bad"><b>Esta caja no es para tu tienda.</b> Apártala sin abrir y avisa al CEDIS: hay que mandarla a <b>${esc(o.tienda)}</b>. Tu caja (${esc(i.traslado)} caja ${i.caja}) probablemente llegó a ${esc(o.tienda)}.</p>`}`
+          : `<p>Se leyó <b class="mono">${esc(s)}</b> y la etiqueta corresponde al sello <b class="mono">${esc(v.esperado)}</b>. Vuelve a escanear el sello con cuidado. Si sigue sin coincidir, no abras la caja y avisa a tu supervisor.</p>`}
+        <div class="row"><button type="button" class="ghost" id="bOtraVez">Escanear de nuevo</button>${!o && OP.rol === "SUPERVISOR" ? '<button type="button" class="warn" id="bSeguir">Supervisor: abrir de todos modos (incidente)</button>' : ""}<button type="button" class="ghost" id="bVol2">Volver</button></div></section>`;
+      $("bOtraVez").onclick = () => { FLASH = null; pintarRecepcion(); };
+      $("bVol2").onclick = listaRecibir;
+      if ($("bOtra")) $("bOtra").onclick = () => { lsDel(rcKey()); abrirCaja(o.trasladoId, o.caja).then(() => { if (RC && RC.paso === "sello") { RC.sello = s; RC.paso = "contar"; lsSet(rcKey(), RC); FLASH = { t: "ok", h: "Sello correcto ✓", s: "Recibiendo la caja correcta." }; pintarRecepcion(); } }); };
+      if ($("bSeguir")) $("bSeguir").onclick = () => { RC.sello = s; RC.paso = "contar"; lsSet(rcKey(), RC); FLASH = { t: "err", h: "Sello no coincide: queda registrado como incidente" }; pintarRecepcion(); };
+    };
     $("bRoto").onclick = () => { RC.selloRoto = true; RC.sello = limpio($("rS").value); RC.paso = "contar"; lsSet(rcKey(), RC); sonar("err");
       FLASH = { t: "err", h: "Sello roto: queda registrado como incidente", s: "Toma una foto de la caja y cuenta todo con cuidado." }; pintarRecepcion(); };
     $("bVol").onclick = listaRecibir;
