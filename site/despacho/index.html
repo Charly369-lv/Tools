@@ -234,10 +234,11 @@ const OPCIONES = {
   sp: ["Enviar sin pedido (devolución, traslado o urgente)", () => iniciarSP()],
   apr: ["Aprobar envíos sin pedido", () => listaAprobar()],
   ind: ["Indicadores por operador", () => indicadores()],
+  car: ["Cargar camión (revisar etiqueta y sello)", () => iniciarCarga()],
   gaf: ["Imprimir gafetes de operadores", () => gafetes()],
 };
 function menu() {
-  const ks = OP.rol === "TIENDA" ? ["rec", "sp"] : OP.rol === "SUPERVISOR" ? ["ola", "emp", "rec", "sp", "apr", "ind", "gaf"] : ["ola", "emp", "dev", "sp"];
+  const ks = OP.rol === "TIENDA" ? ["rec", "sp"] : OP.rol === "SUPERVISOR" ? ["ola", "emp", "car", "rec", "sp", "apr", "ind", "gaf"] : ["ola", "emp", "car", "dev", "sp"];
   const sp = lsGet("despacho-sp-actual", null);
   const olaG = OP.rol !== "TIENDA" ? lsGet("despacho-ola", null) : null;
   app.innerHTML = `<section class="card"><h1>¿Qué vas a hacer?</h1>
@@ -674,6 +675,89 @@ function olaTerminar() {
       <div class="row"><button type="button" id="oMenu">Menú</button></div></section>`;
     $("oMenu").onclick = menu;
   };
+}
+
+// ---------------------------------------------------------------- CEDIS: carga del camión
+// Cada caja se revisa al subirla: etiqueta + sello. Rechaza etiquetas cambiadas, sellos que no coinciden
+// y cajas que no van en la ruta del camión.
+let CARGA = null;   // { camion, ruta:[tiendas], hechas:[{tienda,traslado,caja,unidades}], paso, actual }
+async function iniciarCarga() {
+  cargando("Buscando cajas listas para cargar…");
+  try {
+    const cs = await api("porCargar", {});
+    CARGA = lsGet("despacho-carga", null);
+    if (CARGA) return pintarCarga(cs);
+    const por = {}; cs.forEach(c => { por[c.tienda] = (por[c.tienda] || 0) + 1; });
+    const ts = Object.keys(por).sort();
+    app.innerHTML = `<section class="card"><div class="row between"><h1>Cargar camión</h1><button type="button" class="ghost sm" id="cVol">Menú</button></div>
+      <p class="muted">Antes de subir cada caja se escanea su etiqueta y su sello. La app confirma que coinciden y que la caja va en la ruta de este camión.</p>
+      <label class="f">Camión, placa o piloto<input id="cCam" placeholder="Ej.: P-123ABC · Juan" autocomplete="off"></label>
+      <h3>Tiendas de esta ruta</h3>
+      ${ts.length ? `<div class="row"><button type="button" class="ghost sm" id="cTodas">Marcar todas</button></div>
+        <div class="list">${ts.map(t => `<label class="item" style="cursor:pointer"><span class="row" style="gap:10px;flex-wrap:nowrap"><input type="checkbox" data-rt="${t}" style="width:22px;height:22px"><b>${esc(t)}</b></span><span class="chip">${por[t]} ${por[t] === 1 ? "caja" : "cajas"}</span></label>`).join("")}</div>`
+        : '<p class="muted">No hay cajas cerradas pendientes de cargar.</p>'}
+      <p class="notice bad" id="cErr" hidden></p>
+      <div class="row" style="justify-content:flex-end"><button type="button" id="cIni" ${ts.length ? "" : "disabled"}>Empezar carga</button></div></section>`;
+    $("cVol").onclick = menu;
+    if ($("cTodas")) $("cTodas").onclick = () => app.querySelectorAll("[data-rt]").forEach(c => c.checked = true);
+    $("cIni").onclick = () => {
+      const ruta = [...app.querySelectorAll("[data-rt]")].filter(c => c.checked).map(c => c.dataset.rt), cam = $("cCam").value.trim();
+      if (!cam || !ruta.length) { sonar("err"); $("cErr").textContent = "Escribe el camión y marca al menos una tienda."; $("cErr").hidden = false; return; }
+      CARGA = { camion: cam, ruta, hechas: [], paso: "etiqueta", actual: null }; lsSet("despacho-carga", CARGA); FLASH = null; pintarCarga(cs);
+    };
+  } catch (e) { error(e, menu); }
+}
+function pintarCarga(cs) {
+  CARGA.pend = cs || CARGA.pend || [];
+  const pend = CARGA.pend.filter(c => CARGA.ruta.includes(c.tienda) && !CARGA.hechas.some(h => h.traslado === c.traslado && h.caja === c.caja));
+  const tot = CARGA.hechas.length + pend.length;
+  const porT = {}; CARGA.ruta.forEach(t => porT[t] = { h: 0, p: 0 });
+  CARGA.hechas.forEach(h => { if (porT[h.tienda]) porT[h.tienda].h++; }); pend.forEach(c => porT[c.tienda].p++);
+  const a = CARGA.actual;
+  app.innerHTML = `<section class="card">
+    <div class="row between"><div><h3>Camión ${esc(CARGA.camion)} · ${esc(CARGA.ruta.join(", "))}</h3><h1>${CARGA.paso === "sello" ? "Ahora el sello" : "Escanea la etiqueta"}</h1></div>
+      <button type="button" class="ghost sm" id="cSalir">Salir</button></div>
+    <div class="kpis"><div class="kpi"><span>Cargadas</span><b>${CARGA.hechas.length}</b> <span style="display:inline">de ${tot}</span></div></div>
+    <div class="bar"><i style="width:${tot ? Math.round(CARGA.hechas.length / tot * 100) : 0}%"></i></div>
+    ${CARGA.paso === "sello" && a ? `<div class="flash info" style="font-size:20px"><span style="font:900 clamp(36px,8vw,56px)/1 var(--f-body)">${esc(a.tienda)}</span> caja ${a.caja}<small>${esc(a.traslado)} · ahora escanea el número del sello de esta misma caja</small></div>` : ""}
+    <form class="scan" id="fCg" autocomplete="off"><input id="cg" placeholder="${CARGA.paso === "sello" ? "Número del sello" : "Etiqueta de la caja"}" inputmode="none"><button type="submit">${CARGA.paso === "sello" ? "Revisar" : "Siguiente"}</button></form>
+    ${FLASH ? `<div class="flash ${FLASH.t}" ${FLASH.big ? 'style="font-size:20px"' : ""}>${FLASH.big ? `<span style="font:900 clamp(36px,8vw,56px)/1 var(--f-body)">${FLASH.big}</span>` : ""}${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : ""}
+    <div class="row">${CARGA.paso === "sello" ? '<button type="button" class="ghost" id="cOtra">Cancelar esta caja</button>' : ""}<button type="button" id="cFin">Terminar carga</button></div>
+  </section>
+  <section class="card"><h3>Por tienda</h3><div class="tiles">${CARGA.ruta.map(t => `<div class="tile ${porT[t].p ? "" : "full"}"><b class="tt">${esc(t)}</b><div class="small">${porT[t].h} cargadas · ${porT[t].p ? `<b>faltan ${porT[t].p}</b>` : "completa ✓"}</div></div>`).join("")}</div>
+    ${pend.length ? `<details><summary>Cajas que faltan (${pend.length})</summary><div class="list">${pend.map(c => `<div class="row between"><span><b>${esc(c.tienda)}</b> · <span class="mono">${esc(c.traslado)}</span> caja ${c.caja}</span><span class="small">${c.unidades} uds.</span></div>`).join("")}</div></details>` : ""}</section>`;
+  $("cg").focus();
+  $("cSalir").onclick = () => { if (confirm("¿Salir? La carga queda guardada en este equipo y puedes seguir después.")) menu(); };
+  if ($("cOtra")) $("cOtra").onclick = () => { CARGA.paso = "etiqueta"; CARGA.actual = null; lsSet("despacho-carga", CARGA); FLASH = null; pintarCarga(); };
+  $("cFin").onclick = terminarCarga;
+  $("fCg").onsubmit = async e => {
+    e.preventDefault(); const v = limpio($("cg").value); if (!v) return;
+    if (CARGA.paso === "etiqueta") {
+      const m = v.match(/^77(\d{8})(\d{3})$/);
+      if (!m) { sonar("err"); FLASH = { t: "err", h: "Esa no es una etiqueta de caja", s: "Escanea el código de barras de la etiqueta." }; return pintarCarga(); }
+      const tid = +m[1], caja = +m[2];
+      if (CARGA.hechas.some(h => h.trasladoId === tid && h.caja === caja)) { sonar("err"); FLASH = { t: "err", h: "Esta caja ya se cargó en este camión" }; return pintarCarga(); }
+      const c = CARGA.pend.find(x => x.trasladoId === tid && x.caja === caja);
+      if (c && !CARGA.ruta.includes(c.tienda)) { sonar("err"); FLASH = { t: "err", big: "⛔ " + esc(c.tienda), h: "No va en este camión", s: `La ruta es ${esc(CARGA.ruta.join(", "))}. Aparta la caja.` }; return pintarCarga(); }
+      CARGA.actual = c || { trasladoId: tid, caja, tienda: "?", traslado: "Caja " + caja };
+      CARGA.paso = "sello"; lsSet("despacho-carga", CARGA); sonar("ok"); FLASH = null; return pintarCarga();
+    }
+    const act = CARGA.actual;
+    try {
+      const r = await api("cargarCaja", { trasladoId: act.trasladoId, traslado: act.traslado, caja: act.caja, sello: v, ruta: CARGA.ruta, camion: CARGA.camion });
+      CARGA.hechas.push({ trasladoId: act.trasladoId, traslado: r.traslado, caja: r.caja, tienda: r.tienda, unidades: r.unidades });
+      sonar("ok"); FLASH = { t: "ok", big: "✓ " + esc(r.tienda), h: ` caja ${r.caja}: súbela al camión`, s: "Etiqueta y sello coinciden." };
+    } catch (er) { sonar("err"); FLASH = { t: "err", big: "⛔ No cargar", h: "", s: esc(er.message) }; }
+    CARGA.paso = "etiqueta"; CARGA.actual = null; lsSet("despacho-carga", CARGA); pintarCarga();
+  };
+}
+function terminarCarga() {
+  const pend = (CARGA.pend || []).filter(c => CARGA.ruta.includes(c.tienda) && !CARGA.hechas.some(h => h.traslado === c.traslado && h.caja === c.caja));
+  const d = dialogo(`<h2>Terminar carga</h2><p>Camión <b>${esc(CARGA.camion)}</b>: ${CARGA.hechas.length} cajas cargadas.</p>
+    ${pend.length ? `<p class="notice bad">Faltan ${pend.length} cajas de esta ruta:<br>${pend.slice(0, 12).map(c => `${esc(c.tienda)} · ${esc(c.traslado)} caja ${c.caja}`).join("<br>")}${pend.length > 12 ? "<br>…" : ""}</p><p class="small">Si salen en otro viaje, termina igual; quedan pendientes para la siguiente carga.</p>` : '<p class="notice good">Todas las cajas de la ruta están cargadas. ✓</p>'}
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="tNo">Seguir cargando</button><button type="submit">Terminar</button></div>`);
+  $("tNo").onclick = () => d.close();
+  $("dlgForm").onsubmit = e => { e.preventDefault(); d.close(); lsDel("despacho-carga"); CARGA = null; FLASH = { t: "ok", h: "Carga terminada" }; menu(); };
 }
 
 // ---------------------------------------------------------------- TIENDA: recepción
