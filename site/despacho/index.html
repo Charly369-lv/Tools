@@ -223,7 +223,7 @@ function inicio() {
   if (!CFG) return pantallaConfig();
   if (!OP) return pantallaLogin();
   $("who").hidden = false;
-  $("whoTxt").innerHTML = `<b>${esc(OP.nombre)}</b> · ${esc(OP.rol === "TIENDA" ? "Tienda " + OP.tienda : OP.rol === "SUPERVISOR" ? "Supervisor" : "CEDIS")}`;
+  $("whoTxt").innerHTML = `<b>${esc(OP.nombre)}</b> · ${esc(OP.rol === "TIENDA" ? "Tienda " + OP.tienda : OP.rol === "SUPERVISOR" ? "Supervisor" : OP.rol === "PILOTO" ? "Piloto" : "CEDIS")}`;
   return menu();
 }
 const OPCIONES = {
@@ -235,9 +235,11 @@ const OPCIONES = {
   apr: ["Aprobar envíos sin pedido", () => listaAprobar()],
   ind: ["Indicadores por operador", () => indicadores()],
   car: ["Cargar camión (revisar etiqueta y sello)", () => iniciarCarga()],
+  ent: ["Mis entregas", () => misEntregas()],
   gaf: ["Imprimir gafetes de operadores", () => gafetes()],
 };
 function menu() {
+  if (OP.rol === "PILOTO") return misEntregas();
   const ks = OP.rol === "TIENDA" ? ["rec", "sp"] : OP.rol === "SUPERVISOR" ? ["ola", "emp", "car", "rec", "sp", "apr", "ind", "gaf"] : ["ola", "emp", "car", "dev", "sp"];
   const sp = lsGet("despacho-sp-actual", null);
   const olaG = OP.rol !== "TIENDA" ? lsGet("despacho-ola", null) : null;
@@ -753,11 +755,78 @@ function pintarCarga(cs) {
 }
 function terminarCarga() {
   const pend = (CARGA.pend || []).filter(c => CARGA.ruta.includes(c.tienda) && !CARGA.hechas.some(h => h.traslado === c.traslado && h.caja === c.caja));
-  const d = dialogo(`<h2>Terminar carga</h2><p>Camión <b>${esc(CARGA.camion)}</b>: ${CARGA.hechas.length} cajas cargadas.</p>
+  const n = CARGA.hechas.length;
+  const d = dialogo(`<h2>Terminar carga</h2><p>Camión <b>${esc(CARGA.camion)}</b>: ${n} cajas cargadas.</p>
     ${pend.length ? `<p class="notice bad">Faltan ${pend.length} cajas de esta ruta:<br>${pend.slice(0, 12).map(c => `${esc(c.tienda)} · ${esc(c.traslado)} caja ${c.caja}`).join("<br>")}${pend.length > 12 ? "<br>…" : ""}</p><p class="small">Si salen en otro viaje, termina igual; quedan pendientes para la siguiente carga.</p>` : '<p class="notice good">Todas las cajas de la ruta están cargadas. ✓</p>'}
-    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="tNo">Seguir cargando</button><button type="submit">Terminar</button></div>`);
+    ${n ? `<label class="f">El piloto escanea su gafete (o escribe su código)<input id="tPil" autocomplete="off" style="text-transform:uppercase;font:600 20px var(--f-mono)"></label>
+      <p class="small">Con su firma, las ${n} cajas quedan a su cargo hasta que las entregue en cada tienda.</p>` : ""}
+    <p class="notice bad" id="tErr" hidden></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="tNo">Seguir cargando</button><button type="submit">${n ? "Firmar y terminar" : "Terminar"}</button></div>`);
   $("tNo").onclick = () => d.close();
-  $("dlgForm").onsubmit = e => { e.preventDefault(); d.close(); lsDel("despacho-carga"); CARGA = null; FLASH = { t: "ok", h: "Carga terminada" }; menu(); };
+  if ($("tPil")) setTimeout(() => $("tPil").focus(), 50);
+  $("dlgForm").onsubmit = async e => {
+    e.preventDefault();
+    if (n) {
+      const pil = limpio($("tPil").value).toUpperCase();
+      if (!pil) { $("tErr").textContent = "Falta el gafete del piloto: sin su firma no sale la carga."; $("tErr").hidden = false; return; }
+      const bt = $("dlgForm").querySelector("[type=submit]"); bt.disabled = true;
+      try { const r = await api("firmarCarga", { piloto: pil, camion: CARGA.camion, cajas: CARGA.hechas.map(h => ({ trasladoId: h.trasladoId, caja: h.caja })) }); FLASH = { t: "ok", h: `Carga firmada por ${esc(r.piloto)}: ${r.cajas} cajas a su cargo` }; }
+      catch (er) { sonar("err"); $("tErr").textContent = er.message; $("tErr").hidden = false; bt.disabled = false; return; }
+    } else FLASH = { t: "ok", h: "Carga terminada" };
+    d.close(); lsDel("despacho-carga"); CARGA = null; sonar("bien"); menu();
+  };
+}
+
+// ---------------------------------------------------------------- PILOTO: entregas en tienda
+// Las cajas quedan a cargo del piloto desde que firma la carga hasta que el encargado de la tienda las recibe en su tablet.
+let ENT = null;   // { tienda, escaneadas:[{trasladoId,caja}] }
+async function misEntregas() {
+  cargando("Buscando tus entregas…");
+  try {
+    const cs = await api("misEntregas", {});
+    const por = {}; cs.forEach(c => (por[c.tienda] = por[c.tienda] || []).push(c));
+    app.innerHTML = `<section class="card"><h1>Mis entregas</h1>
+      <p class="muted">Cajas a tu cargo. En cada tienda, toca la tienda, escanea cada caja que entregas y pide al encargado que confirme con su código.</p>
+      ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : ""}
+      <div class="list">${Object.keys(por).sort().map(t => `<button type="button" class="item" data-ti="${t}" style="text-align:left"><span><b style="font-size:22px">${esc(t)}</b></span><span class="chip">${por[t].length} ${por[t].length === 1 ? "caja" : "cajas"}</span></button>`).join("") || '<p class="muted">No tienes cajas pendientes de entregar. ✓</p>'}</div></section>`;
+    app.querySelectorAll("[data-ti]").forEach(b => b.onclick = () => { ENT = { tienda: b.dataset.ti, escaneadas: [], cajas: por[b.dataset.ti] }; FLASH = null; pintarEntrega(); });
+  } catch (e) { error(e, misEntregas); }
+}
+function pintarEntrega() {
+  const hechas = ENT.escaneadas.length, tot = ENT.cajas.length;
+  app.innerHTML = `<section class="card">
+    <div class="row between"><div><h3>Entrega</h3><h1>${esc(ENT.tienda)}</h1></div><button type="button" class="ghost sm" id="eVol">Mis entregas</button></div>
+    <div class="kpis"><div class="kpi"><span>Escaneadas</span><b>${hechas}</b> <span style="display:inline">de ${tot}</span></div></div>
+    <div class="bar"><i style="width:${tot ? Math.round(hechas / tot * 100) : 0}%"></i></div>
+    <form class="scan" id="fEn" autocomplete="off"><input id="en" placeholder="Escanea la etiqueta de cada caja que entregas" inputmode="none"><button type="submit">+1</button></form>
+    ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : ""}
+    <div class="list">${ENT.cajas.map(c => { const ok = ENT.escaneadas.some(x => x.trasladoId === c.trasladoId && x.caja === c.caja); return `<div class="row between"><span>${ok ? "✓" : "○"} <span class="mono">${esc(c.traslado)}</span> caja ${c.caja}</span><span class="small">sello ${esc(c.sello)}</span></div>`; }).join("")}</div>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ok" id="eConf" ${hechas ? "" : "disabled"}>El encargado confirma la entrega</button></div></section>`;
+  $("en").focus();
+  $("eVol").onclick = misEntregas;
+  $("fEn").onsubmit = e => {
+    e.preventDefault(); const v = limpio($("en").value); const m = v.match(/^77(\d{8})(\d{3})$/);
+    if (!m) { sonar("err"); FLASH = { t: "err", h: "Esa no es una etiqueta de caja" }; return pintarEntrega(); }
+    const c = ENT.cajas.find(x => x.trasladoId === +m[1] && x.caja === +m[2]);
+    if (!c) { sonar("err"); FLASH = { t: "err", h: "⛔ Esta caja no es para " + esc(ENT.tienda), s: "No la entregues aquí. Revisa a qué tienda va." }; return pintarEntrega(); }
+    if (ENT.escaneadas.some(x => x.trasladoId === c.trasladoId && x.caja === c.caja)) { sonar("err"); FLASH = { t: "err", h: "Esa caja ya la escaneaste" }; return pintarEntrega(); }
+    ENT.escaneadas.push({ trasladoId: c.trasladoId, caja: c.caja }); sonar("ok"); FLASH = { t: "ok", h: `✓ Caja ${c.caja} de ${esc(c.traslado)}` }; pintarEntrega();
+  };
+  $("eConf").onclick = () => {
+    const falta = ENT.cajas.length - ENT.escaneadas.length;
+    const d = dialogo(`<h2>Entrega en ${esc(ENT.tienda)}</h2><p>Entregas <b>${ENT.escaneadas.length}</b> ${ENT.escaneadas.length === 1 ? "caja" : "cajas"}.</p>
+      ${falta ? `<p class="notice bad">Quedan ${falta} cajas de ${esc(ENT.tienda)} sin entregar: siguen a tu cargo.</p>` : ""}
+      <p class="small">El encargado de la tienda revisa que las cajas estén cerradas con sello y confirma con su código (o su gafete). No hace falta abrirlas.</p>
+      <label class="f">Código del encargado de la tienda<input id="eRec" autocomplete="off" style="text-transform:uppercase;font:600 20px var(--f-mono)"></label><p class="notice bad" id="eErr" hidden></p>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="eNo">Cancelar</button><button type="submit" class="ok">Confirmar entrega</button></div>`);
+    setTimeout(() => $("eRec").focus(), 50); $("eNo").onclick = () => d.close();
+    $("dlgForm").onsubmit = async ev => {
+      ev.preventDefault(); const rec = limpio($("eRec").value).toUpperCase(); if (!rec) return;
+      const bt = $("dlgForm").querySelector("[type=submit]"); bt.disabled = true;
+      try { const r = await api("entregarCajas", { cajas: ENT.escaneadas, recibe: rec }); d.close(); sonar("bien"); FLASH = { t: "ok", h: `Entrega registrada: ${r.cajas} cajas`, s: "Recibió " + esc(r.recibio) }; ENT = null; misEntregas(); }
+      catch (er) { sonar("err"); $("eErr").textContent = er.message; $("eErr").hidden = false; bt.disabled = false; }
+    };
+  };
 }
 
 // ---------------------------------------------------------------- TIENDA: recepción
@@ -906,6 +975,10 @@ async function indicadores() {
       <h2>Tiendas: recepción</h2>
       <div class="tbl"><table><thead><tr><th>Operador</th><th>Tienda</th><th class="n">Cajas</th><th class="n">Unidades</th><th class="n">Min. por caja</th><th class="n">Incidentes de sello</th></tr></thead>
       <tbody>${r.recepcion.sort((a, b) => b.cajas - a.cajas).map(e => `<tr><td><b>${esc(e.nombre || e.operador)}</b><div class="small">${esc(e.operador)}</div></td><td>${esc(e.tienda)}</td><td class="n">${e.cajas}</td><td class="n">${e.unidades}</td><td class="n">${e.cajas ? Math.round(e.horas * 60 / e.cajas) : "—"}</td><td class="n">${e.incidentesSello}</td></tr>`).join("") || '<tr><td colspan="6" class="muted">Sin datos en este periodo.</td></tr>'}</tbody></table></div>
+      <h2>Pilotos: entregas</h2><p class="small">Pendientes = cajas que el piloto firmó y todavía no entrega. Incidentes = cajas que llegaron con el sello roto o equivocado.</p>
+      <div class="tbl"><table><thead><tr><th>Piloto</th><th class="n">Viajes</th><th class="n">Cajas</th><th class="n">Entregadas</th><th class="n">Pendientes</th><th class="n">Incidentes de sello</th></tr></thead>
+      <tbody>${(r.pilotos || []).map(e => `<tr><td><b>${esc(e.nombre || e.operador)}</b><div class="small">${esc(e.operador)}</div></td><td class="n">${e.viajes}</td><td class="n">${e.cajas}</td><td class="n">${e.entregadas}</td>
+        <td class="n ${e.pendientes.length ? "big" : ""}">${e.pendientes.length}${e.pendientes.length ? `<div class="small">${e.pendientes.slice(0, 5).map(esc).join("<br>")}</div>` : ""}</td><td class="n">${e.incidentes}</td></tr>`).join("") || '<tr><td colspan="6" class="muted">Sin datos en este periodo.</td></tr>'}</tbody></table></div>
       <p class="small">El detalle completo (cada caja, sello y diferencia) está en la hoja de cálculo del servidor.</p></section>`;
     $("iD").onchange = () => { lsSet("despacho-dias", +$("iD").value); indicadores(); };
   } catch (e) { error(e, indicadores); }
