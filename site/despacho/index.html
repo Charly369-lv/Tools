@@ -439,11 +439,39 @@ function terminar() {
     e.preventDefault();
     const faltantes = falt.map((x, i) => ({ pid: x.l.pid, nombre: x.l.nombre, codigo: x.l.codigo, faltan: x.f, motivo: $("dlgForm").querySelector(`[data-fm="${i}"]`).value }));
     try {
+      const hj = { nombre: T.nombre, tienda: T.tienda, cajas: T.cajas.map(c => ({ caja: c.caja, sello: c.sello, unidades: c.unidades })) };
       const r = await api("terminarTraslado", { traslado: T.nombre, faltantes }); d.close(); sonar("bien"); listaEmpacar();
-      if (r && r.sistema && !/^OK/.test(r.sistema)) dialogo(`<h2>Pedido terminado</h2><p class="notice bad">Las cajas quedaron guardadas, pero el inventario no se pudo actualizar todavía. Avisa a tu supervisor.</p><p class="small">${esc(r.sistema)}</p><div class="row" style="justify-content:flex-end"><button type="submit">Entendido</button></div>`); $("dlgForm").onsubmit = e => { e.preventDefault(); $("dlg").close(); };
+      const malSist = r && r.sistema && !/^OK/.test(r.sistema);
+      dialogo(`<h2>Pedido terminado ✓</h2><p><b>${hj.cajas.length} ${hj.cajas.length === 1 ? "caja" : "cajas"}</b> para ${esc(hj.tienda)}. Imprime la <b>hoja de envío</b> ("caja 1 de ${hj.cajas.length}"…) y pégala en la caja 1.</p>
+        ${malSist ? `<p class="notice bad">Las cajas quedaron guardadas, pero el inventario no se pudo actualizar todavía. Avisa a tu supervisor.</p><p class="small">${esc(r.sistema)}</p>` : ""}
+        <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="hjNo">Cerrar</button><button type="submit">Imprimir hoja de envío</button></div>`);
+      $("hjNo").onclick = () => $("dlg").close();
+      $("dlgForm").onsubmit = e => { e.preventDefault(); $("dlg").close(); hojaEnvio([hj]); };
     }
     catch (er) { sonar("err"); alert(er.message); }
   };
+}
+
+// ---------------------------------------------------------------- hoja de envío (se imprime al terminar el pedido)
+// Buena práctica: la etiqueta se pega al cerrar cada caja (identificador único + sello), y al terminar el pedido,
+// cuando ya se sabe cuántas cajas son, se imprime la hoja de envío con "caja X de N" y sus sellos. Va pegada en la caja 1.
+function hojaEnvio(pedidos) {
+  const w = window.open("", "_blank");
+  if (!w) { alert("Permite las ventanas emergentes para imprimir la hoja de envío."); return; }
+  const f = new Date().toLocaleString("es-GT");
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>Hoja de envío</title>
+  <style>@page{size:4in 6in;margin:0}body{margin:0;font:12px Arial,sans-serif;color:#000}.h{width:4in;height:5.95in;box-sizing:border-box;padding:.2in;page-break-after:always;display:flex;flex-direction:column;gap:6px}
+  .t{font:900 34px Arial}.k{font-size:10px;text-transform:uppercase;letter-spacing:.08em}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #000;padding:4px 2px;text-align:left}th{font-size:9px;text-transform:uppercase}.n{text-align:right}
+  .tot{border:2px solid #000;padding:6px;font:800 16px Arial;text-align:center}</style>
+  ${pedidos.map(p => { const u = p.cajas.reduce((a, c) => a + Number(c.unidades || 0), 0), N = p.cajas.length; return `<div class="h">
+    <div class="k">De Museo · Hoja de envío · va pegada en la caja 1</div><div class="t">${esc(p.tienda)}</div>
+    <div><b>${esc(p.nombre)}</b><br>${esc(f)}</div>
+    <div class="tot">${N} ${N === 1 ? "CAJA" : "CAJAS"} · ${u} UNIDADES</div>
+    <table><thead><tr><th>Caja</th><th>Sello</th><th class="n">Uds.</th><th>✓ tienda</th></tr></thead><tbody>
+    ${p.cajas.slice().sort((a, b) => a.caja - b.caja).map(c => `<tr><td><b>${c.caja} de ${N}</b></td><td>${esc(c.sello)}</td><td class="n">${c.unidades}</td><td>☐</td></tr>`).join("")}</tbody></table>
+    <div style="margin-top:auto;font-size:10px">Si no llegan las ${N} cajas, no firmes completo: anótalo en el checklist de llegada.</div></div>`; }).join("")}
+  <script>setTimeout(()=>print(),300)<\/script>`);
+  w.document.close();
 }
 
 // ---------------------------------------------------------------- CEDIS: ola (varias tiendas a la vez)
@@ -673,10 +701,13 @@ function olaTerminar() {
       try { const r = await api("terminarTraslado", { traslado: p.nombre, faltantes }); if (r && r.sistema && !/^OK/.test(r.sistema)) errores.push(`${p.tienda}: inventario no actualizado (${r.sistema})`); }
       catch (er) { errores.push(`${p.tienda}: ${er.message}`); }
     }
+    const hojas = con.map(p => ({ nombre: p.nombre, tienda: p.tienda, cajas: p.cajas.map(c => ({ caja: c.caja, sello: c.sello, unidades: c.unidades })) }));
     lsDel("despacho-ola"); OLA = null; d.close(); sonar(errores.length ? "err" : "bien");
     app.innerHTML = `<section class="card"><h1>Ola terminada</h1><p>${con.length} pedidos terminados.</p>
       ${errores.length ? `<p class="notice bad">Las cajas quedaron guardadas, pero revisa con tu supervisor:<br>${errores.map(esc).join("<br>")}</p>` : '<p class="notice good">Todo quedó registrado. ✓</p>'}
-      <div class="row"><button type="button" id="oMenu">Menú</button></div></section>`;
+      <p class="muted">Imprime las hojas de envío (una por tienda, con "caja 1 de N" y sus sellos) y pega cada una en la caja 1 de su tienda.</p>
+      <div class="row"><button type="button" id="oHoj">Imprimir hojas de envío</button><button type="button" class="ghost" id="oMenu">Menú</button></div></section>`;
+    $("oHoj").onclick = () => hojaEnvio(hojas);
     $("oMenu").onclick = menu;
   };
 }
