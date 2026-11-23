@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<title>Reparto de pedidos · De Museo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Reparto de un pedido de proveedor a las tiendas.
+   1) Abrir datos (misma clave que resurtido)  2) Subir el Excel del pedido  3) Ajustar reglas  4) Revisar y editar  5) Descargar el mismo Excel lleno (o crear borradores en el sistema). */
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8; --gold: #f2bd3c;
+  --violet: #5b3cc4; --violet-bg: #ece6ff;
+  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; --violet: #b9a6ff; --violet-bg: #2a2150; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1280px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 14px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.mast img { display: block; width: min(180px, 46vw); height: auto; }
+.mast span { color: var(--gold); font-weight: 800; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+main { padding-block: 18px 110px; }
+main .inner { display: grid; gap: 16px; }
+main .inner > *, .card > * { min-width: 0; }
+h1 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(24px, 5vw, 32px); line-height: 1.1; }
+h2 { margin: 0; font-size: 18px; font-weight: 800; }
+h3 { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.small { font-size: 12px; color: var(--muted); }
+.mono { font-family: var(--f-mono); font-size: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 12px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+button, .btn { font: 700 15px var(--f-body); border-radius: 10px; cursor: pointer; padding: 9px 16px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+button.ghost, .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.ok { background: var(--green); border-color: var(--green); }
+button.sm { min-height: 34px; padding: 4px 12px; font-size: 13px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, label.drop:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
+input, select { font: 15px var(--f-body); padding: 9px 11px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); min-width: 0; max-width: 100%; }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.good { background: var(--green-bg); }
+.notice.info { background: var(--soft); }
+label.drop { display: grid; place-items: center; gap: 6px; text-align: center; border: 2px dashed var(--line); border-radius: 12px; padding: 28px 16px; cursor: pointer; background: var(--soft); }
+label.drop b { font-size: 17px; }
+label.drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.steps { display: flex; gap: 6px; flex-wrap: wrap; }
+.steps span { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: var(--soft); color: var(--muted); }
+.steps span.on { background: var(--navy); color: #fff; }
+.steps span.ok { background: var(--green-bg); color: var(--green); }
+.cfg { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px 16px; }
+.cfg label { display: grid; gap: 5px; font-size: 13px; font-weight: 800; color: var(--muted); align-content: start; }
+.cfg label .small { font-weight: 500; }
+.cfg .wide { grid-column: 1 / -1; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { min-height: 32px; padding: 2px 12px; font-size: 13px; background: transparent; color: var(--ink); border-color: var(--line); }
+.chips button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--soft); border-radius: 10px; padding: 10px 12px; }
+.kpi span { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.kpi b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.tag { display: inline-block; font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.tag.ex { background: var(--green-bg); color: var(--green); }
+.tag.nu { background: var(--violet-bg); color: var(--violet); }
+.tag.sv { background: var(--amber-bg); color: var(--amber); }
+.tag.no { background: var(--red-bg); color: var(--red); }
+.tbl { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: separate; border-spacing: 0; font-size: 13px; min-width: 100%; }
+th, td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; background: var(--surface); }
+th { position: sticky; top: 0; z-index: 2; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.c0 { position: sticky; left: 0; z-index: 1; min-width: 270px; max-width: 320px; box-shadow: 1px 0 0 var(--line); }
+th.c0 { z-index: 3; }
+.c0 .t { font-weight: 700; line-height: 1.2; }
+td.q { padding: 3px; text-align: center; }
+td.q input { width: 52px; padding: 5px 4px; text-align: center; font-weight: 800; font-size: 14px; border-radius: 7px; border-width: 1.5px; -moz-appearance: textfield; }
+td.q input::-webkit-outer-spin-button, td.q input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+td.q input.z { color: var(--muted); font-weight: 500; }
+td.q input.ed { border-color: var(--gold); }
+td.q .ex { display: block; font-size: 10px; color: var(--muted); margin-top: 1px; white-space: nowrap; }
+td.bod b { font-size: 15px; }
+td.bod.neg b { color: var(--red); }
+tr.tot td { font-weight: 800; background: var(--soft); position: sticky; bottom: 0; z-index: 1; }
+tr.tot td.c0 { z-index: 2; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--navy-deep); color: #fff; padding-block: 10px; }
+.bar .inner { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.bar button.ghost { color: #fff; border-color: rgba(255,255,255,.35); }
+.bar button.gold { background: var(--gold); border-color: var(--gold); color: var(--navy-deep); }
+details > summary { cursor: pointer; font-weight: 700; }
+dialog { border: 0; border-radius: 14px; padding: 0; max-width: min(560px, calc(100vw - 32px)); width: 100%; background: var(--surface); color: var(--ink); }
+dialog::backdrop { background: rgba(5, 10, 30, .55); }
+dialog form { padding: 18px 20px; display: grid; gap: 12px; }
+.leg { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 13px; color: var(--muted); align-items: center; }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner"><img src="../checador/logo.png" alt="De Museo"><span>Reparto de pedidos</span></div></header>
+<main class="pad"><div class="inner" id="app">
+
+  <section class="card" id="claveCard">
+    <h1>Reparto de pedidos a tiendas</h1>
+    <p class="muted">Cuando llega un pedido de un proveedor, esta página propone cuánto mandar a cada tienda: lo que ya existe, según lo que vende cada una; lo nuevo, según cómo vende cada tienda a ese proveedor. Escribe la clave para abrir los datos de venta.</p>
+    <form id="claveForm" class="row" autocomplete="off"><input type="password" id="clave" placeholder="Clave" autocomplete="off"><button type="submit">Abrir</button></form>
+    <p class="notice bad" id="claveErr" hidden></p>
+  </section>
+
+  <div id="flujo" hidden style="display:grid;gap:16px">
+    <div class="steps" id="steps"></div>
+
+    <section class="card" id="subir">
+      <div class="row between"><h2>1 · Sube el Excel del pedido</h2><span class="small" id="datosV"></span></div>
+      <label class="drop" id="drop"><b>Toca aquí o arrastra el Excel del pedido</b><span class="small">El mismo formato de siempre: PLU, DESCRIPCION, PRECIO, una columna de existencia y una de reparto por tienda, TOTAL y FACTURA.</span><input type="file" id="archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+      <p class="notice bad" id="subirErr" hidden></p>
+    </section>
+
+    <section class="card" id="reglas" hidden>
+      <div class="row between"><h2>2 · Reglas del reparto</h2><button type="button" class="ghost sm" id="btnDef">Volver a lo recomendado</button></div>
+      <div class="cfg">
+        <label>Proveedor del pedido <select id="cProv"></select><span class="small">Para repartir lo nuevo según lo que cada tienda le vende a este proveedor.</span></label>
+        <label>Semanas a cubrir (lo que ya existe) <input type="number" id="cSem" min="1" max="26" step="1"><span class="small">Cada tienda recibe lo que vende en ese tiempo, menos lo que ya tiene y lo que va en camino.</span></label>
+        <label>Reserva en bodega · existentes (%) <input type="number" id="cResE" min="0" max="90" step="5"><span class="small">Se queda en BOD para resurtir a quien se le acabe primero.</span></label>
+        <label>Reserva en bodega · nuevos (%) <input type="number" id="cResN" min="0" max="90" step="5"><span class="small">Lo nuevo es una apuesta: guardar una parte y resurtir según cómo arranque.</span></label>
+        <label>Mínimo por tienda · nuevos <input type="number" id="cMin" min="1" max="50" step="1"><span class="small">Para que se vea en el mostrador. Si no alcanza para todas, primero las que más venden al proveedor.</span></label>
+        <label>Redondear a múltiplos de <input type="number" id="cMul" min="1" max="100" step="1"><span class="small">1 = piezas sueltas. Si un producto tiene empaque en el sistema, se respeta.</span></label>
+        <label>Base para lo nuevo <select id="cBase"><option value="prov">Venta de la tienda a este proveedor</option><option value="tienda">Venta total de la tienda</option></select></label>
+        <label>Probar en tiendas que no lo tienen <select id="cProbar"><option value="1">Sí: el mínimo, si sobra después de cubrir</option><option value="0">No</option></select><span class="small">Para productos que ya existen pero que una tienda nunca ha tenido.</span></label>
+        <div class="wide"><h3 style="margin-bottom:6px">Tiendas que reciben</h3><div class="chips" id="cTiendas"></div></div>
+      </div>
+    </section>
+
+    <section class="card" id="revisar" hidden>
+      <div class="row between"><h2>3 · Revisa y ajusta</h2><span class="small" id="archivoNom"></span></div>
+      <div class="kpis" id="kpis"></div>
+      <div class="leg"><span class="tag ex">Recomendado</span> ya existe: según su venta <span class="tag nu">Nuevo</span> sin historia: según el proveedor <span class="tag sv">Sin venta</span> ya existía pero no se ha vendido en 12 semanas · Bajo cada cantidad: lo que la tienda tiene hoy. Puedes cambiar cualquier número.</div>
+      <div class="tbl"><table id="tabla"></table></div>
+      <details><summary>Por qué cada tienda recibe lo que recibe</summary><div class="tbl" style="margin-top:8px;max-height:50vh"><table id="tablaTiendas"></table></div></details>
+    </section>
+  </div>
+</div></main>
+
+<div class="bar pad" id="bar" hidden><div class="inner">
+  <span id="barTxt"></span>
+  <div class="row">
+    <button type="button" class="ghost sm" id="btnOtro">Otro pedido</button>
+    <button type="button" class="ghost" id="btnBorr">Crear borradores en el sistema</button>
+    <button type="button" class="gold" id="btnXls">Descargar Excel lleno</button>
+  </div>
+</div></div>
+<dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script>
+// ---------------------------------------------------------------- utilidades
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const n0 = n => Math.round(n).toLocaleString("es-GT");
+const fmtQ = n => "Q" + Math.round(n).toLocaleString("es-GT");
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+
+// Encabezados del Excel de compras → código de la tienda en el sistema.
+// La columna con el nombre es la existencia de la tienda; la siguiente (AME2, DPRD, DPRC…) es lo que se le manda.
+const COLUMNAS = { "AME": "AMERI", "PRD": "PRADE", "PRC": "CONCE", "ANT": "ANTIG", "MF": "MIRAF", "POR": "PORTA", "INT": "INTER", "COB": "COBAN", "Z.1": "ZONA1", "Z1": "ZONA1", "MAJ": "MAJAD", "SC": "SANC", "VID": "VIDER" };
+const DEF = { sem: 8, resE: 10, resN: 25, min: 2, mul: 1, base: "prov", probar: "1" };
+
+let D = null;                 // datos del resurtido (ventas por tienda, existencias, proveedores)
+let PORREF = new Map(), PORCOD = new Map(), VT = {};   // índices
+let X = null;                 // pedido cargado: { nombre, buf, filas:[...], cols:{...}, tiendas:[...] }
+let C = Object.assign({}, DEF, lsGet("reparto-cfg", {}));
+let R = [];                   // resultado por fila
+
+// ---------------------------------------------------------------- abrir datos (misma clave que resurtido, checador y boletín)
+async function descifrar(sobre, clave) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(sobre.s), iterations: sobre.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  let plano;
+  try { plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(sobre.iv) }, key, b64(sobre.d)); } catch (e) { throw new Error("clave"); }
+  return JSON.parse(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+}
+async function abrir(clave, silencioso) {
+  $("claveErr").hidden = true;
+  try {
+    const r = await fetch("../resurtido/resurtido.enc?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("falta");
+    D = await descifrar(await r.json(), clave);
+    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
+    indexar();
+    $("claveCard").hidden = true; $("flujo").hidden = false;
+    $("datosV").textContent = "Ventas de 12 semanas al " + fechaLocal(D.v);
+    pasos();
+  } catch (e) {
+    if (silencioso) { lsDel("surtido-clave"); return; }
+    $("claveErr").textContent = e.message === "clave" ? "Clave incorrecta." : e.message === "falta" ? "Todavía no hay datos de venta. Corre la sincronización en GitHub." : "No se pudieron abrir los datos en este navegador.";
+    $("claveErr").hidden = false;
+  }
+}
+function fechaLocal(v) { const d = new Date(String(v).replace(" ", "T") + ":00Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+$("claveForm").onsubmit = e => { e.preventDefault(); const c = $("clave").value.trim(); if (c) abrir(c); };
+(() => { let c = null; try { c = localStorage.getItem("surtido-clave"); } catch (e) {} if (c) { try { c = JSON.parse(c); } catch (e) {} abrir(String(c), true); } })();
+
+function indexar() {
+  PORREF = new Map(); PORCOD = new Map(); VT = {};
+  for (const [pid, p] of Object.entries(D.p)) {
+    if (p[1]) PORREF.set(norm(p[1]), pid);
+    if (p[0]) PORCOD.set(String(p[0]), pid);
+  }
+  for (const t of D.tiendas) { const m = new Map(); for (const v of (D.s[t] && D.s[t].v) || []) m.set(String(v[0]), v); VT[t] = m; }
+}
+
+// ---------------------------------------------------------------- leer el Excel
+$("archivo").onchange = e => { const f = e.target.files[0]; if (f) leer(f); e.target.value = ""; };
+const drop = $("drop");
+drop.ondragover = e => { e.preventDefault(); drop.style.borderColor = "var(--navy)"; };
+drop.ondragleave = () => { drop.style.borderColor = ""; };
+drop.ondrop = e => { e.preventDefault(); drop.style.borderColor = ""; const f = e.dataTransfer.files[0]; if (f) leer(f); };
+
+const val = v => (v && typeof v === "object") ? (v.result ?? v.text ?? (v.richText ? v.richText.map(t => t.text).join("") : null)) : v;
+const num = v => { const x = val(v); if (x == null || x === "") return null; const n = Number(String(x).replace(/[^\d.\-]/g, "")); return isNaN(n) ? null : n; };
+
+async function leer(f) {
+  $("subirErr").hidden = true;
+  try {
+    const buf = await f.arrayBuffer();
+    const wb = new ExcelJS.Workbook(); await wb.xlsx.load(buf);
+    let ws = null, hr = 0, H = [];
+    for (const w of wb.worksheets) {
+      for (let r = 1; r <= Math.min(12, w.rowCount); r++) {
+        const h = []; w.getRow(r).eachCell({ includeEmpty: true }, (c, i) => { h[i] = norm(val(c.value)); });
+        if (h.includes("PLU") && h.includes("FACTURA")) { ws = w; hr = r; H = h; break; }
+      }
+      if (ws) break;
+    }
+    if (!ws) throw new Error("No encontré los encabezados PLU y FACTURA en el archivo.");
+    const col = n => H.indexOf(n);
+    const cols = { plu: col("PLU"), desc: col("DESCRIPCION") > 0 ? col("DESCRIPCION") : col("DESCRIPCIÓN"), precio: col("PRECIO"), fac: col("FACTURA"), bod: col("BOD"), total: col("TOTAL") };
+    // Tiendas: columna de existencia + la siguiente (reparto)
+    const tiendas = [];
+    for (let i = 1; i < H.length; i++) {
+      const code = COLUMNAS[H[i]] || (D.tiendas.includes(H[i]) ? H[i] : "");
+      if (!code || tiendas.some(t => t.code === code)) continue;
+      const sig = H[i + 1] || "";
+      if (sig === H[i] + "2" || sig === "D" + H[i] || sig === H[i] + " 2") tiendas.push({ code, hEx: H[i], cEx: i, cRep: i + 1 });
+    }
+    if (!tiendas.length) throw new Error("No reconocí las columnas de las tiendas (AME/AME2, PRD/DPRD…).");
+    const filas = [];
+    ws.eachRow((row, r) => {
+      if (r <= hr) return;
+      const plu = val(row.getCell(cols.plu).value);
+      const fac = num(row.getCell(cols.fac).value);
+      if (plu == null || plu === "" || !fac) return;
+      const ex = {}, rep = {};
+      for (const t of tiendas) { ex[t.code] = num(row.getCell(t.cEx).value); rep[t.code] = num(row.getCell(t.cRep).value); }
+      filas.push({ r, plu: String(plu).trim(), desc: String(val(row.getCell(cols.desc).value) || ""), precio: num(row.getCell(cols.precio).value) || 0, fac, exX: ex, repX: rep });
+    });
+    if (!filas.length) throw new Error("El archivo no tiene productos con cantidad en FACTURA.");
+    X = { nombre: f.name.replace(/\.xlsx$/i, ""), buf, hoja: ws.name, filas, cols, tiendas };
+    X.activas = new Set(lsGet("reparto-tiendas", null) || tiendas.map(t => t.code));
+    X.manual = {};
+    // Proveedor: el más común entre los productos que ya existen; si no, el que aparece en el nombre del archivo o en las descripciones
+    const cuenta = {};
+    for (const f2 of filas) { const pid = pidDe(f2.plu); if (pid) { const i = D.p[pid][3]; cuenta[i] = (cuenta[i] || 0) + 1; } }
+    let prov = Object.entries(cuenta).sort((a, b) => b[1] - a[1])[0];
+    let pi = prov ? Number(prov[0]) : -1;
+    if (pi < 0) {
+      const txt = norm(f.name + " " + filas.slice(0, 5).map(x => x.desc).join(" "));
+      pi = D.prov.findIndex(p => p && p.length > 2 && txt.includes(norm(p).split(" ")[0]));
+    }
+    X.prov = pi;
+    $("archivoNom").textContent = f.name + " · " + filas.length + " productos";
+    pintarReglas(); calcular();
+  } catch (e) {
+    $("subirErr").textContent = e.message || "No se pudo leer el archivo."; $("subirErr").hidden = false;
+  }
+}
+const pidDe = plu => PORREF.get(norm(plu)) || PORCOD.get(String(plu).replace(/\D/g, "")) || null;
+
+// ---------------------------------------------------------------- reglas
+function pintarReglas() {
+  $("reglas").hidden = false;
+  const provs = D.pr.map(r => r[0]).filter(i => D.prov[i]);
+  $("cProv").innerHTML = `<option value="-1">— Sin proveedor (usar venta total de la tienda) —</option>` + provs.map(i => `<option value="${i}" ${i === X.prov ? "selected" : ""}>${esc(D.prov[i])}</option>`).join("");
+  if (X.prov >= 0 && !provs.includes(X.prov)) $("cProv").insertAdjacentHTML("beforeend", `<option value="${X.prov}" selected>${esc(D.prov[X.prov])}</option>`);
+  $("cSem").value = C.sem; $("cResE").value = C.resE; $("cResN").value = C.resN; $("cMin").value = C.min; $("cMul").value = C.mul; $("cBase").value = C.base; $("cProbar").value = C.probar;
+  $("cTiendas").innerHTML = X.tiendas.map(t => `<button type="button" data-t="${t.code}" class="${X.activas.has(t.code) ? "on" : ""}" title="${esc((D.nombres || {})[t.code] || "")}">${t.code}</button>`).join("");
+}
+$("reglas").addEventListener("change", e => {
+  if (e.target.id === "cProv") X.prov = Number(e.target.value);
+  else if (e.target.id) {
+    const k = { cSem: "sem", cResE: "resE", cResN: "resN", cMin: "min", cMul: "mul", cBase: "base", cProbar: "probar" }[e.target.id];
+    if (!k) return;
+    C[k] = ["base", "probar"].includes(k) ? e.target.value : Math.max(0, Number(e.target.value) || 0);
+    if (k === "sem" || k === "mul" || k === "min") C[k] = Math.max(1, C[k]);
+    lsSet("reparto-cfg", C);
+  }
+  if (Object.keys(X.manual).length && !confirm("Recalcular borra los cambios que hiciste a mano en la tabla. ¿Seguir?")) { pintarReglas(); return; }
+  X.manual = {}; calcular();
+});
+$("cTiendas").onclick = e => {
+  const b = e.target.closest("[data-t]"); if (!b) return;
+  X.activas.has(b.dataset.t) ? X.activas.delete(b.dataset.t) : X.activas.add(b.dataset.t);
+  lsSet("reparto-tiendas", [...X.activas]); X.manual = {}; pintarReglas(); calcular();
+};
+$("btnDef").onclick = () => { C = Object.assign({}, DEF); lsSet("reparto-cfg", C); X.manual = {}; pintarReglas(); calcular(); };
+
+// ---------------------------------------------------------------- cálculo
+// Peso de cada tienda para lo nuevo: lo que le vende al proveedor (unidades, 12 semanas); si casi no hay, su venta total.
+function pesosNuevos(tiendas) {
+  const w = {}; let tot = 0;
+  if (C.base === "prov" && X.prov >= 0) {
+    for (const t of tiendas) { const x = (D.prs[t] || {})[String(X.prov)]; w[t] = x ? x[0] : 0; tot += w[t]; }
+  }
+  if (tot < 12) {   // muy poca historia del proveedor: venta total de la tienda
+    tot = 0;
+    for (const t of tiendas) { let s = 0; for (const v of VT[t].values()) s += v[1] + v[2] + v[3]; w[t] = s; tot += s; }
+    w._base = "tienda";
+  } else w._base = "prov";
+  w._tot = tot;
+  return w;
+}
+const ritmo = v => v ? (0.5 * v[1] + 0.3 * v[2] + 0.2 * v[3]) / 4 : 0;   // unidades por semana, ponderado 50/30/20
+
+function calcular() {
+  const T = X.tiendas.map(t => t.code).filter(t => X.activas.has(t));
+  const W = pesosNuevos(T);
+  R = X.filas.map(f => {
+    const pid = pidDe(f.plu), p = pid ? D.p[pid] : null;
+    const st = {};
+    let venta = 0;
+    for (const t of T) {
+      const v = pid ? VT[t].get(pid) : null;
+      const ex = f.exX[t] != null ? f.exX[t] : (v ? v[4] : 0);
+      st[t] = { v, ex: Math.max(0, ex || 0), pen: v ? v[5] : 0, r: ritmo(v), q: 0, why: "" };
+      venta += v ? v[1] + v[2] + v[3] : 0;
+    }
+    const tipo = !pid ? "no" : venta > 0 ? "ex" : "sv";
+    const mul = Math.max(C.mul, p && p[8] > 1 && tipo === "ex" ? p[8] : 1);
+    const res = { f, pid, p, tipo, st, mul, nota: "" };
+    if (tipo === "ex") repartirExistente(res, T); else repartirNuevo(res, T, W);
+    for (const t of T) if (X.manual[f.r + "|" + t] != null) { st[t].q = X.manual[f.r + "|" + t]; st[t].ed = true; }
+    return res;
+  });
+  pasos(); pintar();
+}
+function repartirExistente(res, T) {
+  const { f, st, mul } = res;
+  let disp = f.fac - Math.floor(f.fac * C.resE / 100);
+  const falta = {};
+  for (const t of T) {
+    const s = st[t], obj = Math.ceil(s.r * C.sem);
+    falta[t] = Math.max(0, obj - s.ex - s.pen);
+    s.why = s.r > 0 ? `Vende ${s.r.toFixed(1)}/sem · para ${C.sem} sem necesita ${obj} · tiene ${s.ex}${s.pen ? " · en camino " + s.pen : ""}` : `No lo ha vendido en 12 semanas · tiene ${s.ex}`;
+  }
+  // Unidad por unidad (o por múltiplo) a la tienda con menos semanas de cobertura
+  while (disp >= mul) {
+    let best = null, bc = Infinity;
+    for (const t of T) {
+      if (falta[t] <= 0) continue;
+      const s = st[t], cob = (s.ex + s.pen + s.q) / Math.max(s.r, 0.01);
+      if (cob < bc) { bc = cob; best = t; }
+    }
+    if (!best) break;
+    st[best].q += mul; falta[best] -= mul; disp -= mul;
+  }
+  // Probar en tiendas que nunca lo han tenido (sin existencia ni venta), si sobró
+  if (C.probar === "1") {
+    const W = pesosNuevos(T);
+    const cand = T.filter(t => st[t].ex <= 0 && st[t].r <= 0 && st[t].q === 0 && st[t].pen <= 0 && (W[t] || 0) > 0).sort((a, b) => W[b] - W[a]);
+    const m = Math.max(C.min, mul);
+    for (const t of cand) { if (disp < m) break; st[t].q = m; st[t].why += " · se prueba con " + m; disp -= m; }
+  }
+  const sobra = f.fac - T.reduce((s, t) => s + st[t].q, 0);
+  res.nota = `Reserva ${C.resE}%` + (sobra > Math.floor(f.fac * C.resE / 100) ? " · las tiendas ya están cubiertas: sobra en bodega" : "");
+}
+function repartirNuevo(res, T, W) {
+  const { f, st, mul } = res;
+  let disp = f.fac - Math.floor(f.fac * C.resN / 100);
+  const m = Math.max(C.min, mul);
+  const orden = T.filter(t => (W[t] || 0) > 0).sort((a, b) => W[b] - W[a]);
+  const base = W._base === "prov" ? "venta del proveedor" : "venta total";
+  for (const t of T) { const pct = W._tot ? (W[t] || 0) / W._tot * 100 : 0; st[t].why = `Nuevo · ${pct.toFixed(1)}% de la ${base} de estas tiendas · tiene ${st[t].ex}`; }
+  // 1) El mínimo, primero a las tiendas que más venden
+  for (const t of orden) { if (disp < m) break; st[t].q = m; disp -= m; }
+  // 2) Lo que queda, en proporción al peso (método del mayor residuo, en múltiplos)
+  const rec = orden.filter(t => st[t].q > 0);
+  const tot = rec.reduce((s, t) => s + W[t], 0);
+  if (disp >= mul && tot > 0) {
+    const bloques = Math.floor(disp / mul), parte = {};
+    let usados = 0;
+    for (const t of rec) { const x = bloques * W[t] / tot; parte[t] = x; const k = Math.floor(x); st[t].q += k * mul; usados += k; }
+    rec.sort((a, b) => (parte[b] % 1) - (parte[a] % 1));
+    for (let i = 0; i < bloques - usados && i < rec.length; i++) st[rec[i]].q += mul;
+  }
+  res.nota = `Reserva ${C.resN}% · mínimo ${m} por tienda` + (orden.length > rec.length ? ` · alcanzó para ${rec.length} de ${orden.length} tiendas` : "");
+}
+
+// ---------------------------------------------------------------- pantalla
+function pasos() {
+  const s = [["Datos", !!D], ["Excel", !!X], ["Reglas", !!X], ["Revisar", !!R.length], ["Descargar", false]];
+  const actual = s.findIndex(x => !x[1]);
+  $("steps").innerHTML = s.map(([n, ok], i) => `<span class="${ok ? "ok" : i === actual ? "on" : ""}">${i + 1}. ${n}</span>`).join("");
+}
+function pintar() {
+  if (!X) return;
+  $("revisar").hidden = false; $("bar").hidden = false;
+  const T = X.tiendas.map(t => t.code).filter(t => X.activas.has(t));
+  const tag = { ex: '<span class="tag ex">Recomendado</span>', nu: '<span class="tag nu">Nuevo</span>', sv: '<span class="tag sv">Sin venta</span>', no: '<span class="tag no">No está</span>' };
+  const totT = Object.fromEntries(T.map(t => [t, 0])), totQ = Object.fromEntries(T.map(t => [t, 0]));
+  let uFac = 0, uRep = 0, neg = 0;
+  const filas = R.map((r, i) => {
+    const rep = T.reduce((s, t) => s + r.st[t].q, 0), bod = r.f.fac - rep;
+    uFac += r.f.fac; uRep += rep; if (bod < 0) neg++;
+    for (const t of T) { totT[t] += r.st[t].q; totQ[t] += r.st[t].q * r.f.precio; }
+    const tp = r.tipo === "ex" ? tag.ex : r.tipo === "sv" ? tag.sv + " " + tag.nu : tag.nu;
+    return `<tr><td class="c0"><div class="t">${esc(r.f.desc)}</div><div class="small"><span class="mono">${esc(r.f.plu)}</span> · ${fmtQ(r.f.precio)} ${tp}</div><div class="small">${esc(r.nota)}</div></td>
+      <td class="n"><b>${n0(r.f.fac)}</b></td>
+      ${T.map(t => { const s = r.st[t]; return `<td class="q" title="${esc(s.why)}"><input type="number" min="0" step="${r.mul}" value="${s.q}" data-i="${i}" data-t="${t}" class="${s.q ? "" : "z"} ${s.ed ? "ed" : ""}" aria-label="${t}"><span class="ex">tiene ${n0(s.ex)}</span></td>`; }).join("")}
+      <td class="n bod ${bod < 0 ? "neg" : ""}"><b>${n0(bod)}</b></td></tr>`;
+  }).join("");
+  $("tabla").innerHTML = `<thead><tr><th class="c0">Producto</th><th class="n">Factura</th>${T.map(t => `<th class="n" title="${esc((D.nombres || {})[t] || "")}">${t}</th>`).join("")}<th class="n">Queda BOD</th></tr></thead>
+    <tbody>${filas}<tr class="tot"><td class="c0">Total por tienda</td><td class="n">${n0(uFac)}</td>${T.map(t => `<td class="n">${n0(totT[t])}<div class="small">${fmtQ(totQ[t])}</div></td>`).join("")}<td class="n">${n0(uFac - uRep)}</td></tr></tbody>`;
+  const nNu = R.filter(r => r.tipo !== "ex").length;
+  $("kpis").innerHTML = `<div class="kpi"><span>Productos</span><b>${R.length}</b><div class="small">${R.length - nNu} existentes · ${nNu} nuevos</div></div>
+    <div class="kpi"><span>Unidades en factura</span><b>${n0(uFac)}</b></div>
+    <div class="kpi"><span>A tiendas</span><b>${n0(uRep)}</b><div class="small">${uFac ? Math.round(uRep / uFac * 100) : 0}% del pedido</div></div>
+    <div class="kpi"><span>Se queda en BOD</span><b>${n0(uFac - uRep)}</b></div>
+    ${neg ? `<div class="kpi" style="background:var(--red-bg)"><span>Revisar</span><b style="color:var(--red)">${neg}</b><div class="small">productos con más reparto que factura</div></div>` : ""}`;
+  // Resumen por tienda
+  const W = pesosNuevos(T);
+  $("tablaTiendas").innerHTML = `<thead><tr><th>Tienda</th><th class="n">Peso para lo nuevo</th><th class="n">Unidades</th><th class="n">Valor</th><th class="n">Productos</th></tr></thead><tbody>` +
+    T.map(t => `<tr><td><b>${t}</b> <span class="small">${esc((D.nombres || {})[t] || "")}</span></td><td class="n">${W._tot ? ((W[t] || 0) / W._tot * 100).toFixed(1) : "0"}%</td><td class="n">${n0(totT[t])}</td><td class="n">${fmtQ(totQ[t])}</td><td class="n">${R.filter(r => r.st[t].q > 0).length}</td></tr>`).join("") +
+    `</tbody>`;
+  $("barTxt").innerHTML = `<b>${n0(uRep)}</b> uds. a ${T.length} tiendas · <b>${n0(uFac - uRep)}</b> en BOD` + (neg ? ` · <span style="color:var(--gold)">${neg} con exceso</span>` : "");
+  pasos();
+}
+$("tabla").addEventListener("change", e => {
+  const i = e.target.dataset.i, t = e.target.dataset.t; if (i == null) return;
+  const q = Math.max(0, Math.round(Number(e.target.value) || 0));
+  R[i].st[t].q = q; R[i].st[t].ed = true; X.manual[R[i].f.r + "|" + t] = q;
+  pintar();
+  const el = $("tabla").querySelector(`input[data-i="${i}"][data-t="${t}"]`); if (el) el.focus();
+});
+$("btnOtro").onclick = () => { if (!confirm("¿Empezar con otro pedido? Se pierde este reparto si no lo descargaste.")) return; X = null; R = []; $("reglas").hidden = $("revisar").hidden = $("bar").hidden = true; pasos(); window.scrollTo(0, 0); };
+
+// ---------------------------------------------------------------- descargar el mismo Excel, lleno
+$("btnXls").onclick = async () => {
+  const b = $("btnXls"); b.disabled = true; b.textContent = "Preparando…";
+  try {
+    const wb = new ExcelJS.Workbook(); await wb.xlsx.load(X.buf);
+    const ws = wb.getWorksheet(X.hoja);
+    const T = new Set(X.tiendas.map(t => t.code).filter(t => X.activas.has(t)));
+    for (const r of R) {
+      const row = ws.getRow(r.f.r);
+      for (const t of X.tiendas) {
+        const s = r.st[t.code];
+        // Existencia: se respeta la del archivo; si venía vacía, se pone la del sistema
+        if (s && r.f.exX[t.code] == null && s.ex > 0) row.getCell(t.cEx).value = s.ex;
+        row.getCell(t.cRep).value = T.has(t.code) && s && s.q > 0 ? s.q : null;
+      }
+      // TOTAL y BOD: se deja la fórmula y se guarda ya el resultado, por si el archivo se importa sin abrirlo en Excel
+      const total = X.tiendas.reduce((s, t) => s + (Number(val(row.getCell(t.cRep).value)) || 0), 0);
+      const pon = (c, v) => { if (c < 1) return; const cell = row.getCell(c), f = cell.value && cell.value.formula; cell.value = f ? { formula: f, result: v } : v; };
+      pon(X.cols.total, total); pon(X.cols.bod, r.f.fac - total);
+      row.commit();
+    }
+    wb.calcProperties = Object.assign({}, wb.calcProperties, { fullCalcOnLoad: true });
+    const out = await wb.xlsx.writeBuffer();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+    a.download = X.nombre + "_REPARTO.xlsx"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    $("steps").lastElementChild.className = "ok";
+  } catch (e) { alert("No se pudo preparar el Excel: " + (e.message || e)); }
+  b.disabled = false; b.textContent = "Descargar Excel lleno";
+};
+
+// ---------------------------------------------------------------- crear borradores en el sistema (servidor de Despachos)
+const CFG = () => lsGet("despacho-cfg", null);
+async function api(accion, datos, op) {
+  const c = CFG();
+  const body = JSON.stringify(Object.assign({ accion, token: c.token, operador: op }, datos || {}));
+  let r;
+  try { r = await fetch(c.url + (c.url.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(body), { method: "GET", redirect: "follow" }); }
+  catch (e) { throw new Error("No hay conexión con el servidor. Revisa el internet."); }
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || "Error del servidor");
+  return j.datos;
+}
+function dialogo(html) { $("dlgForm").innerHTML = html; const d = $("dlg"); try { d.showModal(); } catch (e) { d.setAttribute("open", ""); } return d; }
+$("btnBorr").onclick = () => {
+  const T = X.tiendas.map(t => t.code).filter(t => X.activas.has(t));
+  const por = T.map(t => ({ t, ls: R.filter(r => r.st[t].q > 0).map(r => [r.f.plu, r.st[t].q]) })).filter(x => x.ls.length);
+  const neg = R.filter(r => r.f.fac - T.reduce((s, t) => s + r.st[t].q, 0) < 0).length;
+  if (!CFG()) { dialogo(`<h2>Falta conectar el servidor</h2><p class="muted">Abre una vez la app de <b>Despachos</b> en este equipo y entra con tu código: así queda guardada la conexión. Mientras tanto, descarga el Excel e impórtalo como siempre.</p><div class="row" style="justify-content:flex-end"><button value="x">Entendido</button></div>`); return; }
+  const d = dialogo(`<h2>Crear borradores en el sistema</h2>
+    <p class="muted">Se crea un traslado <b>en borrador</b> de BOD a cada tienda (${por.length}), con documento de origen <b>"Reparto · ${esc(X.nombre)}"</b>. No aparecen en Despachos hasta que alguien los revise en el sistema y pulse <b>"Marcar como por hacer"</b>.</p>
+    ${neg ? `<p class="notice bad">Hay ${neg} productos con más reparto que factura. Corrígelos antes.</p>` : ""}
+    <p class="notice">Antes, la mercadería del proveedor debe estar recibida en BOD, para que se pueda reservar.</p>
+    <label class="small" style="display:grid;gap:4px;font-weight:800">Código de supervisor<input type="password" id="dCod" autocomplete="off" placeholder="SUP-1"></label>
+    <p class="small" id="dEst"></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="dNo">Cancelar</button><button type="button" id="dSi" ${neg ? "disabled" : ""}>Crear ${por.length} borradores</button></div>`);
+  $("dNo").onclick = () => d.close();
+  $("dSi").onclick = async () => {
+    const cod = $("dCod").value.trim().toUpperCase(); if (!cod) { $("dCod").focus(); return; }
+    $("dSi").disabled = true; const est = t => $("dEst").textContent = t;
+    const hechos = [];
+    try {
+      for (const { t, ls } of por) {
+        let pedido = 0;
+        for (let i = 0; i < ls.length; i += 100) {
+          est(`${t}: enviando ${i + 1}–${Math.min(i + 100, ls.length)} de ${ls.length}…`);
+          const r = await api("reparto", Object.assign({ tienda: t, nombre: X.nombre, lineas: ls.slice(i, i + 100) }, pedido ? { pedido } : {}), cod);
+          pedido = r.pedido;
+        }
+        const r = await api("reparto", { tienda: t, pedido, fin: true, nombre: X.nombre }, cod);
+        hechos.push(`${t}: ${r.nombre}${r.faltan && r.faltan.length ? ` (no existen: ${r.faltan.slice(0, 4).join(", ")})` : ""}`);
+      }
+      $("dlgForm").innerHTML = `<h2>Borradores creados ✓</h2><p class="muted">Revísalos en el sistema por tienda y pulsa "Marcar como por hacer" en cada uno: entonces aparecen en Despachos para empacar.</p><div class="small">${hechos.map(esc).join("<br>")}</div><div class="row" style="justify-content:flex-end"><button value="x">Listo</button></div>`;
+    } catch (e) {
+      est("Se detuvo: " + e.message + (hechos.length ? " · Ya se crearon: " + hechos.join(" · ") : ""));
+      $("dSi").disabled = false;
+    }
+  };
+};
+</script>
+</body>
+</html>
