@@ -297,6 +297,18 @@ function listo() {
 function fechaLocal(v) { const d = new Date(String(v).replace(" ", "T") + ":00Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
 const tiendasSel = () => STOCK.L.filter(l => !CF.noTiendas.includes(l));
 
+// La sinopsis llega de Odoo con restos de la web y de Excel: etiquetas HTML (<p>, <strong>, <br>),
+// entidades (&nbsp;, &aacute;) y saltos de línea de Excel (_x000D_). Aquí se deja solo el texto.
+const _dec = document.createElement("textarea");
+function limpiarSinopsis(s) {
+  s = String(s || "");
+  if (!s) return "";
+  s = s.replace(/_x000[dDaA]_(\\?n(?=[A-ZÁÉÍÓÚÑ¿¡"«\s]))?/g, " ").replace(/\\[rnt]/g, " ");
+  s = s.replace(/<\s*(br|\/p|\/div|\/li|\/h\d)\b[^>]*>/gi, " ").replace(/<[^>]*>/g, "").replace(/<[^>]*$/, "");
+  for (let k = 0; k < 2 && /&(#\d+|#x[\da-f]+|[a-z]+);/i.test(s); k++) { _dec.innerHTML = s; s = _dec.value; }
+  s = s.replace(/<[^>]*>/g, "");
+  return s.replace(/[\u00a0\s]+/g, " ").replace(/\s+([.,;:!?])/g, "$1").trim();
+}
 function calcularBase() {
   // Libros con precio, que no están en bazar, con sus existencias y métricas de reparto
   const T = tiendasSel(), Tset = new Set(T);
@@ -317,7 +329,7 @@ function calcularBase() {
     const gen = m && m[0] ? m[0] : p[6];
     const port = m && /^https?:\/\//.test(m[4] || "") && !/\/id\/-1-/.test(m[4]) ? m[4] : "";
     LIBROS.push({ p, clave: p[0] || "r:" + p[1], tit: p[2], aut: p[3], ed: p[4], precio: p[5], tema: gen || "", nt: norm(gen), ned: norm(p[4]),
-      titM: m ? m[1] : "", autM: m ? m[2] : "", sin: m ? m[3] : "", port,
+      titM: m ? m[1] : "", autM: m ? m[2] : "", sin: m ? limpiarSinopsis(m[3]) : "", port,
       tot, mx, mxL, mxPct: mx / tot * 100, tCon, tPct: T.length ? tCon / T.length * 100 : 0, nT: T.length, locs, alta: e[3] || "", llave: norm(p[2]) + "|" + norm(p[3]) });
   }
   // Editoriales para el buscador: las que tienen libros que cumplen la existencia mínima
@@ -473,13 +485,16 @@ $("cfCats").addEventListener("change", e => {
 
 // ---------------------------------------------------------------- boletín para clientes (correo)
 let TXT = Object.assign({ asunto: "", titulo: "Un mundo por descubrir esta semana", intro: "Cada semana nuestros libreros eligen diez libros para que sigas descubriendo: historias para todas las edades, ideas que inspiran y una editorial invitada. Todos te esperan ya en tu librería De Museo.", notas: {}, portadas: {}, urls: {},
-  plantilla: "https://demuseo.com/producto/{slug}-{ref}/" }, lsGet("boletin-textos", {}));
+  plantilla: "https://demuseo.com/?s={ref}&post_type=product" }, lsGet("boletin-textos", {}));
+// 23/11: el enlace adivinado /producto/<título>-<PLU>/ fallaba en muchos libros (en la tienda el nombre de la
+// página no siempre coincide con el título ni lleva el PLU). Se cambia por la búsqueda del PLU en la tienda.
+if (!TXT.plantilla || TXT.plantilla === "https://demuseo.com/producto/{slug}-{ref}/") TXT.plantilla = "https://demuseo.com/?s={ref}&post_type=product";
 TXT.urls = TXT.urls || {};
 // Voz De Museo (19/11): si el título o la introducción seguían con el texto de antes, se actualizan
 if (TXT.titulo === "Lecturas para esta semana") TXT.titulo = "Un mundo por descubrir esta semana";
 if (TXT.intro === "Seleccionamos para ti las novedades que ya están en nuestras librerías: historias para todas las edades, ideas que inspiran y la editorial invitada del mes.") TXT.intro = "Cada semana nuestros libreros eligen diez libros para que sigas descubriendo: historias para todas las edades, ideas que inspiran y una editorial invitada. Todos te esperan ya en tu librería De Museo.";
-// Enlace a la página del libro en demuseo.com (WooCommerce): /producto/<título>-<PLU>/, por ejemplo
-// "Rembrandt: Las pinturas. 45th Ed. – 160408" → /producto/rembrandt-las-pinturas-45th-ed-160408/
+// Enlace al libro en demuseo.com (WooCommerce). Cada producto se titula "Título – PLU", así que buscar el PLU
+// lleva a su página (o a una lista corta si otro título contiene esos mismos dígitos). {slug}, {ref} e {isbn} sirven en la plantilla.
 function slugWP(s) {
   return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     .replace(/&[a-z]+;|&/g, "").replace(/['’"`]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -487,7 +502,7 @@ function slugWP(s) {
 function urlDe(b) {
   if (TXT.urls[b.clave]) return TXT.urls[b.clave];
   const tit = String(b.titM || b.tit || "").replace(/\s*[–-]\s*\d+\s*$/, "");
-  return (TXT.plantilla || "https://demuseo.com/producto/{slug}-{ref}/").replace("{slug}", slugWP(tit)).replace("{ref}", b.p[1] || "").replace("{isbn}", b.p[0] || "");
+  return (TXT.plantilla || "https://demuseo.com/?s={ref}&post_type=product").replace("{slug}", slugWP(tit)).replace("{ref}", b.p[1] || "").replace("{isbn}", b.p[0] || "");
 }
 // Marca de campaña para saber cuántas visitas trae el boletín (no cambia la página que se abre)
 function conCampana(u) {
@@ -535,7 +550,7 @@ function tituloLimpio(b) {
 // Frase de cada libro: la que escriba el librero o, si no, el inicio de la sinopsis
 // Corta: la primera oración (≈180 caracteres). Larga: hasta 3 oraciones (≈450 caracteres).
 function resumen(s, larga) {
-  s = String(s || "").replace(/[\u0000-\u001f\u007f-\u009f\ufffd]/g, "").replace(/\s+/g, " ").trim(); if (!s) return "";
+  s = limpiarSinopsis(s).replace(/[\u0000-\u001f\u007f-\u009f\ufffd]/g, "").replace(/\s+/g, " ").trim(); if (!s) return "";
   const max = larga ? 450 : 180;
   const oraciones = s.match(/[^.!?…]+[.!?…]+(\s|$)/g) || [];
   let out = "";
@@ -547,7 +562,7 @@ function resumen(s, larga) {
 // Largo de la descripción: "corta" para todos, "larga" para todos, o "ed-larga" (larga solo en la editorial del mes)
 const esLarga = ed => TXT.largo === "larga" || ((TXT.largo || "ed-larga") === "ed-larga" && ed);
 const esEd = b => (RES.find(r => r.cat.k === "ed")?.elegidos || []).includes(b);
-function notaDe(b) { return Object.prototype.hasOwnProperty.call(TXT.notas, b.clave) ? TXT.notas[b.clave] : resumen(b.sin, esLarga(esEd(b))); }
+function notaDe(b) { return Object.prototype.hasOwnProperty.call(TXT.notas, b.clave) ? limpiarSinopsis(TXT.notas[b.clave]) : resumen(b.sin, esLarga(esEd(b))); }
 const SIN_AUTOR = /^(SIN AUTOR|S\/A|VARIOS|V\.?\s*V\.?\s*A\.?\s*A\.?|VV\.?\s*AA\.?|ANONIMO|N\/A)$/i;
 function autorBonito(a) { const s = String(a || "").trim(); if (!s || SIN_AUTOR.test(s)) return ""; const m = s.split(","); return capital(m.length === 2 ? m[1].trim() + " " + m[0].trim() : s); }
 function libroHTML(b, ancho, grande) {
