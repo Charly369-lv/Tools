@@ -86,6 +86,12 @@ details > summary { cursor: pointer; font-weight: 700; }
 .alts { border: 1px dashed var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
 .alts .picks { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 .alts .bk { cursor: pointer; }
+.alt-f { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; align-items: end; }
+.alt-f label { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.alt-f input[type=text], .alt-f input[type=search], .alt-f select { width: 100%; min-height: 40px; font: 14px var(--f-body); padding: 6px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.alt-f .chk { display: flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; color: var(--ink); min-height: 40px; }
+.chip.warn { background: var(--amber-bg); color: var(--amber); text-transform: none; letter-spacing: 0; font-weight: 700; }
+.bk.forz { border-color: var(--amber); }
 .alts .bk:hover { border-color: var(--navy); }
 .diag { font-size: 13px; color: var(--muted); }
 .ed-grid { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 660px); gap: 18px; align-items: start; }
@@ -108,7 +114,7 @@ textarea { width: 100%; min-height: 220px; font: 13px/1.5 var(--f-mono); padding
 </div></header>
 
 <main class="pad"><div class="inner">
-  <p class="muted">Arma el boletín semanal: 10 libros que no estén en bazar, con al menos 15 unidades y repartidos entre las tiendas. La página propone una selección y tú puedes cambiar cualquier libro.</p>
+  <p class="muted">Arma el boletín semanal: 10 libros que no estén en bazar, con al menos 15 unidades y repartidos entre las tiendas. La página propone una selección y tú puedes cambiar cualquier libro por otro de la misma sección, de cualquier editorial o de todo el catálogo.</p>
 
   <section class="card" id="s1">
     <h3>Datos</h3>
@@ -215,6 +221,9 @@ const guardarCF = () => lsSet("boletin-ajustes", CF);
 let SEL = lsGet("boletin-seleccion", {});      // { cat: [clave, ...] } elegidos a mano o aceptados
 let HIST = lsGet("boletin-historial", []);     // [{ fecha, libros: [{clave, titulo}] }]
 let ABIERTO = null;                            // categoría con alternativas abiertas: "cat|indice"
+let MAN = new Set(lsGet("boletin-manual", []));  // libros elegidos a mano: se respetan aunque no cumplan las reglas
+const guardarMAN = () => lsSet("boletin-manual", [...MAN]);
+let ALT = null;                                // filtros del buscador de reemplazos
 
 // ---------------------------------------------------------------- datos
 let CAT = null, STOCK = null, SOBRE = null, LIBROS = [], META = null;
@@ -379,7 +388,7 @@ function recientes() {
 }
 
 // ---------------------------------------------------------------- selección
-let RES = [];
+let RES = [], USADOS = new Set();
 function armar() {
   const usados = new Set(), llaves = new Set(), rep = recientes();
   const porClave = new Map(LIBROS.map(b => [b.clave, b]));
@@ -398,17 +407,17 @@ function armar() {
     const elegidos = [];
     for (const k of SEL[cat.k] || []) {
       const b = porClave.get(k);
-      if (b && ok.includes(b) && !usados.has(k) && !llaves.has(b.llave) && elegidos.length < cat.cupo) { elegidos.push(b); usados.add(k); llaves.add(b.llave); }
+      if (b && (ok.includes(b) || MAN.has(k)) && !usados.has(k) && !llaves.has(b.llave) && elegidos.length < cat.cupo) { elegidos.push(b); usados.add(k); llaves.add(b.llave); }
     }
     for (const b of ok) {
       if (elegidos.length >= cat.cupo) break;
       if (usados.has(b.clave) || llaves.has(b.llave)) continue;
       elegidos.push(b); usados.add(b.clave); llaves.add(b.llave);
     }
-    return { cat, elegidos, ok, diag };
+    return { cat, elegidos, ok, diag, todos };
   });
   // Alternativas: los que cumplen y no están elegidos en ninguna categoría
-  for (const r of RES) r.alts = r.ok.filter(b => !usados.has(b.clave) && !llaves.has(b.llave)).slice(0, 24);
+  USADOS = usados;
   pintar();
 }
 
@@ -435,9 +444,9 @@ function pintar() {
       <div class="sec-h"><h2>${esc(r.cat.n)}${r.cat.k === "ed" && CF.ed ? ": " + esc(CF.ed) : ""}</h2>
         <span class="cnt ${falta ? "falta" : ""}">${r.elegidos.length} de ${r.cat.cupo}</span></div>
       ${falta ? `<p class="notice ${r.ok.length ? "" : "bad"}">${r.cat.k === "ed" && !CF.ed ? "Falta elegir la editorial destacada." : `Solo ${r.ok.length} ${r.ok.length === 1 ? "libro cumple" : "libros cumplen"} las reglas.`} ${motivos.length ? "De " + d.total + " en esta categoría: " + motivos.join(", ") + "." : ""}</p>` : ""}
-      <div class="picks">${r.elegidos.map((b, i) => `<div class="bk on">${tarjeta(b, `<div class="acts"><button type="button" class="ghost small" data-cambiar="${r.cat.k}|${i}">Cambiar</button></div>`)}</div>`).join("")}</div>
-      ${ABIERTO && ABIERTO.startsWith(r.cat.k + "|") ? `<div class="alts"><div class="row" style="justify-content:space-between"><b>Elige el reemplazo (${r.alts.length} opciones que cumplen)</b><button type="button" class="ghost small" data-cerrar="1">Cancelar</button></div>
-        <div class="picks">${r.alts.map(b => `<div class="bk" data-elegir="${esc(b.clave)}" tabindex="0" role="button">${tarjeta(b)}</div>`).join("") || '<span class="muted">No hay más libros que cumplan las reglas en esta categoría.</span>'}</div></div>` : ""}
+      <div class="picks">${r.elegidos.map((b, i) => { const mv = motivosDe(b, r.cat); return `<div class="bk on ${mv.length ? "forz" : ""}">${tarjeta(b, `${mv.length ? `<div class="row" style="gap:4px"><span class="chip warn">Elegido a mano · ${esc(mv.join(" · "))}</span></div>` : ""}<div class="acts"><button type="button" class="ghost small" data-cambiar="${r.cat.k}|${i}">Cambiar</button></div>`)}</div>`; }).join("")}
+        ${r.elegidos.length < r.cat.cupo ? `<div class="bk" style="border-style:dashed;align-content:center;justify-items:start"><span class="muted">Falta ${r.cat.cupo - r.elegidos.length === 1 ? "un libro" : (r.cat.cupo - r.elegidos.length) + " libros"}.</span><button type="button" class="small" data-cambiar="${r.cat.k}|${r.elegidos.length}">Buscar un libro</button></div>` : ""}</div>
+      ${ABIERTO && ABIERTO.startsWith(r.cat.k + "|") ? panelAlts(r) : ""}
       <p class="diag">${d.total} libros de esta categoría tienen existencia; ${r.ok.length} cumplen las reglas.</p>
       ${r.cat.k !== "ed" && !d.total ? `<p class="notice bad">No encontré libros con el tema de esta categoría. Los temas más comunes entre los libros con existencia son: ${temasComunes(10).map(([t, n]) => `<b>${esc(t)}</b> (${n})`).join(", ")}. Mándame una captura de esto para ajustarlo.</p>` : ""}
     </section>`;
@@ -445,16 +454,85 @@ function pintar() {
   pintarHist();
   pintarEditor();
   pintarCorreo();
+  if (ABIERTO) pintarAlts();
+}
+
+// ---------------------------------------------------------------- buscador de reemplazos
+// Por qué un libro no cumple las reglas (o no es de esta sección). Vacío = cumple todo.
+function motivosDe(b, cat) {
+  const m = [];
+  if (!enCategoria(b, cat)) m.push(cat.k === "ed" ? (CF.ed ? "no es de " + CF.ed : "sin editorial destacada") : "tema " + (b.tema || "sin tema").toLowerCase());
+  for (const r of cumple(b)) m.push({ min: `${b.tot} uds. (mín. ${CF.min})`, tiendas: `en ${b.tCon} de ${b.nT} tiendas`, max: `${Math.round(b.mxPct)}% en ${b.mxL}`, alta: "fuera del rango de alta" }[r]);
+  if (recientes().has(b.clave)) m.push("salió en un boletín reciente");
+  return m;
+}
+function panelAlts(r) {
+  const cat = r.cat;
+  if (!ALT || ALT.k !== cat.k) ALT = { k: cat.k, q: "", ed: "", amb: "cat", todos: false, orden: CF.orden, n: 24 };
+  const base = ALT.amb === "cat" ? r.todos : LIBROS;
+  const eds = new Map(); for (const b of base) if (b.ed) eds.set(b.ed, (eds.get(b.ed) || 0) + 1);
+  const ops = [...eds].sort((a, b) => a[0].localeCompare(b[0], "es"));
+  return `<div class="alts" id="altPanel">
+    <div class="row" style="justify-content:space-between;align-items:center"><b>Elige el libro</b><button type="button" class="ghost small" data-cerrar="1">Cerrar</button></div>
+    <div class="alt-f">
+      <label>Buscar <input type="search" id="altQ" value="${esc(ALT.q)}" placeholder="Título, autor, ISBN o referencia" autocomplete="off"></label>
+      <label>Editorial <select id="altEd"><option value="">Todas (${ops.length})</option>${ops.map(([e, n]) => `<option value="${esc(e)}" ${e === ALT.ed ? "selected" : ""}>${esc(e)} (${n})</option>`).join("")}</select></label>
+      <label>Buscar en <select id="altAmb"><option value="cat" ${ALT.amb === "cat" ? "selected" : ""}>${esc(cat.n)}${cat.k === "ed" && CF.ed ? " (" + esc(CF.ed) + ")" : ""}</option><option value="todo" ${ALT.amb === "todo" ? "selected" : ""}>Todo el catálogo con existencia</option></select></label>
+      <label>Ordenar <select id="altOrden">${[["recientes", "Más recientes"], ["existencia", "Más existencia"], ["reparto", "Mejor repartidos"], ["precio", "Precio"], ["titulo", "Título A–Z"]].map(([v, t]) => `<option value="${v}" ${ALT.orden === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+      <label class="chk"><input type="checkbox" id="altTodos" ${ALT.todos ? "checked" : ""}> Incluir los que no cumplen las reglas</label>
+    </div>
+    <p class="small-t" id="altCnt"></p>
+    <div class="picks" id="altRes"></div>
+    <div id="altMas"></div>
+  </div>`;
+}
+function candidatos() {
+  const r = RES.find(z => z.cat.k === ALT.k), cat = r.cat, rep = recientes();
+  const q = norm(ALT.q), dig = ALT.q.replace(/\D/g, "");
+  let L = (ALT.amb === "cat" ? r.todos : LIBROS).filter(b => !USADOS.has(b.clave));
+  if (ALT.ed) L = L.filter(b => b.ed === ALT.ed);
+  if (q) L = L.filter(b => (dig.length >= 4 && ((b.p[0] || "").includes(dig) || String(b.p[1] || "").includes(dig))) ||
+    q.split(" ").every(w => (norm(b.titM) + " " + norm(b.tit) + " " + norm(b.autM) + " " + norm(b.aut) + " " + b.ned).includes(w)));
+  const cumplen = L.filter(b => !cumple(b).length && !rep.has(b.clave) && enCategoria(b, cat)).length;
+  if (!ALT.todos) L = L.filter(b => !cumple(b).length && !rep.has(b.clave));
+  const o = ALT.orden;
+  L.sort(o === "precio" ? (a, b) => a.precio - b.precio : o === "titulo" ? (a, b) => tituloLimpio(a).localeCompare(tituloLimpio(b), "es")
+    : (a, b) => { const k = CF.orden; CF.orden = o; const v = orden(a, b); CF.orden = k; return v; });
+  return { L, cumplen };
+}
+function pintarAlts() {
+  if (!ALT || !$("altRes")) return;
+  const cat = RES.find(z => z.cat.k === ALT.k).cat, { L, cumplen } = candidatos();
+  $("altCnt").textContent = `${L.length.toLocaleString("es-GT")} ${L.length === 1 ? "libro" : "libros"}` + (ALT.todos ? ` (${cumplen} cumplen todas las reglas)` : " que cumplen las reglas") + ". Toca uno para ponerlo en el boletín.";
+  $("altRes").innerHTML = L.slice(0, ALT.n).map(b => { const mv = motivosDe(b, cat); return `<div class="bk ${mv.length ? "forz" : ""}" data-elegir="${esc(b.clave)}" tabindex="0" role="button">${tarjeta(b, mv.length ? `<div class="row" style="gap:4px">${mv.map(x => `<span class="chip warn">${esc(x)}</span>`).join("")}</div>` : "")}</div>`; }).join("")
+    || `<span class="muted">${ALT.todos ? "Ningún libro coincide con la búsqueda." : "Ningún libro que cumpla las reglas coincide. Prueba con «Incluir los que no cumplen las reglas» o con todo el catálogo."}</span>`;
+  $("altMas").innerHTML = L.length > ALT.n ? `<button type="button" class="ghost small" data-mas="1">Ver ${Math.min(24, L.length - ALT.n)} más</button>` : "";
 }
 $("secs").addEventListener("click", e => {
   const c = e.target.closest("[data-cambiar]"), x = e.target.closest("[data-cerrar]"), el = e.target.closest("[data-elegir]");
-  if (c) { ABIERTO = c.dataset.cambiar; pintar(); return; }
-  if (x) { ABIERTO = null; pintar(); return; }
+  if (c) { ABIERTO = c.dataset.cambiar; ALT = null; pintar(); $("altPanel")?.scrollIntoView({ block: "nearest" }); return; }
+  if (x) { ABIERTO = null; ALT = null; pintar(); return; }
+  if (e.target.closest("[data-mas]")) { ALT.n += 24; pintarAlts(); return; }
   if (el && ABIERTO) {
     const [k, i] = ABIERTO.split("|"); const r = RES.find(z => z.cat.k === k);
     const claves = r.elegidos.map(b => b.clave); claves[+i] = el.dataset.elegir;
-    SEL[k] = claves; lsSet("boletin-seleccion", SEL); ABIERTO = null; armar();
+    MAN.add(el.dataset.elegir); guardarMAN();
+    SEL[k] = claves; lsSet("boletin-seleccion", SEL); ABIERTO = null; ALT = null; armar();
   }
+});
+$("secs").addEventListener("input", e => {
+  if (!ALT) return;
+  if (e.target.id === "altQ") { ALT.q = e.target.value; ALT.n = 24; pintarAlts(); }
+});
+$("secs").addEventListener("change", e => {
+  if (!ALT) return;
+  const id = e.target.id;
+  if (id === "altEd") ALT.ed = e.target.value;
+  else if (id === "altOrden") ALT.orden = e.target.value;
+  else if (id === "altTodos") ALT.todos = e.target.checked;
+  else if (id === "altAmb") { ALT.amb = e.target.value; ALT.ed = ""; ALT.n = 24; const q = ALT.q; pintar(); const i = $("altQ"); if (i) { i.focus(); i.setSelectionRange(q.length, q.length); } return; }
+  else return;
+  ALT.n = 24; pintarAlts();
 });
 $("secs").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-elegir]")) e.target.click(); });
 
@@ -685,7 +763,7 @@ $("btnCopiarHtml").addEventListener("click", async () => {
 
 // ---------------------------------------------------------------- salida
 const seleccion = () => RES.flatMap(r => r.elegidos.map(b => ({ cat: r.cat.n, b })));
-$("btnRehacer").addEventListener("click", () => { SEL = {}; lsSet("boletin-seleccion", SEL); ABIERTO = null; armar(); });
+$("btnRehacer").addEventListener("click", () => { SEL = {}; lsSet("boletin-seleccion", SEL); MAN.clear(); guardarMAN(); ABIERTO = null; ALT = null; armar(); });
 $("btnCopiar").addEventListener("click", () => {
   const txt = RES.map(r => `${r.cat.n.toUpperCase()}${r.cat.k === "ed" && CF.ed ? " (" + CF.ed + ")" : ""}\n` + r.elegidos.map(b => `• ${b.tit} — ${b.aut} (${b.ed}) · ${fmtQ(b.precio)} · ${b.p[0] || "Ref. " + b.p[1]}`).join("\n")).join("\n\n");
   $("copiaTxt").value = txt; $("copia").hidden = false; $("copiaTxt").select();
@@ -705,7 +783,7 @@ $("btnGuardar").addEventListener("click", () => {
   const fecha = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short", year: "numeric" });
   HIST.unshift({ fecha, libros: seleccion().map(({ b }) => ({ clave: b.clave, titulo: b.tit })) });
   HIST = HIST.slice(0, 52); lsSet("boletin-historial", HIST);
-  SEL = {}; lsSet("boletin-seleccion", SEL);
+  SEL = {}; lsSet("boletin-seleccion", SEL); MAN.clear(); guardarMAN();
   $("btnGuardar").textContent = "Guardado ✓"; setTimeout(() => { $("btnGuardar").textContent = "Guardar como boletín de esta semana"; }, 2500);
   pintarHist();
 });
