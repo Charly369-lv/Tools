@@ -382,10 +382,22 @@ def main():
                 CATI[cat], int(max(0, BODD.get(pid, 0))), emp(pid)]
     CAT, CATI = [], {}
     PP = {str(pid): prod_fila(pid) for pid in sorted(usados)}
+    # Empaques/exhibidores de TODOS los productos (también los nuevos sin venta), por referencia (PLU): los usa la app de reparto
+    EMPREF = {}
+    try:
+        ids = list(EMPS.keys())
+        for i in range(0, len(ids), 5000):
+            for p in o.call("product.product", "read", [ids[i:i + 5000]], {"fields": ["default_code"], "context": {"active_test": False}}):
+                ref = clean(p.get("default_code") or "")
+                if ref and EMPS.get(p["id"], 0) > 1:
+                    EMPREF[ref] = int(EMPS[p["id"]])
+        print(f"  Empaques por referencia para el reparto: {len(EMPREF):,}")
+    except SystemExit as e:
+        print("  Aviso: no se pudieron leer las referencias de los empaques:", str(e)[:150])
     version = time.strftime("%Y-%m-%d %H:%M", time.gmtime())
     datos = {"v": version, "origen": ORIG, "dia": dia, "tiendas": tiendas, "nombres": {t: WH[t]["name"] for t in tiendas},
              "cfg": {k: cfg[k] for k in ("semanas_A", "semanas_B", "minimo_A", "crear_borradores", "calendario", "empaque_redondeo")},
-             "prov": PROV, "cat": CAT, "p": PP, "s": S, "bor": BOR, "pr": PR, "prs": PRS}
+             "prov": PROV, "cat": CAT, "p": PP, "s": S, "bor": BOR, "pr": PR, "prs": PRS, "emp": EMPREF}
     sobre = cifrar(gzip.compress(json.dumps(datos, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), 9), clave)
     sobre["v"] = version
     os.makedirs(os.path.join(a.out, "resurtido"), exist_ok=True)

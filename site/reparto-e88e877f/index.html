@@ -106,6 +106,13 @@ details > summary { cursor: pointer; font-weight: 700; }
 dialog { border: 0; border-radius: 14px; padding: 0; max-width: min(560px, calc(100vw - 32px)); width: 100%; background: var(--surface); color: var(--ink); }
 dialog::backdrop { background: rgba(5, 10, 30, .55); }
 dialog form { padding: 18px 20px; display: grid; gap: 12px; }
+.ux { display: inline-flex; gap: 4px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+.ux button { min-height: 26px; padding: 1px 9px; font-size: 12px; border-radius: 999px; background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+.ux button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.ux input { width: 46px; padding: 2px 4px; font-size: 12px; border-width: 1.5px; border-radius: 6px; text-align: center; }
+.alc { font-size: 12px; font-weight: 700; }
+.alc.bad { color: var(--red); } .alc.ok { color: var(--green); }
+td.q input.nm { border-color: var(--red); }
 .leg { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 13px; color: var(--muted); align-items: center; }
 </style>
 </head>
@@ -130,7 +137,7 @@ dialog form { padding: 18px 20px; display: grid; gap: 12px; }
     </section>
 
     <section class="card" id="reglas" hidden>
-      <div class="row between"><h2>2 · Reglas del reparto</h2><button type="button" class="ghost sm" id="btnDef">Volver a lo recomendado</button></div>
+      <div class="row between"><h2>2 · Reglas del reparto</h2><div class="row"><button type="button" class="ghost sm" id="btnExhTodos">Todos por exhibidor</button><button type="button" class="ghost sm" id="btnSueTodos">Todos en piezas</button><button type="button" class="ghost sm" id="btnDef">Volver a lo recomendado</button></div></div>
       <div class="cfg">
         <label>Proveedor del pedido <select id="cProv"></select><span class="small">Para repartir lo nuevo según lo que cada tienda le vende a este proveedor.</span></label>
         <label>Semanas a cubrir (lo que ya existe) <input type="number" id="cSem" min="1" max="26" step="1"><span class="small">Cada tienda recibe lo que vende en ese tiempo, menos lo que ya tiene y lo que va en camino.</span></label>
@@ -187,6 +194,16 @@ let PORREF = new Map(), PORCOD = new Map(), VT = {};   // índices
 let X = null;                 // pedido cargado: { nombre, buf, filas:[...], cols:{...}, tiendas:[...] }
 let C = Object.assign({}, DEF, lsGet("reparto-cfg", {}));
 let R = [];                   // resultado por fila
+let UX = lsGet("reparto-unidades", {});   // por PLU: { m: "exh"|"pza", n: piezas por exhibidor }  (se recuerda para el próximo pedido)
+// Piezas por exhibidor: "(18 PCS)", "18 PZ", "X18"… en la descripción
+const pzDesc = d => { const m = String(d).match(/\((\d{1,3})\s*(PCS|PZS?|PIEZAS|UDS|UNID)/i) || String(d).match(/\b(\d{1,3})\s*(PCS|PZS?|PIEZAS)\b/i); return m ? Number(m[1]) : 0; };
+// Prioridad: lo que se eligió a mano en la app > el empaque registrado en el sistema > lo que dice la descripción
+function unidad(f) {
+  const u = UX[f.plu] || {}, sis = Number(((D && D.emp) || {})[f.plu]) || 0;
+  const n = u.n || sis || pzDesc(f.desc);
+  const ok = n > 1 && f.fac % n === 0;
+  return { m: u.m || (sis > 1 ? "exh" : "pza"), n: n > 1 ? n : 0, sugiere: ok, sistema: !u.m && sis > 1 };
+}
 
 // ---------------------------------------------------------------- abrir datos (misma clave que resurtido, checador y boletín)
 async function descifrar(sobre, clave) {
@@ -319,6 +336,8 @@ $("cTiendas").onclick = e => {
   X.activas.has(b.dataset.t) ? X.activas.delete(b.dataset.t) : X.activas.add(b.dataset.t);
   lsSet("reparto-tiendas", [...X.activas]); X.manual = {}; pintarReglas(); calcular();
 };
+$("btnExhTodos").onclick = () => { for (const f of X.filas) { const u = unidad(f); if (u.n) UX[f.plu] = { m: "exh", n: u.n }; } lsSet("reparto-unidades", UX); X.manual = {}; calcular(); };
+$("btnSueTodos").onclick = () => { for (const f of X.filas) { const u = unidad(f); UX[f.plu] = { m: "pza", n: u.n }; } lsSet("reparto-unidades", UX); X.manual = {}; calcular(); };
 $("btnDef").onclick = () => { C = Object.assign({}, DEF); lsSet("reparto-cfg", C); X.manual = {}; pintarReglas(); calcular(); };
 
 // ---------------------------------------------------------------- cálculo
@@ -352,17 +371,25 @@ function calcular() {
       venta += v ? v[1] + v[2] + v[3] : 0;
     }
     const tipo = !pid ? "no" : venta > 0 ? "ex" : "sv";
-    const mul = Math.max(C.mul, p && p[8] > 1 && tipo === "ex" ? p[8] : 1);
-    const res = { f, pid, p, tipo, st, mul, nota: "" };
+    const u = unidad(f), exh = u.m === "exh" && u.n > 1;
+    const mul = exh ? u.n : Math.max(C.mul, p && p[8] > 1 && tipo === "ex" ? p[8] : 1);
+    const res = { f, pid, p, tipo, st, mul, exh, u, nota: "" };
     if (tipo === "ex") repartirExistente(res, T); else repartirNuevo(res, T, W);
     for (const t of T) if (X.manual[f.r + "|" + t] != null) { st[t].q = X.manual[f.r + "|" + t]; st[t].ed = true; }
     return res;
   });
   pasos(); pintar();
 }
+// Reserva en bodega. Con exhibidores se reserva en exhibidores completos, y si no alcanzan ni para una por tienda no se reserva.
+function reserva(res, pct, T) {
+  if (!res.exh) return Math.floor(res.f.fac * pct / 100);
+  const ex = Math.floor(res.f.fac / res.mul);
+  return ex <= T.length ? 0 : Math.floor(ex * pct / 100) * res.mul;
+}
+const s0 = s => true;
 function repartirExistente(res, T) {
   const { f, st, mul } = res;
-  let disp = f.fac - Math.floor(f.fac * C.resE / 100);
+  let disp = f.fac - reserva(res, C.resE, T);
   const falta = {};
   for (const t of T) {
     const s = st[t], obj = Math.ceil(s.r * C.sem);
@@ -373,7 +400,7 @@ function repartirExistente(res, T) {
   while (disp >= mul) {
     let best = null, bc = Infinity;
     for (const t of T) {
-      if (falta[t] <= 0) continue;
+      if (falta[t] <= 0 || (res.exh && s0(st[t]) && falta[t] < mul / 2)) continue;
       const s = st[t], cob = (s.ex + s.pen + s.q) / Math.max(s.r, 0.01);
       if (cob < bc) { bc = cob; best = t; }
     }
@@ -388,12 +415,12 @@ function repartirExistente(res, T) {
     for (const t of cand) { if (disp < m) break; st[t].q = m; st[t].why += " · se prueba con " + m; disp -= m; }
   }
   const sobra = f.fac - T.reduce((s, t) => s + st[t].q, 0);
-  res.nota = `Reserva ${C.resE}%` + (sobra > Math.floor(f.fac * C.resE / 100) ? " · las tiendas ya están cubiertas: sobra en bodega" : "");
+  res.nota = res.exh ? "" : `Reserva ${C.resE}%` + (sobra > Math.floor(f.fac * C.resE / 100) ? " · las tiendas ya están cubiertas: sobra en bodega" : "");
 }
 function repartirNuevo(res, T, W) {
   const { f, st, mul } = res;
-  let disp = f.fac - Math.floor(f.fac * C.resN / 100);
-  const m = Math.max(C.min, mul);
+  let disp = f.fac - reserva(res, C.resN, T);
+  const m = res.exh ? mul : Math.max(C.min, mul);
   const orden = T.filter(t => (W[t] || 0) > 0).sort((a, b) => W[b] - W[a]);
   const base = W._base === "prov" ? "venta del proveedor" : "venta total";
   for (const t of T) { const pct = W._tot ? (W[t] || 0) / W._tot * 100 : 0; st[t].why = `Nuevo · ${pct.toFixed(1)}% de la ${base} de estas tiendas · tiene ${st[t].ex}`; }
@@ -409,7 +436,7 @@ function repartirNuevo(res, T, W) {
     rec.sort((a, b) => (parte[b] % 1) - (parte[a] % 1));
     for (let i = 0; i < bloques - usados && i < rec.length; i++) st[rec[i]].q += mul;
   }
-  res.nota = `Reserva ${C.resN}% · mínimo ${m} por tienda` + (orden.length > rec.length ? ` · alcanzó para ${rec.length} de ${orden.length} tiendas` : "");
+  res.nota = res.exh ? "" : `Reserva ${C.resN}% · mínimo ${m} por tienda` + (orden.length > rec.length ? ` · alcanzó para ${rec.length} de ${orden.length} tiendas` : "");
 }
 
 // ---------------------------------------------------------------- pantalla
@@ -417,6 +444,20 @@ function pasos() {
   const s = [["Datos", !!D], ["Excel", !!X], ["Reglas", !!X], ["Revisar", !!R.length], ["Descargar", false]];
   const actual = s.findIndex(x => !x[1]);
   $("steps").innerHTML = s.map(([n, ok], i) => `<span class="${ok ? "ok" : i === actual ? "on" : ""}">${i + 1}. ${n}</span>`).join("");
+}
+function uxHTML(r, i, T) {
+  const u = r.u;
+  if (!u.n) return `<div class="ux"><span class="small">Piezas sueltas</span> <button type="button" data-ux="${i}" data-m="exh">Usar exhibidor…</button></div>`;
+  const nEx = Math.floor(r.f.fac / u.n), rec = T.filter(t => r.st[t].q > 0).length;
+  const ne = nEx === 1 ? "1 exhibidor" : nEx + " exhibidores";
+  const alc = r.exh ? (nEx >= T.length ? `<span class="alc ok">${ne} · alcanza para las ${T.length} tiendas</span>` : `<span class="alc bad">${ne} · alcanza para ${nEx} de ${T.length} tiendas: van a las que más venden</span>`)
+    + (rec === 0 && r.tipo === "ex" ? ` <span class="small">Ninguna tienda necesita ni medio exhibidor: queda en BOD</span>` : "") : "";
+  return `<div class="ux"><button type="button" data-ux="${i}" data-m="pza" class="${r.exh ? "" : "on"}">Piezas</button><button type="button" data-ux="${i}" data-m="exh" class="${r.exh ? "on" : ""}">Exhibidor de</button><input type="number" min="2" value="${u.n}" data-uxn="${i}" aria-label="Piezas por exhibidor">${u.sistema ? ' <span class="small">(empaque del sistema)</span>' : ""}${alc}${r.exh && rec < Math.min(nEx, T.length) ? ` <span class="small">van ${rec}</span>` : ""}</div>`;
+}
+function setUX(i, cambio) {
+  const f = R[i].f; UX[f.plu] = Object.assign({ m: R[i].u.m, n: R[i].u.n }, cambio); lsSet("reparto-unidades", UX);
+  for (const k of Object.keys(X.manual)) if (k.startsWith(f.r + "|")) delete X.manual[k];
+  calcular();
 }
 function pintar() {
   if (!X) return;
@@ -430,9 +471,9 @@ function pintar() {
     uFac += r.f.fac; uRep += rep; if (bod < 0) neg++;
     for (const t of T) { totT[t] += r.st[t].q; totQ[t] += r.st[t].q * r.f.precio; }
     const tp = r.tipo === "ex" ? tag.ex : r.tipo === "sv" ? tag.sv + " " + tag.nu : tag.nu;
-    return `<tr><td class="c0"><div class="t">${esc(r.f.desc)}</div><div class="small"><span class="mono">${esc(r.f.plu)}</span> · ${fmtQ(r.f.precio)} ${tp}</div><div class="small">${esc(r.nota)}</div></td>
+    return `<tr><td class="c0"><div class="t">${esc(r.f.desc)}</div><div class="small"><span class="mono">${esc(r.f.plu)}</span> · ${fmtQ(r.f.precio)} ${tp}</div><div class="small">${esc(r.nota)}</div>${uxHTML(r, i, T)}</td>
       <td class="n"><b>${n0(r.f.fac)}</b></td>
-      ${T.map(t => { const s = r.st[t]; return `<td class="q" title="${esc(s.why)}"><input type="number" min="0" step="${r.mul}" value="${s.q}" data-i="${i}" data-t="${t}" class="${s.q ? "" : "z"} ${s.ed ? "ed" : ""}" aria-label="${t}"><span class="ex">tiene ${n0(s.ex)}</span></td>`; }).join("")}
+      ${T.map(t => { const s = r.st[t]; return `<td class="q" title="${esc(s.why)}"><input type="number" min="0" step="${r.mul}" value="${s.q}" data-i="${i}" data-t="${t}" class="${s.q ? "" : "z"} ${s.ed ? "ed" : ""} ${r.exh && s.q % r.mul ? "nm" : ""}" aria-label="${t}"><span class="ex">tiene ${n0(s.ex)}</span></td>`; }).join("")}
       <td class="n bod ${bod < 0 ? "neg" : ""}"><b>${n0(bod)}</b></td></tr>`;
   }).join("");
   $("tabla").innerHTML = `<thead><tr><th class="c0">Producto</th><th class="n">Factura</th>${T.map(t => `<th class="n" title="${esc((D.nombres || {})[t] || "")}">${t}</th>`).join("")}<th class="n">Queda BOD</th></tr></thead>
@@ -451,7 +492,14 @@ function pintar() {
   $("barTxt").innerHTML = `<b>${n0(uRep)}</b> uds. a ${T.length} tiendas · <b>${n0(uFac - uRep)}</b> en BOD` + (neg ? ` · <span style="color:var(--gold)">${neg} con exceso</span>` : "");
   pasos();
 }
+$("tabla").addEventListener("click", e => {
+  const b = e.target.closest("[data-ux]"); if (!b) return;
+  const i = +b.dataset.ux;
+  if (b.dataset.m === "exh" && !R[i].u.n) { const n = Number(prompt("¿Cuántas piezas trae cada exhibidor?", "12")); if (!(n > 1)) return; setUX(i, { m: "exh", n }); return; }
+  setUX(i, { m: b.dataset.m });
+});
 $("tabla").addEventListener("change", e => {
+  if (e.target.dataset.uxn != null) { const n = Math.round(Number(e.target.value)); if (n > 1) setUX(+e.target.dataset.uxn, { n, m: "exh" }); return; }
   const i = e.target.dataset.i, t = e.target.dataset.t; if (i == null) return;
   const q = Math.max(0, Math.round(Number(e.target.value) || 0));
   R[i].st[t].q = q; R[i].st[t].ed = true; X.manual[R[i].f.r + "|" + t] = q;
