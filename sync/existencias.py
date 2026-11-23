@@ -11,6 +11,7 @@ import base64
 import collections
 import gzip
 import hashlib
+import html
 import json
 import os
 import re
@@ -42,6 +43,20 @@ def cifrar(datos: bytes, clave: str) -> dict:
     k = hashlib.pbkdf2_hmac("sha256", clave.encode("utf-8"), sal, ITER, 32)
     b = lambda x: base64.b64encode(x).decode()
     return {"kdf": "PBKDF2-SHA256", "it": ITER, "s": b(sal), "iv": b(iv), "d": b(AESGCM(k).encrypt(iv, datos, None))}
+
+
+def limpiar_sinopsis(s):
+    """Deja solo el texto de la sinopsis: quita etiquetas HTML, entidades (&nbsp;) y saltos de Excel (_x000D_)."""
+    s = str(s or "")
+    s = re.sub(r"_x000[dDaA]_(\\?n(?=[A-ZÁÉÍÓÚÑ¿¡\"«\s]))?", " ", s)
+    s = re.sub(r"\\[rnt]", " ", s)
+    for _ in range(2):
+        s = re.sub(r"<\s*(br|/p|/div|/li|/h\d)\b[^>]*>", " ", s, flags=re.I)
+        s = re.sub(r"<[^>]*>", "", s)
+        s = html.unescape(s)
+    s = re.sub(r"<[^>]*>", "", s)
+    s = re.sub(r"[\u00a0\s]+", " ", s)
+    return re.sub(r"\s+([.,;:!?])", r"\1", s).strip()
 
 
 def main():
@@ -106,7 +121,7 @@ def main():
             for p in o.call("product.product", "read", [ricos[i:i + 2000]], {"fields": ["barcode", "default_code"] + list(campos.values())}):
                 code = re.sub(r"\D", "", str(p.get("barcode") or "")) or "r:" + clean(p.get("default_code") or "")
                 v = {k: as_text(p.get(n)).strip() for k, n in campos.items()}
-                sin = re.sub(r"\s+", " ", v.get("meta_sinopsis", ""))
+                sin = limpiar_sinopsis(v.get("meta_sinopsis", ""))
                 if len(sin) > 700:
                     sin = sin[:700].rsplit(" ", 1)[0] + "…"
                 fila = [v.get("meta_genero", ""), v.get("meta_titulo", ""), v.get("meta_autor", ""), sin, v.get("meta_portada", ""), v.get("meta_paginas", "")]
