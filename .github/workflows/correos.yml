@@ -34,6 +34,7 @@ jobs:
       ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
       GMAIL_USER: ${{ secrets.GMAIL_USER }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      CORREOS: ${{ secrets.CORREOS }}
       SOLO_A: ${{ inputs.solo_a }}
     steps:
       - uses: actions/checkout@v4
@@ -91,6 +92,7 @@ jobs:
       ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
       GMAIL_USER: ${{ secrets.GMAIL_USER }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      CORREOS: ${{ secrets.CORREOS }}
       SOLO_A: ${{ inputs.solo_a }}
     steps:
       - uses: actions/checkout@v4
