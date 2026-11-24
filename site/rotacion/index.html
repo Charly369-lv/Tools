@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Rotación entre Tiendas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Rotación: lo que no se vende en una tienda va directo a la tienda donde sí se vende. */
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8; --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1100px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 14px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.mast img { display: block; width: min(180px, 46vw); height: auto; }
+.mast nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.mast nav button { background: transparent; border: 2px solid rgba(255,255,255,.3); color: #fff; min-height: 36px; padding: 4px 12px; font-size: 14px; }
+.mast nav button.on { background: #fff; color: var(--navy-deep); border-color: #fff; }
+main { padding-block: 18px 120px; }
+main .inner { display: grid; gap: 16px; }
+main .inner > *, .card > * { min-width: 0; }
+h1 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(24px, 5vw, 32px); line-height: 1.1; }
+h2 { margin: 0; font-size: 18px; font-weight: 800; }
+h3 { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.small { font-size: 12px; color: var(--muted); }
+.mono { font-family: var(--f-mono); font-size: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 12px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+button { font: 700 15px var(--f-body); border-radius: 10px; cursor: pointer; padding: 9px 16px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 44px; }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.ok { background: var(--green); border-color: var(--green); }
+button.sm { min-height: 34px; padding: 4px 12px; font-size: 13px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, .scard:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+input, select { font: 15px var(--f-body); padding: 9px 11px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); min-width: 0; max-width: 100%; }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.good { background: var(--green-bg); }
+a { color: inherit; }
+
+/* Pasos */
+.steps { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 13px; font-weight: 700; color: var(--muted); }
+.steps span { display: inline-flex; align-items: center; gap: 6px; }
+.steps i { font-style: normal; width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--soft); color: var(--muted); font-size: 12px; }
+.steps .on { color: var(--ink); }
+.steps .on i { background: var(--navy); color: #fff; }
+.steps .done i { background: var(--green); color: #fff; }
+.steps b { color: var(--line); }
+
+/* Tarjetas de tienda */
+.stores { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.scard { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 8px; cursor: pointer; text-align: left; }
+.scard:hover { border-color: var(--navy); }
+.scard.sel { border-color: var(--navy); box-shadow: 0 0 0 2px var(--navy) inset; }
+.scard.hecho { cursor: default; opacity: .75; }
+.scard .code { font-size: 26px; font-weight: 900; letter-spacing: .02em; line-height: 1; }
+.scard .nm { font-size: 13px; color: var(--muted); }
+.scard .uds { font-size: 15px; }
+.scard .uds b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.scard .chk { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 900; color: #fff; }
+.scard.sel .chk { background: var(--navy); border-color: var(--navy); }
+.tag { display: inline-block; font-size: 12px; font-weight: 800; border-radius: 6px; padding: 2px 8px; background: var(--soft); }
+.tag.red { background: var(--red-bg); color: var(--red); }
+.tag.green { background: var(--green-bg); color: var(--green); }
+.tag.amber { background: var(--amber-bg); color: var(--amber); }
+
+/* Barra fija inferior con la acción principal */
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--navy-deep); color: #fff; padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 24px rgba(0,0,0,.18); }
+.dock .inner { display: flex; gap: 10px 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.dock b { font-size: 20px; }
+.dock button { border-color: #fff; }
+.dock button.ghost { color: #fff; border-color: rgba(255,255,255,.4); }
+.dock button.prim { background: var(--gold); border-color: var(--gold); color: #1d2340; }
+
+/* Revisión de una tienda */
+.sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.lines { display: grid; }
+.ln { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.ln:last-child { border-bottom: 0; }
+.ln.off .info { opacity: .45; }
+.ln .t { font-weight: 700; line-height: 1.25; }
+.ln .why { font-size: 13px; color: var(--muted); }
+.ln .why b { color: var(--ink); }
+.sw { width: 24px; height: 24px; accent-color: var(--navy); }
+.step { display: inline-flex; align-items: center; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; }
+.step button { min-height: 38px; width: 38px; padding: 0; border: 0; border-radius: 0; background: var(--soft); color: var(--ink); font-size: 20px; }
+.step input { width: 52px; border: 0; border-radius: 0; text-align: center; font-weight: 800; font-size: 17px; padding: 6px 2px; -moz-appearance: textfield; }
+.step input::-webkit-outer-spin-button, .step input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--soft); border-radius: 10px; padding: 10px 12px; }
+.kpi span { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.kpi b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi.bad b { color: var(--red); }
+details > summary { cursor: pointer; font-weight: 700; }
+
+/* Análisis */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 2px solid var(--line); }
+.tabs button { background: transparent; color: var(--muted); border: 0; border-bottom: 3px solid transparent; border-radius: 0; min-height: 40px; padding: 6px 10px; margin-bottom: -2px; }
+.tabs button.on { color: var(--ink); border-bottom-color: var(--navy); }
+.tbl { overflow: auto; max-height: 65vh; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 7px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+th { position: sticky; top: 0; background: var(--surface); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); z-index: 1; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Plan */
+.seg { display: inline-flex; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; border-radius: 0; background: transparent; color: var(--ink); min-height: 40px; }
+.seg button.on { background: var(--navy); color: #fff; }
+.plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.plan .f { display: grid; gap: 6px; font-size: 13px; font-weight: 800; color: var(--muted); align-content: start; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips .c { display: inline-flex; align-items: center; gap: 6px; background: var(--soft); color: var(--ink); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; font-weight: 700; }
+.chips .c button { min-height: 24px; width: 24px; padding: 0; border-radius: 50%; border: 0; background: var(--line); color: var(--ink); font-size: 14px; }
+.chips .q { min-height: 32px; padding: 2px 12px; font-size: 13px; background: transparent; color: var(--ink); border-color: var(--line); }
+.chips .q.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.pick { position: relative; }
+.pick input { width: 100%; }
+.pick .lst { position: absolute; z-index: 30; left: 0; right: 0; top: 100%; margin-top: 4px; background: var(--surface); border: 2px solid var(--line); border-radius: 10px; max-height: 260px; overflow: auto; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+.pick .lst button { display: block; width: 100%; text-align: left; background: transparent; color: var(--ink); border: 0; border-radius: 0; min-height: 38px; font-weight: 600; font-size: 14px; border-bottom: 1px solid var(--line); }
+.pick .lst button:hover, .pick .lst button:focus-visible { background: var(--soft); }
+.bar2 { height: 6px; border-radius: 999px; background: var(--soft); overflow: hidden; margin-top: 4px; min-width: 60px; }
+.bar2 i { display: block; height: 100%; background: var(--green); }
+.bar2 i.low { background: var(--red); }
+dialog { border: 0; border-radius: 14px; padding: 0; max-width: min(540px, calc(100vw - 32px)); width: 100%; background: var(--surface); color: var(--ink); }
+dialog::backdrop { background: rgba(5, 10, 30, .55); }
+dialog form { padding: 18px 20px; display: grid; gap: 12px; }
+@media (max-width: 640px) { .hide-m { display: none; } .ln { grid-template-columns: auto minmax(0, 1fr); } .ln .step { grid-column: 2; justify-self: start; } }
+.grp { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
+.grp.hecho { opacity: .6; }
+.flt { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.flt label { display: grid; gap: 4px; font-size: 12px; font-weight: 800; color: var(--muted); }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner"><img src="../checador/logo.png" alt="De Museo"><nav id="nav" hidden>
+  <button type="button" data-v="mandar">Puedo mandar</button><button type="button" data-v="recibir">Me pueden mandar</button><button type="button" data-v="devolver">Devolver al CEDIS</button><button type="button" data-v="resumen">Resumen</button></nav></div></header>
+<main class="pad"><div class="inner" id="app">
+  <section class="card">
+    <h1>Rotación entre tiendas</h1>
+    <p class="muted">Lo que no se vende en una tienda, directo a la tienda donde sí se vende. Se calcula cada noche; la rotación se aprueba una vez al mes. Escribe la clave para abrir los datos.</p>
+    <form id="claveForm" class="row" autocomplete="off"><input type="password" id="clave" placeholder="Clave" autocomplete="off"><button type="submit">Abrir</button></form>
+    <p class="notice bad" id="claveErr" hidden></p>
+  </section>
+</div></main>
+<dialog id="dlg"><form id="dlgForm" method="dialog"></form></dialog>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const fmt = n => Number(n || 0).toLocaleString("es-GT");
+const Q = n => "Q" + Number(n || 0).toLocaleString("es-GT", { maximumFractionDigits: 0 });
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const app = $("app");
+let D = null, VIEW = "mandar", TI = lsGet("rot-tienda", ""), F = lsGet("rot-filtro", { prov: "", cat: "", q: "" });
+const P = pid => D.p[String(pid)] || ["", "", "?", 0, 0, 0, 0, 0, 1];
+const catNom = i => String(D.cat[i] || "").split("/").map(x => x.trim().replace(/^\d+\s+/, "")).slice(-2).join(" / ");
+const nomT = t => t === D.origen ? "CEDIS" : t;
+const aprKey = () => "rot-apr-" + D.v, edKey = () => "rot-ed-" + D.v;
+const apr = () => lsGet(aprKey(), {}), ed = () => lsGet(edKey(), {});
+// Filtro por proveedor / categoría (incluye subcategorías) / texto
+function pasa(pid) {
+  const p = P(pid);
+  if (F.prov !== "" && String(p[3]) !== String(F.prov)) return false;
+  if (F.cat !== "") { const c = String(D.cat[p[6]] || ""), k = String(D.cat[+F.cat] || ""); if (!(c === k || c.startsWith(k + " /"))) return false; }
+  if (F.q) { const z = norm(p.slice(0, 3).join(" ")); if (!norm(F.q).split(/\s+/).every(w => z.includes(w))) return false; }
+  return true;
+}
+// Líneas con la cantidad editada y si está marcada
+function linea(x, i, tipo) {
+  const k = tipo + i, e = ed()[k];
+  return { k, x, pid: x[0], q: e ? e.q : (tipo === "d" ? x[2] : x[3]), max: tipo === "d" ? x[2] : x[3], on: e ? e.on : true };
+}
+function grupos(tipo) {
+  const g = {};
+  if (tipo === "d") D.d.forEach((x, i) => { if (x[1] === TI && pasa(x[0])) (g[D.origen] = g[D.origen] || []).push(linea(x, i, "d")); });
+  else D.r.forEach((x, i) => {
+    if (tipo === "m" ? x[1] !== TI : x[2] !== TI) return;
+    if (!pasa(x[0])) return;
+    const k = tipo === "m" ? x[2] : x[1]; (g[k] = g[k] || []).push(linea(x, i, "r"));
+  });
+  return g;
+}
+const valor = ls => ls.filter(l => l.on).reduce((s, l) => s + l.q * P(l.pid)[4], 0);
+const uds = ls => ls.filter(l => l.on).reduce((s, l) => s + l.q, 0);
+
+async function descifrar(sobre, clave) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(sobre.s), iterations: sobre.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  let plano;
+  try { plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(sobre.iv) }, key, b64(sobre.d)); } catch (e) { throw new Error("clave"); }
+  return JSON.parse(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+}
+async function abrir(clave, silencioso) {
+  $("claveErr").hidden = true;
+  try {
+    const r = await fetch("rotacion.enc?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("falta");
+    D = await descifrar(await r.json(), clave);
+    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
+    if (!D.tiendas.includes(TI)) { const op = lsGet("despacho-op", null); TI = op && D.tiendas.includes(op.tienda) ? op.tienda : D.tiendas[0]; }
+    $("nav").hidden = false; ir(VIEW);
+  } catch (e) {
+    if (silencioso) return;
+    $("claveErr").textContent = e.message === "clave" ? "Clave incorrecta." : e.message === "falta" ? "Todavía no se ha calculado la rotación. Corre la sincronización en GitHub." : "No se pudieron abrir los datos en este navegador.";
+    $("claveErr").hidden = false;
+  }
+}
+$("claveForm").onsubmit = e => { e.preventDefault(); const c = $("clave").value.trim(); if (c) abrir(c); };
+(() => { let c = lsGet("surtido-clave", null); if (c) abrir(String(c), true); })();
+$("nav").querySelectorAll("[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v));
+function ir(v) { VIEW = v; $("nav").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === v)); pintar(); scrollTo(0, 0); }
+
+function cabecera() {
+  const provs = [...new Set(Object.values(D.p).map(p => p[3]))].sort((a, b) => String(D.prov[a]).localeCompare(String(D.prov[b])));
+  const cats = [...new Set(Object.values(D.p).map(p => p[6]))].sort((a, b) => catNom(a).localeCompare(catNom(b)));
+  return `<section class="card"><div class="row between"><h1>Rotación · ${esc(TI)}</h1><span class="small">Cálculo ${esc(String(D.v).slice(0, 10))} · se aprueba cada ${D.cfg.frecuencia_dias || 30} días</span></div>
+    <div class="flt"><label>Tienda<select id="fTi">${D.tiendas.map(t => `<option value="${t}"${t === TI ? " selected" : ""}>${esc(t)} · ${esc(D.nombres[t] || "")}</option>`).join("")}</select></label>
+    <label>Proveedor<select id="fPr"><option value="">Todos</option>${provs.map(i => `<option value="${i}"${String(i) === String(F.prov) ? " selected" : ""}>${esc(D.prov[i] || "Sin proveedor")}</option>`).join("")}</select></label>
+    <label>Categoría<select id="fCa"><option value="">Todas</option>${cats.map(i => `<option value="${i}"${String(i) === String(F.cat) ? " selected" : ""}>${esc(catNom(i))}</option>`).join("")}</select></label>
+    <label>Buscar<input id="fQ" value="${esc(F.q)}" placeholder="Nombre, código o referencia"></label></div>
+    <p class="small">Arranque gradual: cada tienda manda a máximo ${D.cfg.max_destinos_por_tienda} tiendas y ${D.cfg.max_lineas_por_traslado} productos por traslado, los de más valor primero. Mínimo por traslado: ${D.cfg.min_unidades} unidades o ${Q(D.cfg.min_valor)}.</p></section>`;
+}
+function enlazarFiltros() {
+  $("fTi").onchange = () => { TI = $("fTi").value; lsSet("rot-tienda", TI); pintar(); };
+  $("fPr").onchange = () => { F.prov = $("fPr").value; lsSet("rot-filtro", F); pintar(); };
+  $("fCa").onchange = () => { F.cat = $("fCa").value; lsSet("rot-filtro", F); pintar(); };
+  $("fQ").onchange = () => { F.q = $("fQ").value.trim(); lsSet("rot-filtro", F); pintar(); };
+}
+function porQue(l, tipo) {
+  const x = l.x;
+  if (tipo === "d") return `Aquí no se vendió en ${D.cfg.semanas_max} semanas · tiene ${fmt(x[3])}. Ninguna tienda lo necesita ahora.`;
+  const ori = x[5] > 0 ? `${x[1]} vende ~${x[5]}/sem y tiene ${fmt(x[6])}` : `${x[1]} no lo vendió en ${D.cfg.semanas_max} semanas (tiene ${fmt(x[6])})`;
+  const des = x[4] === 2 ? `${x[2]} no lo tiene y se vende en otras tiendas (para probar)` : `${x[2]} vende ~${x[7]}/sem y tiene ${fmt(x[8])}`;
+  return ori + " · " + des;
+}
+function lineaHTML(l, tipo, edita) {
+  const p = P(l.pid);
+  return `<div class="ln${l.on ? "" : " off"}" data-k="${l.k}">${edita ? `<input type="checkbox" class="sw" ${l.on ? "checked" : ""}>` : "<span></span>"}
+    <div class="info"><div class="t">${esc(p[2])}</div><div class="why"><span class="mono">${esc(p[1] || p[0])}</span> · ${esc(D.prov[p[3]] || "")} · ${Q(p[4])}<br>${esc(porQue(l, tipo))}</div></div>
+    ${edita ? `<div class="step"><button type="button" data-d="-1">−</button><input inputmode="numeric" value="${l.q}"><button type="button" data-d="1">+</button></div>` : `<b>${fmt(l.q)}</b>`}</div>`;
+}
+function pintar() {
+  if (VIEW === "resumen") return pintarResumen();
+  const tipo = VIEW === "mandar" ? "m" : VIEW === "recibir" ? "rc" : "d", g = grupos(tipo), a = apr();
+  const edita = tipo !== "rc";
+  const ks = Object.keys(g).sort((x, y) => valor(g[y]) - valor(g[x]));
+  const titulo = { m: "Lo que " + TI + " puede mandar", rc: "Lo que otras tiendas pueden mandar a " + TI, d: "Lo que " + TI + " puede devolver al CEDIS" }[tipo];
+  const ayuda = { m: "Revisa, ajusta cantidades y aprueba. El traslado aparece en Despachos de " + TI + " para empacarlo con escáner y sello; la tienda que recibe lo revisa al llegar.",
+    rc: "Solo informativo: lo aprueba la tienda que manda (o el supervisor desde su pestaña “Puedo mandar”).",
+    d: "Productos sin venta en ninguna tienda. Devuélvelos solo si el CEDIS los puede usar o liquidar." }[tipo];
+  app.innerHTML = cabecera() + `<section class="card"><h2>${esc(titulo)}</h2><p class="muted">${ayuda}</p>
+    ${ks.map(k => { const ls = g[k], hecho = a[(tipo === "rc" ? k + ">" + TI : TI + ">" + k) + (tipo === "d" ? ":d" : "")];
+      return `<div class="grp${hecho ? " hecho" : ""}" data-g="${k}"><div class="row between"><h2>${tipo === "rc" ? "De " : "A "}${esc(nomT(k))} <span class="small">${esc(D.nombres[k] || "")}</span></h2>
+        <span><b>${fmt(uds(ls))}</b> uds · ${Q(valor(ls))}</span></div>
+        <div class="lines">${ls.map(l => lineaHTML(l, tipo === "rc" ? "r" : tipo === "d" ? "d" : "r", edita && !hecho)).join("")}</div>
+        ${hecho ? `<p class="notice good">Aprobado: <b class="mono">${esc(hecho)}</b></p>` : edita ? `<div class="row" style="justify-content:flex-end"><button type="button" class="ok" data-apr="${k}">Aprobar traslado ${esc(TI)} → ${esc(nomT(k))}</button></div>` : ""}</div>`; }).join("")
+      || '<p class="muted">Nada que rotar con estos filtros.</p>'}</section>`;
+  enlazarFiltros();
+  app.querySelectorAll(".ln[data-k]").forEach(n => {
+    const k = n.dataset.k, cb = n.querySelector(".sw"), inp = n.querySelector(".step input");
+    const guardar = (cambios) => { const e = ed(); const cur = e[k] || { q: +inp.value, on: cb.checked }; e[k] = Object.assign(cur, cambios); lsSet(edKey(), e); };
+    if (cb) cb.onchange = () => { guardar({ on: cb.checked }); n.classList.toggle("off", !cb.checked); };
+    if (inp) { inp.onchange = () => { const v = Math.max(0, Math.round(+inp.value || 0)); inp.value = v; guardar({ q: v }); };
+      n.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { inp.value = Math.max(0, (+inp.value || 0) + +b.dataset.d); inp.onchange(); }); }
+  });
+  app.querySelectorAll("[data-apr]").forEach(b => b.onclick = () => aprobar(b.dataset.apr, tipo));
+}
+function pintarResumen() {
+  const par = {};
+  D.r.forEach(x => { const k = x[1] + ">" + x[2]; par[k] = par[k] || { o: x[1], d: x[2], n: 0, u: 0, v: 0 }; par[k].n++; par[k].u += x[3]; par[k].v += x[3] * P(x[0])[4]; });
+  const filas = Object.values(par).sort((a, b) => b.v - a.v), a = apr();
+  const dv = {}; D.d.forEach(x => { dv[x[1]] = (dv[x[1]] || 0) + x[2] * P(x[0])[4]; });
+  app.innerHTML = `<section class="card"><h1>Resumen de la rotación</h1><p class="muted">Todos los traslados propuestos este mes, sin filtros.</p>
+    <div class="kpis"><div class="kpi"><span>Traslados</span><b>${fmt(filas.length)}</b></div><div class="kpi"><span>Unidades</span><b>${fmt(filas.reduce((s, f) => s + f.u, 0))}</b></div>
+    <div class="kpi"><span>Valor a rotar</span><b>${Q(filas.reduce((s, f) => s + f.v, 0))}</b></div><div class="kpi"><span>Sin venta en ninguna tienda</span><b>${Q(Object.values(dv).reduce((s, v) => s + v, 0))}</b></div></div>
+    <div class="tbl"><table><thead><tr><th>Manda</th><th>Recibe</th><th class="n">Productos</th><th class="n">Uds.</th><th class="n">Valor</th><th>Estado</th></tr></thead><tbody>
+    ${filas.map(f => `<tr><td><b>${esc(f.o)}</b></td><td><b>${esc(f.d)}</b></td><td class="n">${fmt(f.n)}</td><td class="n">${fmt(f.u)}</td><td class="n">${Q(f.v)}</td><td>${a[f.o + ">" + f.d] ? `<span class="tag green">${esc(a[f.o + ">" + f.d])}</span>` : '<span class="tag">pendiente</span>'}</td></tr>`).join("") || '<tr><td colspan="6" class="muted">Sin propuestas.</td></tr>'}</tbody></table></div></section>`;
+}
+
+// ---------------------------------------------------------------- aprobar (servidor de Despachos)
+const CFG = () => lsGet("despacho-cfg", null), OP = () => lsGet("despacho-op", null);
+async function api(accion, datos, op) {
+  const c = CFG();
+  const body = JSON.stringify(Object.assign({ accion, token: c.token, operador: op }, datos || {}));
+  let r;
+  try { r = await fetch(c.url + (c.url.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(body), { method: "GET", redirect: "follow" }); }
+  catch (e) { throw new Error("No hay conexión con el servidor. Revisa el internet."); }
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || "Error del servidor");
+  return j.datos;
+}
+function dialogo(html) { $("dlgForm").innerHTML = html; const d = $("dlg"); try { d.showModal(); } catch (e) { d.setAttribute("open", ""); } return d; }
+function aprobar(dest, tipo) {
+  if (!CFG()) { dialogo(`<h2>Falta conectar el servidor</h2><p class="muted">Se usa el mismo servidor de Despachos. Abre <a href="../despacho/">Despachos</a> en este equipo, configúralo una vez y regresa.</p><div class="row" style="justify-content:flex-end"><button type="submit">Entendido</button></div>`); return; }
+  const ls = grupos(tipo)[dest].filter(l => l.on && l.q > 0); if (!ls.length) return;
+  const op = OP(), u = uds(ls), clave = TI + ">" + dest + (tipo === "d" ? ":d" : "");
+  const d = dialogo(`<h2>Aprobar traslado ${esc(TI)} → ${esc(nomT(dest))}</h2><p class="muted"><b>${fmt(ls.length)}</b> productos · <b>${fmt(u)}</b> uds · ${Q(valor(ls))}. Aparece en Despachos de ${esc(TI)} para empacar con escáner y sello.</p>
+    <label class="small" style="font-weight:700;display:grid;gap:4px">Tu código de supervisor<input id="opCod" value="${esc(op && op.rol === "SUPERVISOR" ? op.codigo : "")}" autocomplete="off" style="text-transform:uppercase"></label>
+    <p class="notice bad" id="apErr" hidden></p><p class="small" id="apEst"></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="apNo">Cancelar</button><button type="submit" class="ok" id="apSi">Aprobar ${fmt(u)} unidades</button></div>`);
+  $("apNo").onclick = () => d.close();
+  $("dlgForm").onsubmit = async e => {
+    e.preventDefault();
+    const cod = $("opCod").value.trim().toUpperCase(); if (!cod) return;
+    $("apSi").disabled = true; $("apErr").hidden = true;
+    try {
+      const partes = []; for (let i = 0; i < ls.length; i += 120) partes.push(ls.slice(i, i + 120).map(l => [l.pid, l.q]));
+      let pedido = 0;
+      for (let i = 0; i < partes.length; i++) { $("apEst").textContent = `Enviando ${i + 1} de ${partes.length}…`; pedido = (await api("rotacion", pedido ? { pedido, lineas: partes[i] } : { origen: TI, destino: dest, lineas: partes[i] }, cod)).pedido; }
+      $("apEst").textContent = "Confirmando…";
+      const r = await api("rotacion", { pedido, fin: true, origen: TI, destino: dest }, cod);
+      const a = apr(); a[clave] = r.nombre; lsSet(aprKey(), a);
+      d.close(); dialogo(`<h2>Listo ✓</h2><p>Traslado <b class="mono">${esc(r.nombre)}</b> creado. ${esc(TI)} lo empaca en Despachos (opción “Empacar traslados que salen de mi tienda”).</p><div class="row" style="justify-content:flex-end"><button type="submit">Seguir</button></div>`);
+      $("dlgForm").onsubmit = ev => { ev.preventDefault(); $("dlg").close(); pintar(); };
+    } catch (er) { $("apErr").textContent = er.message; $("apErr").hidden = false; $("apSi").disabled = false; }
+  };
+}
+</script>
+</body>
+</html>

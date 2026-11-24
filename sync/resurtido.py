@@ -54,6 +54,11 @@ DEF = {
     "empaque_redondeo": 0.5, # se manda una caja más si lo que falta llega a esta fracción de caja
     "excluir": ["BOD", "CDV", "DPROV", "REVIS", "BDAÑA", "TEMPS", "TEMBS", "ALDIS", "BDSA", "FLYS", "BDCS", "SG", "WALLM", "MOVIL"],
     "tiendas": [],   # vacío = todas las que venden (menos las excluidas)
+    # Rotación entre tiendas (sync/resurtido.py también la calcula): mover lo que no se vende a donde sí se vende
+    "rotacion": {"semanas_objetivo": 4, "semanas_max": 12, "min_unidades": 3, "min_valor": 300, "dias_sin_mover": 60,
+                 "probar_unidades": 2, "probar_en_tiendas": 3, "devolver_cedis": True,
+                 # Arranque gradual: cada tienda manda a lo sumo a N tiendas y M productos por traslado (los de más valor primero)
+                 "max_destinos_por_tienda": 2, "max_lineas_por_traslado": 25, "frecuencia_dias": 30},
     "crear_borradores": False,
     "calendario": {},
 }
@@ -365,6 +370,99 @@ def main():
     else:
         print("Creación de borradores apagada (config.json → resurtido.crear_borradores).")
 
+    # ---------------------------------------------------------------- rotación entre tiendas
+    RC = dict(DEF["rotacion"]); RC.update(cfg.get("rotacion") or {})
+    print("Rotación entre tiendas…")
+    hace = fecha_odoo(hoy - dt.timedelta(days=int(RC["dias_sin_mover"])))
+    MOV = set()   # (tienda, pid) que entró o salió por traslado entre tiendas hace poco: no se vuelve a mover
+    try:
+        for m in o.search_read_all("stock.move", [["state", "=", "done"], ["date", ">=", hace], ["location_id.usage", "=", "internal"],
+                                                  ["location_dest_id.usage", "in", ["internal", "transit"]]], ["product_id", "location_id", "location_dest_id"]):
+            a_, b_ = pref(m["location_id"]), pref(m["location_dest_id"])
+            if a_ != b_ and a_ in tiendas + [ORIG] and b_ in tiendas:
+                MOV.add((b_, m["product_id"][0])); MOV.add((a_, m["product_id"][0]))
+    except SystemExit as e:
+        print("  Aviso: no se pudieron leer los traslados recientes:", str(e)[:150])
+    ritmo = lambda t, pid: (lambda v: 0.5 * v[0] / 4 + 0.3 * v[1] / 4 + 0.2 * v[2] / 4)(V.get((t, pid), [0, 0, 0]))
+    ventas_en = collections.Counter(pid for (t, pid), v in V.items() if t in tiendas and sum(v) > 0)
+    prods_rot = {pid for (t, pid) in EX if t in tiendas}
+    ROT, DEV, ROTP = [], [], set()
+    sO, sM = float(RC["semanas_objetivo"]), float(RC["semanas_max"])
+    for pid in prods_rot:
+        alta = str((P.get(pid) or {}).get("create_date") or "9999")[:10]
+        don = []
+        for t in tiendas:
+            e = int(EX.get((t, pid), 0))
+            if e <= 0 or (t, pid) in MOV:
+                continue
+            r = ritmo(t, pid)
+            if r <= 0:
+                if alta >= alta_lim:
+                    continue      # recién dado de alta: todavía no se juzga
+                sob = e           # no se vende aquí: todo puede rotar
+            else:
+                sob = e - math.ceil(r * sM)   # se vende, pero tiene más de N semanas
+            u = emp(pid)
+            if u > 1:
+                sob = (sob // u) * u
+            if sob > 0:
+                don.append([t, sob, r, e])
+        if not don:
+            continue
+        rec = []
+        for t in tiendas:
+            if (t, pid) in MOV:
+                continue
+            e, pe, r = max(0, EX.get((t, pid), 0)), PEN.get((t, pid), 0), ritmo(t, pid)
+            if r > 0:
+                nec = math.ceil(r * sO) - e - pe
+                why = 1   # se vende aquí y le va a faltar
+            elif e <= 0 and pe <= 0 and ventas_en[pid] >= int(RC["probar_en_tiendas"]) and not es_bazar(pid):
+                nec = int(RC["probar_unidades"]); why = 2   # no lo tiene y se vende en otras tiendas: probar
+            else:
+                continue
+            nec = a_cajas(int(nec), pid, e)
+            if nec > 0:
+                rec.append([t, nec, r, int(e), why])
+        rec.sort(key=lambda x: (x[4], -x[2]))
+        don.sort(key=lambda x: (x[2], -x[1]))      # primero las que no lo venden y más tienen
+        for d in don:
+            for x in rec:
+                if d[1] <= 0:
+                    break
+                if x[1] <= 0 or x[0] == d[0]:
+                    continue
+                q = min(d[1], x[1])
+                u = emp(pid)
+                if u > 1:
+                    q = (q // u) * u
+                if q <= 0:
+                    continue
+                ROT.append([pid, d[0], x[0], int(q), x[4], round(d[2], 2), d[3], round(x[2], 2), x[3]])
+                d[1] -= q; x[1] -= q; ROTP.add(pid)
+            if RC.get("devolver_cedis") and d[1] > 0 and d[2] <= 0:
+                DEV.append([pid, d[0], int(d[1]), d[3]]); ROTP.add(pid)
+    # Mínimo por traslado entre dos tiendas: si no llega a N unidades ni a Q, no vale el viaje
+    par = collections.defaultdict(lambda: [0, 0.0])
+    for x in ROT:
+        par[(x[1], x[2])][0] += x[3]; par[(x[1], x[2])][1] += x[3] * precio(x[0])
+    ok = {k for k, (u_, q_) in par.items() if u_ >= int(RC["min_unidades"]) or q_ >= float(RC["min_valor"])}
+    ROT = [x for x in ROT if (x[1], x[2]) in ok]
+    # Gradual: por tienda que manda, sólo sus mejores destinos y las líneas de más valor
+    ROT.sort(key=lambda x: -x[3] * precio(x[0]))
+    mejores = collections.defaultdict(list)
+    for k in sorted(ok, key=lambda k: -par[k][1]):
+        if len(mejores[k[0]]) < int(RC["max_destinos_por_tienda"]):
+            mejores[k[0]].append(k[1])
+    cuenta, R2 = collections.Counter(), []
+    for x in ROT:
+        if x[2] in mejores[x[1]] and cuenta[(x[1], x[2])] < int(RC["max_lineas_por_traslado"]):
+            cuenta[(x[1], x[2])] += 1; R2.append(x)
+    ROT = R2
+    DEV.sort(key=lambda x: -x[2] * precio(x[0]))
+    ROTP = {x[0] for x in ROT} | {x[0] for x in DEV}
+    print(f"  {len(ROT):,} líneas de rotación entre {len(ok):,} pares de tiendas · {len(DEV):,} para devolver al CEDIS")
+
     # ---------------------------------------------------------------- guardar cifrado
     def prod_fila(pid):
         p = P.get(pid) or {}
@@ -403,6 +501,15 @@ def main():
     os.makedirs(os.path.join(a.out, "resurtido"), exist_ok=True)
     with open(os.path.join(a.out, "resurtido", "resurtido.enc"), "w", encoding="utf-8") as f:
         json.dump(sobre, f, separators=(",", ":"))
+    # Rotación (archivo aparte)
+    PR2 = {str(pid): prod_fila(pid) for pid in sorted(ROTP)}
+    rot = {"v": version, "origen": ORIG, "tiendas": tiendas, "nombres": {t: WH[t]["name"] for t in tiendas}, "cfg": RC,
+           "prov": PROV, "cat": CAT, "p": PR2, "r": ROT, "d": DEV}
+    sobre2 = cifrar(gzip.compress(json.dumps(rot, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), 9), clave)
+    sobre2["v"] = version
+    os.makedirs(os.path.join(a.out, "rotacion"), exist_ok=True)
+    with open(os.path.join(a.out, "rotacion", "rotacion.enc"), "w", encoding="utf-8") as f:
+        json.dump(sobre2, f, separators=(",", ":"))
     tot = sum(x[7] for t in tiendas for x in S[t]["l"])
     print(f"Resurtido: {len(tiendas)} tiendas, {tot:,} unidades sugeridas, {len(PP):,} productos ({len(sobre['d']) // 1024:,} KB cifrados).")
 

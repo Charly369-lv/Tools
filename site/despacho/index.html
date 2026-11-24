@@ -228,6 +228,7 @@ function inicio() {
 }
 const OPCIONES = {
   emp: ["Empacar pedidos del sistema", () => listaEmpacar()],
+  empT: ["Empacar traslados que salen de mi tienda (rotación y devoluciones)", () => listaEmpacar()],
   ola: ["Surtir varias tiendas a la vez (recolectar y repartir)", () => listaOla()],
   rec: ["Recibir cajas", () => listaRecibir()],
   dev: ["Recibir devoluciones y traslados", () => listaRecibir()],
@@ -242,7 +243,7 @@ const OPCIONES = {
 };
 function menu() {
   if (OP.rol === "PILOTO") return misEntregas();
-  const ks = OP.rol === "TIENDA" ? ["lle", "rec", "sp"] : OP.rol === "SUPERVISOR" ? ["ola", "emp", "car", "man", "lle", "rec", "sp", "apr", "ind", "gaf"] : ["ola", "emp", "car", "man", "dev", "sp"];
+  const ks = OP.rol === "TIENDA" ? ["lle", "rec", "empT", "sp"] : OP.rol === "SUPERVISOR" ? ["ola", "emp", "car", "man", "lle", "rec", "sp", "apr", "ind", "gaf"] : ["ola", "emp", "car", "man", "dev", "sp"];
   const sp = lsGet("despacho-sp-actual", null);
   const olaG = OP.rol !== "TIENDA" ? lsGet("despacho-ola", null) : null;
   app.innerHTML = `<section class="card"><h1>¿Qué vas a hacer?</h1>
