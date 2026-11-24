@@ -113,6 +113,12 @@ dialog form { padding: 18px 20px; display: grid; gap: 12px; }
 .alc { font-size: 12px; font-weight: 700; }
 .alc.bad { color: var(--red); } .alc.ok { color: var(--green); }
 td.q input.nm { border-color: var(--red); }
+.seg { display: inline-flex; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; border-radius: 0; background: transparent; color: var(--ink); min-height: 40px; }
+.seg button.on { background: var(--navy); color: #fff; }
+.chips .c { display: inline-flex; align-items: center; gap: 6px; background: var(--soft); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; font-weight: 700; }
+.chips .c button { min-height: 24px; width: 24px; padding: 0; border-radius: 50%; border: 0; background: var(--line); color: var(--ink); }
+.kpi.bad b { color: var(--red); }
 .leg { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 13px; color: var(--muted); align-items: center; }
 </style>
 </head>
@@ -126,6 +132,26 @@ td.q input.nm { border-color: var(--red); }
     <form id="claveForm" class="row" autocomplete="off"><input type="password" id="clave" placeholder="Clave" autocomplete="off"><button type="submit">Abrir</button></form>
     <p class="notice bad" id="claveErr" hidden></p>
   </section>
+
+  <div id="modos" hidden class="row" style="margin-bottom:-4px"><div class="seg" role="tablist">
+    <button type="button" class="on" id="mCalc">Calcular el reparto de un pedido</button><button type="button" id="mRonda">Subir rondas ya repartidas</button></div></div>
+
+  <div id="rondas" hidden style="display:grid;gap:16px">
+    <section class="card">
+      <div class="row between"><h2>Rondas ya repartidas</h2><span class="small">Juntas: un documento por tienda</span></div>
+      <p class="muted">Sube uno o varios Excel de rondas con el reparto por tienda ya lleno (AME2, DPRD, DPRC…). Se juntan todas, puedes ajustar cualquier cantidad y se crea <b>un borrador por tienda</b> listo para revisar y empacar.</p>
+      <label class="drop" id="dropR"><b>Toca aquí o arrastra los Excel de las rondas</b><span class="small">Puedes elegir varios a la vez. El mismo formato de siempre.</span><input type="file" id="archivosR" multiple accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+      <p class="notice bad" id="rErr" hidden></p>
+      <div id="rLista"></div>
+    </section>
+    <section class="card" id="rRev" hidden>
+      <div class="row between"><h2>Revisa y ajusta</h2><span class="small" id="rRes"></span></div>
+      <div class="kpis" id="rKpis"></div>
+      <div class="leg">Bajo el producto: lo que hay en BOD según el último cálculo. <span class="tag sv">Falta en BOD</span> lo repartido es más de lo que hay · <span class="tag nu">No existe</span> el código no está en el sistema.</div>
+      <div class="tbl"><table id="rTabla"></table></div>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="rOtro">Quitar todo</button><button type="button" id="rCrear">Crear borradores por tienda</button></div>
+    </section>
+  </div>
 
   <div id="flujo" hidden style="display:grid;gap:16px">
     <div class="steps" id="steps"></div>
@@ -221,7 +247,7 @@ async function abrir(clave, silencioso) {
     D = await descifrar(await r.json(), clave);
     try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
     indexar();
-    $("claveCard").hidden = true; $("flujo").hidden = false;
+    $("claveCard").hidden = true; $("flujo").hidden = false; $("modos").hidden = false;
     $("datosV").textContent = "Ventas de 12 semanas al " + fechaLocal(D.v);
     pasos();
   } catch (e) {
@@ -253,9 +279,7 @@ drop.ondrop = e => { e.preventDefault(); drop.style.borderColor = ""; const f = 
 const val = v => (v && typeof v === "object") ? (v.result ?? v.text ?? (v.richText ? v.richText.map(t => t.text).join("") : null)) : v;
 const num = v => { const x = val(v); if (x == null || x === "") return null; const n = Number(String(x).replace(/[^\d.\-]/g, "")); return isNaN(n) ? null : n; };
 
-async function leer(f) {
-  $("subirErr").hidden = true;
-  try {
+async function leerTabla(f) {
     const buf = await f.arrayBuffer();
     const wb = new ExcelJS.Workbook(); await wb.xlsx.load(buf);
     let ws = null, hr = 0, H = [];
@@ -289,7 +313,13 @@ async function leer(f) {
       filas.push({ r, plu: String(plu).trim(), desc: String(val(row.getCell(cols.desc).value) || ""), precio: num(row.getCell(cols.precio).value) || 0, fac, exX: ex, repX: rep });
     });
     if (!filas.length) throw new Error("El archivo no tiene productos con cantidad en FACTURA.");
-    X = { nombre: f.name.replace(/\.xlsx$/i, ""), buf, hoja: ws.name, filas, cols, tiendas };
+    return { nombre: f.name.replace(/\.xlsx$/i, ""), buf, hoja: ws.name, filas, cols, tiendas };
+}
+async function leer(f) {
+  $("subirErr").hidden = true;
+  try {
+    X = await leerTabla(f);
+    const filas = X.filas, tiendas = X.tiendas;
     X.activas = new Set(lsGet("reparto-tiendas", null) || tiendas.map(t => t.code));
     X.manual = {};
     // Proveedor: el más común entre los productos que ya existen; si no, el que aparece en el nombre del archivo o en las descripciones
@@ -554,6 +584,112 @@ async function api(accion, datos, op) {
   return j.datos;
 }
 function dialogo(html) { $("dlgForm").innerHTML = html; const d = $("dlg"); try { d.showModal(); } catch (e) { d.setAttribute("open", ""); } return d; }
+// ---------------------------------------------------------------- rondas ya repartidas (varios Excel → un borrador por tienda)
+let RON = [];          // archivos cargados: { nombre, filas, tiendas }
+let RM = new Map();    // por PLU: { plu, desc, precio, fac, st: { tienda: q }, de: Set(rondas) }
+let RT = [];           // tiendas en el orden del Excel
+const RONDAS_HECHAS = () => lsGet("reparto-rondas-hechas", {});
+function modo(m) {
+  $("mCalc").classList.toggle("on", m === "calc"); $("mRonda").classList.toggle("on", m === "ronda");
+  $("flujo").hidden = m !== "calc"; $("rondas").hidden = m !== "ronda";
+  $("bar").hidden = m !== "calc" || !X;
+}
+$("mCalc").onclick = () => modo("calc");
+$("mRonda").onclick = () => modo("ronda");
+$("archivosR").onchange = e => { const fs = [...e.target.files]; e.target.value = ""; if (fs.length) cargarRondas(fs); };
+const dropR = $("dropR");
+dropR.ondragover = e => { e.preventDefault(); dropR.style.borderColor = "var(--navy)"; };
+dropR.ondragleave = () => { dropR.style.borderColor = ""; };
+dropR.ondrop = e => { e.preventDefault(); dropR.style.borderColor = ""; const fs = [...e.dataTransfer.files]; if (fs.length) cargarRondas(fs); };
+async function cargarRondas(fs) {
+  $("rErr").hidden = true; const errs = [];
+  for (const f of fs) {
+    try {
+      const t = await leerTabla(f);
+      if (RON.some(x => x.nombre === t.nombre)) { errs.push(t.nombre + ": ya está cargada."); continue; }
+      const sinRep = t.filas.every(fl => t.tiendas.every(x => !fl.repX[x.code]));
+      if (sinRep) { errs.push(t.nombre + ": no trae nada en las columnas de reparto."); continue; }
+      RON.push(t);
+    } catch (e) { errs.push(f.name + ": " + (e.message || "no se pudo leer")); }
+  }
+  if (errs.length) { $("rErr").innerHTML = errs.map(esc).join("<br>"); $("rErr").hidden = false; }
+  juntarRondas();
+}
+function juntarRondas() {
+  RM = new Map(); RT = [];
+  for (const t of RON) {
+    for (const x of t.tiendas) if (!RT.includes(x.code)) RT.push(x.code);
+    for (const f of t.filas) {
+      const k = norm(f.plu), m = RM.get(k) || { plu: f.plu, desc: f.desc, precio: f.precio, fac: 0, st: {}, de: new Set() };
+      m.fac += f.fac; m.de.add(t.nombre);
+      for (const x of t.tiendas) m.st[x.code] = (m.st[x.code] || 0) + Math.max(0, Math.round(f.repX[x.code] || 0));
+      RM.set(k, m);
+    }
+  }
+  pintarRondas();
+}
+function pintarRondas() {
+  const hechas = RONDAS_HECHAS();
+  $("rLista").innerHTML = RON.length ? `<div class="chips">${RON.map((t, i) => `<span class="c">${esc(t.nombre)} · ${t.filas.length} productos${hechas[t.nombre] ? " · <b style=\"color:var(--red)\">ya se creó el " + esc(hechas[t.nombre]) + "</b>" : ""}<button type="button" data-q="${i}" title="Quitar">×</button></span>`).join("")}</div>` : "";
+  $("rLista").querySelectorAll("[data-q]").forEach(b => b.onclick = () => { RON.splice(+b.dataset.q, 1); juntarRondas(); });
+  $("rRev").hidden = !RON.length; if (!RON.length) return;
+  const filas = [...RM.values()];
+  const bod = m => { const pid = pidDe(m.plu); return pid ? Number(D.p[pid][7]) || 0 : null; };
+  const tot = m => RT.reduce((s, t) => s + (m.st[t] || 0), 0);
+  const u = filas.reduce((s, m) => s + tot(m), 0), v = filas.reduce((s, m) => s + tot(m) * m.precio, 0);
+  const faltaBod = filas.filter(m => { const b = bod(m); return b != null && tot(m) > b; }).length, noEx = filas.filter(m => bod(m) == null).length;
+  $("rRes").textContent = RON.length + (RON.length === 1 ? " ronda" : " rondas") + " · " + filas.length + " productos";
+  $("rKpis").innerHTML = `<div class="kpi"><span>Tiendas</span><b>${RT.filter(t => filas.some(m => m.st[t] > 0)).length}</b></div><div class="kpi"><span>Unidades</span><b>${n0(u)}</b></div><div class="kpi"><span>Valor</span><b>${fmtQ(v)}</b></div>
+    <div class="kpi${faltaBod ? " bad" : ""}"><span>Falta en BOD</span><b>${faltaBod}</b></div><div class="kpi${noEx ? " bad" : ""}"><span>No existen</span><b>${noEx}</b></div>`;
+  $("rTabla").innerHTML = `<thead><tr><th class="c0">Producto</th>${RT.map(t => `<th class="n">${esc(t)}</th>`).join("")}<th class="n">Total</th><th class="n">Factura</th></tr></thead><tbody>
+    ${filas.map((m, i) => { const b = bod(m), T = tot(m);
+      return `<tr><td class="c0"><b class="mono">${esc(m.plu)}</b> ${esc(m.desc).slice(0, 60)}<div class="small">${b == null ? '<span class="tag nu">No existe</span>' : "BOD " + n0(b) + (T > b ? ' <span class="tag sv">Falta en BOD</span>' : "")}${m.de.size > 1 ? " · en " + m.de.size + " rondas" : ""}</div></td>
+        ${RT.map(t => `<td class="q n"><input data-i="${i}" data-t="${t}" inputmode="numeric" value="${m.st[t] || ""}" style="width:56px;text-align:right"></td>`).join("")}
+        <td class="n"><b>${n0(T)}</b></td><td class="n${T > m.fac ? " alc bad" : ""}">${n0(m.fac)}</td></tr>`; }).join("")}</tbody>
+    <tfoot><tr class="tot"><td class="c0"><b>Total</b></td>${RT.map(t => `<td class="n"><b>${n0(filas.reduce((s, m) => s + (m.st[t] || 0), 0))}</b></td>`).join("")}<td class="n"><b>${n0(u)}</b></td><td></td></tr></tfoot>`;
+  $("rTabla").querySelectorAll("input[data-i]").forEach(inp => inp.onchange = () => { filas[+inp.dataset.i].st[inp.dataset.t] = Math.max(0, Math.round(+inp.value || 0)); pintarRondas(); });
+}
+$("rOtro").onclick = () => { RON = []; juntarRondas(); };
+$("rCrear").onclick = () => {
+  if (!CFG()) { dialogo(`<h2>Falta conectar el servidor</h2><p class="muted">Abre una vez la app de <b>Despachos</b> en este equipo y entra con tu código: así queda guardada la conexión.</p><div class="row" style="justify-content:flex-end"><button value="x">Entendido</button></div>`); return; }
+  const filas = [...RM.values()];
+  const por = RT.map(t => ({ t, ls: filas.filter(m => m.st[t] > 0).map(m => [m.plu, m.st[t]]) })).filter(x => x.ls.length);
+  const nombre = RON.length === 1 ? RON[0].nombre : ("Rondas " + RON.map(t => t.nombre).join(" + ")).slice(0, 90);
+  const faltaBod = filas.filter(m => { const pid = pidDe(m.plu); return pid && RT.reduce((s, t) => s + (m.st[t] || 0), 0) > (Number(D.p[pid][7]) || 0); });
+  const hechas = RONDAS_HECHAS(), repetidas = RON.filter(t => hechas[t.nombre]);
+  const d = dialogo(`<h2>Crear ${por.length} borradores</h2>
+    <p class="muted">Un traslado <b>en borrador</b> de BOD a cada tienda, juntando ${RON.length === 1 ? "la ronda" : "las " + RON.length + " rondas"}, con origen <b>"Reparto · ${esc(nombre)}"</b>. Se revisan en el sistema y con <b>"Marcar como por hacer"</b> aparecen en Despachos para empacar.</p>
+    ${faltaBod.length ? `<p class="notice bad"><b>${faltaBod.length} productos</b> llevan más de lo que había en BOD en el último cálculo: ${faltaBod.slice(0, 6).map(m => esc(m.plu)).join(", ")}${faltaBod.length > 6 ? "…" : ""}. Revisa que la recepción del proveedor ya esté validada.</p>` : ""}
+    ${repetidas.length ? `<p class="notice bad">Ya se crearon antes en este equipo: ${repetidas.map(t => esc(t.nombre) + " (" + esc(hechas[t.nombre]) + ")").join(", ")}. Si sigues, se crean otra vez.</p>` : ""}
+    <label class="small" style="display:grid;gap:4px;font-weight:800">Código de supervisor<input type="password" id="dCod" autocomplete="off" placeholder="SUP-1"></label><label class="small" style="font-weight:700;display:grid;gap:4px">Tu PIN<input type="password" id="opPin" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <p class="small" id="dEst"></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="dNo">Cancelar</button><button type="button" id="dSi">Crear ${por.length} borradores</button></div>`);
+  $("dNo").onclick = () => d.close();
+  $("dSi").onclick = async () => {
+    const cod = $("dCod").value.trim().toUpperCase(); if (!cod) { $("dCod").focus(); return; }
+    if (!$("opPin").value.trim()) { $("opPin").focus(); return; }
+    $("dSi").disabled = true; const est = t => $("dEst").textContent = t;
+    const hechos = [];
+    try {
+      for (const { t, ls } of por) {
+        let pedido = 0;
+        for (let i = 0; i < ls.length; i += 100) {
+          est(`${t}: enviando ${i + 1}–${Math.min(i + 100, ls.length)} de ${ls.length}…`);
+          pedido = (await api("reparto", Object.assign({ tienda: t, nombre, lineas: ls.slice(i, i + 100) }, pedido ? { pedido } : {}), cod)).pedido;
+        }
+        const r = await api("reparto", { tienda: t, pedido, fin: true, nombre }, cod);
+        hechos.push(`${t}: ${r.nombre}${r.faltan && r.faltan.length ? ` (no existen: ${r.faltan.slice(0, 4).join(", ")})` : ""}`);
+      }
+      const h = RONDAS_HECHAS(), hoy = new Date().toLocaleDateString("es-GT"); RON.forEach(t => h[t.nombre] = hoy); lsSet("reparto-rondas-hechas", h);
+      $("dlgForm").innerHTML = `<h2>Borradores creados ✓</h2><p class="muted">Revísalos en el sistema por tienda y pulsa "Marcar como por hacer": entonces aparecen en Despachos para empacar.</p><div class="small">${hechos.map(esc).join("<br>")}</div><div class="row" style="justify-content:flex-end"><button value="x">Listo</button></div>`;
+      pintarRondas();
+    } catch (e) {
+      est("Se detuvo: " + e.message + (hechos.length ? " · Ya se crearon: " + hechos.join(" · ") : ""));
+      $("dSi").disabled = false;
+    }
+  };
+};
+
 $("btnBorr").onclick = () => {
   const T = X.tiendas.map(t => t.code).filter(t => X.activas.has(t));
   const por = T.map(t => ({ t, ls: R.filter(r => r.st[t].q > 0).map(r => [r.f.plu, r.st[t].q]) })).filter(x => x.ls.length);
