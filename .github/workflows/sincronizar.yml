@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.publicar.outputs.page_url }}
+      url: ${{ steps.publicar1.outputs.page_url || steps.publicar2.outputs.page_url || steps.publicar3.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -68,12 +68,34 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: site
 
+      # A veces GitHub tarda unos segundos en registrar el paquete recién subido ("Found 0 artifacts").
+      # Se intenta publicar hasta 3 veces, esperando entre intentos.
       - name: Publicar en GitHub Pages
-        id: publicar
+        id: publicar1
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Esperar y reintentar (2.º intento)
+        if: steps.publicar1.outcome == 'failure'
+        run: sleep 45
+
+      - name: Publicar en GitHub Pages (2.º intento)
+        id: publicar2
+        if: steps.publicar1.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Esperar y reintentar (3.er intento)
+        if: steps.publicar1.outcome == 'failure' && steps.publicar2.outcome == 'failure'
+        run: sleep 90
+
+      - name: Publicar en GitHub Pages (3.er intento)
+        id: publicar3
+        if: steps.publicar1.outcome == 'failure' && steps.publicar2.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
       # GitHub apaga las tareas programadas si el repositorio pasa 60 días sin cambios.
