@@ -5,9 +5,10 @@ Ranking mensual de ventas del Bazar de Descuentos por tienda.
 Fuente: líneas de venta del punto de venta de Odoo (lo que realmente se cobró).
   - Tienda: la ubicación de la caja (configuración del punto de venta → tipo de operación →
     ubicación de origen, ej. MIRAF/Stock → MIRAF).
-  - Venta de bazar: se cobró con 35% o más de descuento sobre el precio normal del producto.
-    (Odoo no guarda la categoría que tenía el libro el día de la venta; el precio cobrado sí.)
-  - % de descuento de la venta: se asigna al porcentaje de bazar más cercano (40, 60, 75…).
+  - Solo las tiendas físicas de config.json ("ranking_tiendas", o si no existe, la lista de "resurtido.tiendas").
+  - Venta de bazar (24/11/2026): el producto está HOY en una categoría de bazar ("BAZAR 40%"…) y se cobró con
+    descuento real (20% o más). Así no cuentan los descuentos sueltos a productos normales ni las ventas de ese
+    libro a precio completo antes de entrar al bazar. El % es el de su categoría.
 
 Métricas por tienda (mes cerrado anterior):
   - Unidades e ingreso del bazar (con IVA, como en el ticket).
@@ -35,7 +36,7 @@ BAZAR = re.compile(r"BAZAR\D{0,3}(\d{1,2})\s*%", re.I)
 UTC = dt.timezone.utc
 GT = dt.timezone(dt.timedelta(hours=-6))
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-UMBRAL = 0.35
+UMBRAL = 0.20   # descuento mínimo cobrado para contar como venta de bazar (el producto además debe estar en una categoría de bazar)
 S = "Arial, Helvetica, sans-serif"
 
 
@@ -64,6 +65,9 @@ def main():
     env = {k: os.environ.get(k, "").strip() for k in ("ODOO_URL", "ODOO_DB", "ODOO_USER", "ODOO_API_KEY")}
     if not all(env.values()):
         raise SystemExit("Faltan los secretos de conexión.")
+    import json
+    cfg = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json"), encoding="utf-8"))
+    FISICAS = [str(t).upper() for t in (cfg.get("ranking_tiendas") or (cfg.get("resurtido") or {}).get("tiendas") or [])]
     o = Odoo(env["ODOO_URL"], env["ODOO_DB"], env["ODOO_USER"], env["ODOO_API_KEY"])
     o.connect()
 
@@ -122,6 +126,9 @@ def main():
         qty = float(l.get("qty") or 0)
         if not ped or not p or qty == 0:
             continue
+        mb = BAZAR.search(as_text(p.get("categ_id")))
+        if not mb:   # no está en una categoría de bazar: no es venta de bazar
+            continue
         normal = float(p.get(price_field) or 0)
         if normal <= 0:
             continue
@@ -132,24 +139,34 @@ def main():
         f = dt.datetime.strptime(ped["date_order"][:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC).astimezone(GT)
         clave = f"{f.year}-{f.month:02d}"
         t = tienda_de.get(ped["config_id"][0]) if ped.get("config_id") else "?"
+        if FISICAS and t.upper() not in FISICAS:
+            continue
         V[clave][t]["u"] += qty
         V[clave][t]["q"] += float(l.get("price_subtotal_incl") or 0)
         if ini <= f < fin:
-            pct = min(pcts, key=lambda x: abs(x - desc * 100))
+            pct = int(mb.group(1))
             POR_PCT[t][pct] += qty
             TOP[t][p["id"]] += qty
 
     # Existencia actual de bazar por tienda (para el % de liquidación)
     bz_ids = [p["id"] for p in o.search_read_all("product.product", [["active", "=", True], ["categ_id.complete_name", "ilike", "BAZAR"]], ["id"])]
     EXB = collections.Counter()
+    CON_EX = collections.defaultdict(set)   # tienda → productos de bazar distintos con existencia
     for i in range(0, len(bz_ids), 3000):
         for qd in o.search_read_all("stock.quant", [["product_id", "in", bz_ids[i:i + 3000]], ["location_id.usage", "=", "internal"], ["quantity", ">", 0]],
-                                    ["location_id", "quantity"]):
+                                    ["location_id", "quantity", "product_id"]):
             EXB[sucursal(qd["location_id"])] += float(qd.get("quantity") or 0)
+            CON_EX[sucursal(qd["location_id"])].add(qd["product_id"][0])
 
     km, ka = f"{y}-{m:02d}", f"{ini_ant.year}-{ini_ant.month:02d}"
     meses_ano = [f"{y}-{i:02d}" for i in range(1, m + 1)]
-    tiendas = sorted(set(tienda_de.values()))
+    tiendas = sorted(t for t in set(tienda_de.values()) if not FISICAS or t.upper() in FISICAS)
+    faltan = [t for t in FISICAS if t not in tiendas]
+    print(f"  Tiendas del ranking ({len(tiendas)}): {', '.join(tiendas)}" + (f" · sin caja en el sistema: {', '.join(faltan)}" if faltan else ""))
+    en_tiendas = set().union(*[CON_EX[t] for t in tiendas]) if tiendas else set()
+    en_todas = set().union(*CON_EX.values()) if CON_EX else set()
+    print(f"  Productos de bazar distintos CON existencia: {len(en_tiendas):,} en las {len(tiendas)} tiendas · {len(en_todas):,} en todas las ubicaciones (incluye bodegas)")
+    print(f"  Productos en categorías de bazar (con y sin existencia): {len(bz_ids):,} · piezas de bazar en las tiendas: {sum(EXB.get(t, 0) for t in tiendas):,.0f}")
 
     def fila(t):
         u, ing = V[km][t]["u"], V[km][t]["q"]
