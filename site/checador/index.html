@@ -418,7 +418,7 @@ async function sobre() {
   if (!SOBRE) { const r = await fetch("../datos/existencias.enc?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("sin"); SOBRE = await r.json(); }
   return SOBRE;
 }
-async function abrirStock(clave, silencioso) {
+async function abrirStock(clave, silencioso, mostrar = true) {
   try {
     const S = await sobre();
     const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
@@ -428,7 +428,8 @@ async function abrirStock(clave, silencioso) {
     try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
     $("lock").hidden = true; $("clave").value = "";
     $("mine").innerHTML = `<option value="">Todas</option>` + STOCK.L.map(l => `<option ${l === MINE ? "selected" : ""}>${esc(l)}</option>`).join("");
-    setEx(true);
+    if (mostrar) setEx(true);
+    else if (CUR) showItem(CUR, true);
     return true;
   } catch (e) {
     if (silencioso) { if (e.message !== "sin") try { localStorage.removeItem("surtido-clave"); } catch (er) {} }
@@ -437,7 +438,9 @@ async function abrirStock(clave, silencioso) {
   }
 }
 // Solo se abren solas si este equipo las dejó visibles la última vez
-try { const c = localStorage.getItem("surtido-clave"); if (c && localStorage.getItem("dm-ex-on") === "1") abrirStock(c, true); } catch (e) {}
+// En equipos con la clave guardada, las existencias se cargan siempre (sin mostrarlas) para ordenar:
+// en búsquedas y recomendaciones salen primero los productos con más existencia (en mi tienda y luego en total).
+try { const c = localStorage.getItem("surtido-clave"); if (c) abrirStock(c, true, localStorage.getItem("dm-ex-on") === "1"); } catch (e) {}
 // Gesto secreto: 5 toques al logo en menos de 3 segundos
 let toques = [];
 document.querySelector(".logo").addEventListener("mousedown", e => { if (e.detail > 1) e.preventDefault(); });
@@ -522,7 +525,10 @@ function byName(q) {
   for (let i = 0; i < TXT.length; i++) { const t = TXT[i]; if (words.every(w => t.includes(w))) out.push(i); }
   const w0 = words[0];
   const score = i => (isBz(CAT[i]) ? 2 : 0) + (TXT[i].startsWith(w0) ? 1 : 0);
-  out.sort((a, b) => score(b) - score(a) || CAT[a][2].localeCompare(CAT[b][2], "es"));
+  if (STOCK) {   // primero lo que hay en mi tienda, luego lo que más existencia tiene en total; lo agotado al final
+    const ex = new Map(out.map(i => { const l = stockDe(CAT[i]); return [i, [MINE ? miDe(l) : 0, totalDe(l)]]; }));
+    out.sort((a, b) => { const A = ex.get(a), B = ex.get(b); return (B[0] > 0) - (A[0] > 0) || (B[1] > 0) - (A[1] > 0) || B[0] - A[0] || B[1] - A[1] || score(b) - score(a) || CAT[a][2].localeCompare(CAT[b][2], "es"); });
+  } else out.sort((a, b) => score(b) - score(a) || CAT[a][2].localeCompare(CAT[b][2], "es"));
   return out.map(i => CAT[i]);
 }
 
@@ -587,7 +593,7 @@ function exBadge(q) {
 function normalPicks(p, n) {
   let pool = (p[6] && TEMA_N.get(p[6])) || [];
   if (!pool.length) return [];
-  if (privPicks()) return porExistencia(pool, p, n, q => (p[3] && q[3] === p[3] ? 2 : 0) + (p[4] && q[4] === p[4] ? 1 : 0));
+  if (STOCK) return porExistencia(pool, p, n, q => (p[3] && q[3] === p[3] ? 2 : 0) + (p[4] && q[4] === p[4] ? 1 : 0));
   let h = 0; for (const ch of String(p[0] || p[1])) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const sc = q => (p[3] && q[3] === p[3] ? 2 : 0) + (p[4] && q[4] === p[4] ? 1 : 0);
   const best = pool.filter(q => sc(q) > 0 && q[0] !== p[0]).sort((a, b) => sc(b) - sc(a)).slice(0, n);
@@ -618,7 +624,7 @@ function picksFor(p) {
   let from = pool.length ? "tema" : "";
   if (!pool.length) { pool = BZ.filter(b => b[4] && b[4] === p[4]); from = pool.length ? "editorial" : ""; }
   if (!pool.length) pool = BZ;
-  if (privPicks()) return { out: porExistencia(pool, p, 6), from };
+  if (STOCK) return { out: porExistencia(pool, p, privPicks() ? 6 : 3), from };   // primero lo que tiene existencia
   // Selección variada pero estable para cada producto
   let h = 0; for (const ch of String(p[0] || p[1])) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const out = [];
