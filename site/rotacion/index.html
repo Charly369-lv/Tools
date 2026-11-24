@@ -304,12 +304,13 @@ function pintarResumen() {
 const CFG = () => lsGet("despacho-cfg", null), OP = () => lsGet("despacho-op", null);
 async function api(accion, datos, op) {
   const c = CFG();
-  const body = JSON.stringify(Object.assign({ accion, token: c.token, operador: op }, datos || {}));
+  const pinEl = document.getElementById("opPin");   // PIN de quien aprueba: el servidor lo revisa en cada envío
+  const body = JSON.stringify(Object.assign({ accion, token: c.token, operador: op, pin: pinEl ? pinEl.value.trim() : "" }, datos || {}));
   let r;
   try { r = await fetch(c.url + (c.url.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(body), { method: "GET", redirect: "follow" }); }
   catch (e) { throw new Error("No hay conexión con el servidor. Revisa el internet."); }
   const j = await r.json();
-  if (!j.ok) throw new Error(j.error || "Error del servidor");
+  if (!j.ok) throw new Error(String(j.error || "Error del servidor").replace(/^(PIN|SESION)\|/, ""));
   return j.datos;
 }
 function dialogo(html) { $("dlgForm").innerHTML = html; const d = $("dlg"); try { d.showModal(); } catch (e) { d.setAttribute("open", ""); } return d; }
@@ -318,13 +319,14 @@ function aprobar(dest, tipo) {
   const ls = grupos(tipo)[dest].filter(l => l.on && l.q > 0); if (!ls.length) return;
   const op = OP(), u = uds(ls), clave = TI + ">" + dest + (tipo === "d" ? ":d" : "");
   const d = dialogo(`<h2>Aprobar traslado ${esc(TI)} → ${esc(nomT(dest))}</h2><p class="muted"><b>${fmt(ls.length)}</b> productos · <b>${fmt(u)}</b> uds · ${Q(valor(ls))}. Aparece en Despachos de ${esc(TI)} para empacar con escáner y sello.</p>
-    <label class="small" style="font-weight:700;display:grid;gap:4px">Tu código de supervisor<input id="opCod" value="${esc(op && op.rol === "SUPERVISOR" ? op.codigo : "")}" autocomplete="off" style="text-transform:uppercase"></label>
+    <label class="small" style="font-weight:700;display:grid;gap:4px">Tu código de supervisor<input id="opCod" value="${esc(op && op.rol === "SUPERVISOR" ? op.codigo : "")}" autocomplete="off" style="text-transform:uppercase"></label><label class="small" style="font-weight:700;display:grid;gap:4px">Tu PIN<input type="password" id="opPin" inputmode="numeric" maxlength="6" autocomplete="off"></label>
     <p class="notice bad" id="apErr" hidden></p><p class="small" id="apEst"></p>
     <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="apNo">Cancelar</button><button type="submit" class="ok" id="apSi">Aprobar ${fmt(u)} unidades</button></div>`);
   $("apNo").onclick = () => d.close();
   $("dlgForm").onsubmit = async e => {
     e.preventDefault();
     const cod = $("opCod").value.trim().toUpperCase(); if (!cod) return;
+    if (!$("opPin").value.trim()) { $("opPin").focus(); return; }
     $("apSi").disabled = true; $("apErr").hidden = true;
     try {
       const partes = []; for (let i = 0; i < ls.length; i += 120) partes.push(ls.slice(i, i + 120).map(l => [l.pid, l.q]));

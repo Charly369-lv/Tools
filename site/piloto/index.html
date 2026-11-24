@@ -154,7 +154,7 @@ let FLASH = null;
 let CFG = lsGet("despacho-cfg", null);     // { url, token }
 let OP = lsGet("piloto-op", null);       // operador en turno
 async function api(accion, datos) {
-  const body = JSON.stringify(Object.assign({ accion, token: CFG.token, operador: OP && OP.codigo }, datos || {}));
+  const body = JSON.stringify(Object.assign({ accion, token: CFG.token, operador: OP && OP.codigo, sesion: OP && OP.sesion }, datos || {}));
   // Por GET cuando cabe en la dirección (funciona en todos los navegadores); por POST si es muy grande
   let r;
   try {
@@ -166,7 +166,11 @@ async function api(accion, datos) {
   }
   let j;
   try { j = await r.json(); } catch (e) { throw new Error("El servidor respondió algo inesperado. Revisa que la dirección termine en /exec y que el código esté implementado como nueva versión."); }
-  if (!j.ok) throw new Error(j.error || "Error del servidor");
+  if (!j.ok) {
+    const m = String(j.error || "Error del servidor");
+    if (/^SESION\|/.test(m)) { OP = null; lsDel("piloto-op"); pantallaLogin(m.slice(7)); throw new Error(m.slice(7)); }
+    throw new Error(m.replace(/^PIN\|/, ""));
+  }
   return j.datos;
 }
 function cargando(txt) { app.innerHTML = `<section class="card"><p class="muted">${esc(txt || "Cargando…")}</p></section>`; }
@@ -192,24 +196,26 @@ function pantallaConfig() {
     catch (er) { $("cErr").textContent = "No se pudo conectar: " + er.message; $("cErr").hidden = false; }
   };
 }
-function pantallaLogin() {
+function pantallaLogin(aviso) {
   $("who").hidden = true;
   app.innerHTML = `<section class="card"><h1>¿Quién está trabajando?</h1>
     <p class="muted">Piloto: escanea tu gafete o escribe tu código. Todo lo que hagas queda registrado a tu nombre.</p>
-    <form class="scan" id="fLog" autocomplete="off"><input id="lCod" placeholder="Código de operador" autofocus><button type="submit">Entrar</button></form>
-    <p class="notice bad" id="lErr" hidden></p>
+    <form id="fLog" autocomplete="off" style="display:grid;gap:10px"><input id="lCod" placeholder="Código de operador" autofocus><input type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" style="font:600 20px var(--f-mono);letter-spacing:.3em" id="lPin"><button type="submit">Entrar</button></form>
+    <p class="notice bad" id="lErr" ${aviso ? "" : "hidden"}>${esc(aviso || "")}</p>
     <p class="small"><a href="#" id="lCfg">Configurar este equipo</a></p></section>`;
   $("lCod").focus();
+  $("lCod").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("lPin").focus(); } };
   $("lCfg").onclick = e => { e.preventDefault(); pantallaConfig(); };
   $("fLog").onsubmit = async e => {
     e.preventDefault();
     const c = limpio($("lCod").value); if (!c) return;
+    const pin = $("lPin").value.trim(); if (!pin) { $("lPin").focus(); return; }
     try {
-      const o = await api("login", { codigo: c });
+      const o = await api("login", { codigo: c, pin });
       if (o.rol !== "PILOTO") throw new Error("Esta app es solo para pilotos. " + o.codigo + " está registrado como " + o.rol + ": usa la app de Despachos.");
       OP = o; lsSet("piloto-op", OP); tocar(); inicio();
     }
-    catch (er) { sonar("err"); $("lErr").textContent = er.message; $("lErr").hidden = false; $("lCod").select(); }
+    catch (er) { sonar("err"); $("lErr").textContent = er.message; $("lErr").hidden = false; $("lPin").value = ""; $("lPin").focus(); }
   };
 }
 $("btnSalir").onclick = () => { OP = null; lsDel("piloto-op"); pantallaLogin(); };
@@ -312,7 +318,7 @@ function terminarCarga() {
   const d = dialogo(`<h2>Terminar carga</h2><p>Camión <b>${esc(CARGA.camion)}</b>: ${n} cajas cargadas.</p>
     ${pend.length ? `<p class="notice bad">Faltan ${pend.length} cajas de esta ruta:<br>${pend.slice(0, 12).map(c => `${esc(c.tienda)} · ${esc(c.traslado)} caja ${c.caja}`).join("<br>")}${pend.length > 12 ? "<br>…" : ""}</p><p class="small">Si salen en otro viaje, termina igual; quedan pendientes para la siguiente carga.</p>` : '<p class="notice good">Todas las cajas de la ruta están cargadas. ✓</p>'}
     ${n ? `<p>Al aceptar, las ${n} cajas quedan <b>a tu cargo</b> hasta que las entregues en cada tienda.</p>
-      <label class="f">Encargado del CEDIS que autoriza la salida (gafete o código)<input id="tDes" autocomplete="off" style="text-transform:uppercase;font:600 20px var(--f-mono)"></label>` : ""}
+      <label class="f">Encargado del CEDIS que autoriza la salida (gafete o código)<input id="tDes" autocomplete="off" style="text-transform:uppercase;font:600 20px var(--f-mono)"></label><label class="f">PIN del encargado del CEDIS<input type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" style="font:600 20px var(--f-mono);letter-spacing:.3em" id="tDesPin"></label>` : ""}
     <p class="notice bad" id="tErr" hidden></p>
     <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="tNo">Seguir cargando</button><button type="submit">${n ? "Aceptar la carga" : "Terminar"}</button></div>`);
   $("tNo").onclick = () => d.close();
@@ -323,8 +329,8 @@ function terminarCarga() {
       const pil = OP.codigo, des = limpio($("tDes").value).toUpperCase();
       if (!des) { $("tErr").textContent = "Falta el código del encargado del CEDIS que autoriza la salida."; $("tErr").hidden = false; return; }
       const bt = $("dlgForm").querySelector("[type=submit]"); bt.disabled = true;
-      const datos = { piloto: pil, despacha: des, camion: CARGA.camion, cajas: CARGA.hechas.map(h => ({ trasladoId: h.trasladoId, caja: h.caja })) };
-      if ($("tSup")) { datos.autoriza = limpio($("tSup").value).toUpperCase(); datos.motivo = $("tMot").value.trim(); }
+      const datos = { piloto: pil, despacha: des, pinDespacha: $("tDesPin").value.trim(), camion: CARGA.camion, cajas: CARGA.hechas.map(h => ({ trasladoId: h.trasladoId, caja: h.caja })) };
+      if ($("tSup")) { datos.autoriza = limpio($("tSup").value).toUpperCase(); datos.pinAutoriza = $("tSupPin").value.trim(); datos.motivo = $("tMot").value.trim(); }
       try {
         const r = await api("firmarCarga", datos);
         d.close(); lsDel("despacho-carga"); CARGA = null; sonar("bien"); FLASH = null; return pantallaManifiesto(r);
@@ -333,7 +339,7 @@ function terminarCarga() {
         if (/^PARCIAL\|/.test(er.message) && !$("tSup")) {
           $("tErr").innerHTML = esc(er.message.slice(8)) + "<br><b>Un pedido con varias cajas debe salir completo en el mismo camión.</b> Carga las cajas que faltan, o pide a un supervisor que autorice enviarlo incompleto.";
           $("tErr").hidden = false;
-          $("tErr").insertAdjacentHTML("afterend", `<label class="f">Código del supervisor que autoriza<input id="tSup" autocomplete="off" style="text-transform:uppercase"></label><label class="f">Motivo<input id="tMot" placeholder="Ej.: no cupo en el camión"></label>`);
+          $("tErr").insertAdjacentHTML("afterend", `<label class="f">Código del supervisor que autoriza<input id="tSup" autocomplete="off" style="text-transform:uppercase"></label><label class="f">PIN del supervisor<input type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" style="font:600 20px var(--f-mono);letter-spacing:.3em" id="tSupPin"></label><label class="f">Motivo<input id="tMot" placeholder="Ej.: no cupo en el camión"></label>`);
           bt.textContent = "Autorizar y firmar";
         } else { $("tErr").textContent = er.message.replace(/^PARCIAL\|/, ""); $("tErr").hidden = false; }
         return;
@@ -383,13 +389,13 @@ function pintarEntrega() {
     const d = dialogo(`<h2>Entrega en ${esc(ENT.tienda)}</h2><p>Entregas <b>${ENT.escaneadas.length}</b> ${ENT.escaneadas.length === 1 ? "caja" : "cajas"}.</p>
       ${falta ? `<p class="notice bad">Quedan ${falta} cajas de ${esc(ENT.tienda)} sin entregar: siguen a tu cargo.</p>` : ""}
       <p class="small">El encargado de la tienda revisa que las cajas estén cerradas con sello y confirma con su código (o su gafete). No hace falta abrirlas.</p>
-      <label class="f">Código del encargado de la tienda<input id="eRec" autocomplete="off" style="text-transform:uppercase;font:600 20px var(--f-mono)"></label><p class="notice bad" id="eErr" hidden></p>
+      <label class="f">Código del encargado de la tienda<input id="eRec" autocomplete="off" style="text-transform:uppercase;font:600 20px var(--f-mono)"></label><label class="f">PIN del encargado<input type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" style="font:600 20px var(--f-mono);letter-spacing:.3em" id="eRecPin"></label><p class="notice bad" id="eErr" hidden></p>
       <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="eNo">Cancelar</button><button type="submit" class="ok">Confirmar entrega</button></div>`);
     setTimeout(() => $("eRec").focus(), 50); $("eNo").onclick = () => d.close();
     $("dlgForm").onsubmit = async ev => {
       ev.preventDefault(); const rec = limpio($("eRec").value).toUpperCase(); if (!rec) return;
       const bt = $("dlgForm").querySelector("[type=submit]"); bt.disabled = true;
-      try { const r = await api("entregarCajas", { cajas: ENT.escaneadas, recibe: rec }); d.close(); sonar("bien"); FLASH = { t: "ok", h: `Entrega registrada: ${r.cajas} cajas`, s: "Recibió " + esc(r.recibio) }; ENT = null; misEntregas(); }
+      try { const r = await api("entregarCajas", { cajas: ENT.escaneadas, recibe: rec, pinRecibe: $("eRecPin").value.trim() }); d.close(); sonar("bien"); FLASH = { t: "ok", h: `Entrega registrada: ${r.cajas} cajas`, s: "Recibió " + esc(r.recibio) }; ENT = null; misEntregas(); }
       catch (er) { sonar("err"); $("eErr").textContent = er.message; $("eErr").hidden = false; bt.disabled = false; }
     };
   };

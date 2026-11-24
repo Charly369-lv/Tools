@@ -544,12 +544,13 @@ $("btnXls").onclick = async () => {
 const CFG = () => lsGet("despacho-cfg", null);
 async function api(accion, datos, op) {
   const c = CFG();
-  const body = JSON.stringify(Object.assign({ accion, token: c.token, operador: op }, datos || {}));
+  const pinEl = document.getElementById("opPin");   // PIN de quien aprueba: el servidor lo revisa en cada envío
+  const body = JSON.stringify(Object.assign({ accion, token: c.token, operador: op, pin: pinEl ? pinEl.value.trim() : "" }, datos || {}));
   let r;
   try { r = await fetch(c.url + (c.url.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(body), { method: "GET", redirect: "follow" }); }
   catch (e) { throw new Error("No hay conexión con el servidor. Revisa el internet."); }
   const j = await r.json();
-  if (!j.ok) throw new Error(j.error || "Error del servidor");
+  if (!j.ok) throw new Error(String(j.error || "Error del servidor").replace(/^(PIN|SESION)\|/, ""));
   return j.datos;
 }
 function dialogo(html) { $("dlgForm").innerHTML = html; const d = $("dlg"); try { d.showModal(); } catch (e) { d.setAttribute("open", ""); } return d; }
@@ -562,12 +563,13 @@ $("btnBorr").onclick = () => {
     <p class="muted">Se crea un traslado <b>en borrador</b> de BOD a cada tienda (${por.length}), con documento de origen <b>"Reparto · ${esc(X.nombre)}"</b>. No aparecen en Despachos hasta que alguien los revise en el sistema y pulse <b>"Marcar como por hacer"</b>.</p>
     ${neg ? `<p class="notice bad">Hay ${neg} productos con más reparto que factura. Corrígelos antes.</p>` : ""}
     <p class="notice">Antes, la mercadería del proveedor debe estar recibida en BOD, para que se pueda reservar.</p>
-    <label class="small" style="display:grid;gap:4px;font-weight:800">Código de supervisor<input type="password" id="dCod" autocomplete="off" placeholder="SUP-1"></label>
+    <label class="small" style="display:grid;gap:4px;font-weight:800">Código de supervisor<input type="password" id="dCod" autocomplete="off" placeholder="SUP-1"></label><label class="small" style="font-weight:700;display:grid;gap:4px">Tu PIN<input type="password" id="opPin" inputmode="numeric" maxlength="6" autocomplete="off"></label>
     <p class="small" id="dEst"></p>
     <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="dNo">Cancelar</button><button type="button" id="dSi" ${neg ? "disabled" : ""}>Crear ${por.length} borradores</button></div>`);
   $("dNo").onclick = () => d.close();
   $("dSi").onclick = async () => {
     const cod = $("dCod").value.trim().toUpperCase(); if (!cod) { $("dCod").focus(); return; }
+    if (!$("opPin").value.trim()) { $("opPin").focus(); return; }
     $("dSi").disabled = true; const est = t => $("dEst").textContent = t;
     const hechos = [];
     try {
