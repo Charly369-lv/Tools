@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Arma el sugerido de envío de libros para Fitness One desde la Bodega Central y las tiendas.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="robots" content="noindex,nofollow">
+<title>Mayoreo · Fitness One</title>
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<style>
+/* Surtido: 1 existencias propias (con clave), 2 aprobados, 3 reportes de tiendas, 4 por confirmar, 5 sugerido por tienda */
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8;
+  --gray: #5b6386; --gray-bg: #eceef4; --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; --gray: #9da6c9; --gray-bg: #1c2650; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1180px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 18px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.mast img { display: block; width: min(220px, 56vw); height: auto; }
+.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; }
+main { padding-block: 22px 56px; }
+main .inner { display: grid; gap: 18px; }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
+h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
+.step { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); color: var(--ink); font-weight: 800; }
+.step.done .num { background: var(--green-bg); color: var(--green); }
+.step-b { display: grid; gap: 10px; min-width: 0; }
+.status { font-size: 15px; font-weight: 600; }
+.status.ok { color: var(--green); }
+button, .btn { font: 700 15px var(--f-body); border-radius: 8px; cursor: pointer; padding: 9px 15px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 42px; display: inline-flex; align-items: center; }
+button.ghost, .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.small { min-height: 34px; padding: 5px 10px; font-size: 13px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, input:focus-visible, .btn:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
+input[type=password], input[type=number], input[type=search], select { font: 15px var(--f-body); padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+input[type=number] { width: 90px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.drop { border: 3px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; display: grid; gap: 4px; justify-items: center; cursor: pointer; }
+.drop.over { border-color: var(--navy); background: var(--soft); }
+.drop b { font-size: 16px; }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.ok { background: var(--green-bg); }
+.stores { display: flex; flex-wrap: wrap; gap: 6px; }
+.stores span { font-size: 13px; background: var(--soft); border-radius: 6px; padding: 4px 8px; }
+.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.sets label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.locs { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.locs label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; color: var(--ink); }
+details > summary { cursor: pointer; font-weight: 700; }
+
+.tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 70vh; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.big { font-weight: 800; font-size: 16px; }
+.mono { font-family: var(--f-mono); font-size: 13px; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.c-rep { background: var(--navy); color: var(--blanco); }
+.c-new { background: var(--green-bg); color: var(--green); }
+.c-sin { background: var(--gray-bg); color: var(--gray); }
+.c-quieto { background: var(--fill-red); color: var(--blanco); }
+.pill-red { display: inline-block; min-width: 28px; text-align: center; font-weight: 800; background: var(--fill-red); color: var(--blanco); border-radius: 999px; padding: 2px 9px; }
+tr.alerta td { background: var(--red-bg); }
+.alerta-box { border-radius: 10px; padding: 12px 14px; background: var(--red-bg); border: 1px solid var(--red); display: grid; gap: 2px; }
+.alerta-box b { color: var(--red); font-size: 17px; }
+.tabs button.t-red[aria-pressed="false"] { color: var(--red); border-color: var(--red); }
+.tabs button.t-red[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+select.rev { font-size: 13px; padding: 5px 6px; }
+select.rev.hecho { border-color: var(--green); }
+.from { font-size: 13px; }
+.from b { font-family: var(--f-mono); }
+.small-t { font-size: 12px; color: var(--muted); }
+tr.click { cursor: pointer; }
+tr.click:hover td, tr.sel td { background: var(--soft); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-pressed="true"] { background: var(--navy); color: var(--blanco); }
+.tabs button[aria-pressed="false"] { background: transparent; color: var(--ink); border-color: var(--line); }
+.cand { display: grid; gap: 6px; }
+.cand select { max-width: 100%; width: 100%; font-size: 13px; }
+.opts { display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; text-align: left; width: 100%; background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 500 14px var(--f-body); min-height: 0; cursor: pointer; }
+.opt:hover { border-color: var(--navy); }
+.opt.top { border-color: var(--green); }
+.opt .ot { font-weight: 700; }
+.opt .os { font-size: 12px; color: var(--muted); }
+.opt .ox { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--navy); }
+.opt .ox small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
+.opt .ox.cero { color: var(--muted); }
+.opt.no { grid-template-columns: 1fr; color: var(--muted); border-style: dashed; }
+@media (max-width: 640px) { #s4 thead { display: none; } #pcBody td { display: block; border-bottom: 0; } #pcBody tr { display: block; border-bottom: 1px solid var(--line); padding-bottom: 6px; } }
+.show-sm { display: none; }
+@media (max-width: 640px) { .show-sm { display: block; margin-top: 6px; } .hide-sm { display: none; } .step { grid-template-columns: 1fr; } .num { display: none; } }
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
+</style>
+<style>
+.temas { display: grid; gap: 8px; }
+.tema-row { display: grid; grid-template-columns: 1.2fr repeat(2, 110px) 70px; gap: 8px; align-items: center; font-size: 14px; }
+.tema-row.h { font-size: 12px; font-weight: 700; color: var(--muted); }
+.tema-row b { font-weight: 700; }
+textarea { font: 13px var(--f-mono); width: 100%; min-height: 54px; padding: 8px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.tot { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tot div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; display: grid; gap: 2px; }
+.tot span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.tot b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.tot b.mal { color: var(--red); }
+td input[type=number] { width: 62px; padding: 5px 6px; }
+td .acc { display: flex; gap: 4px; flex-wrap: wrap; }
+.cover { width: 34px; height: 50px; object-fit: cover; border-radius: 3px; background: var(--soft); display: block; }
+.res { display: grid; gap: 4px; max-height: 260px; overflow: auto; }
+.res button { justify-content: space-between; gap: 10px; text-align: left; width: 100%; background: var(--surface); color: var(--ink); border-color: var(--line); font-weight: 500; font-size: 13px; min-height: 0; }
+@media (max-width: 640px) { .tema-row { grid-template-columns: 1fr 70px 70px 50px; } }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner">
+  <a class="logo-link" href="../area-mayoreo/" aria-label="Volver a las herramientas de Mayoreo" title="Volver a Mayoreo"><img src="../checador/logo.png" alt="De Museo" width="800" height="144"></a>
+  <span class="mast-t">Mayoreo · Fitness One</span>
+</div></header>
+
+<main class="pad"><div class="inner">
+  <p class="muted">Arma el sugerido de envío para la librería De Museo dentro de Fitness One. Elige los libros por tema y ventas, y los saca primero de la Bodega Central (BOD) y, si falta, de las tiendas con más existencia. Los datos vienen de Odoo cada noche.</p>
+
+  <section class="card step" id="s1">
+    <span class="num">1</span>
+    <div class="step-b">
+      <h3>Libros disponibles en Odoo</h3>
+      <p class="status" id="stStatus">Cargando…</p>
+      <form class="row" id="claveForm" hidden autocomplete="off">
+        <input type="password" id="clave" placeholder="Clave de existencias" autocomplete="current-password" style="flex:1;max-width:320px">
+        <button type="submit">Abrir</button>
+      </form>
+      <p class="notice bad" id="stErr" hidden></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div style="display:grid;gap:4px"><h3>Sucursal</h3>
+        <select id="suc"></select></div>
+      <div class="row"><button type="button" class="ghost small" id="sucNueva">Agregar sucursal</button></div>
+    </div>
+    <details id="ajustes">
+      <summary>Ajustes del sugerido</summary>
+      <div style="display:grid;gap:16px;margin-top:12px">
+        <div class="sets">
+          <label>Espacios en el stand<input type="number" id="cfEsp" min="1" max="500"></label>
+          <label>Ganancia de Fitness One (% del PVP)<input type="number" id="cfMargen" min="0" max="90"></label>
+          <label>Existencia mínima para poder resurtir<input type="number" id="cfMinRes" min="1" max="100"></label>
+          <label>Dejar en cada tienda al menos<input type="number" id="cfDejar" min="0" max="20"></label>
+          <label>Precio máximo (Q, 0 = sin tope)<input type="number" id="cfTope" min="0" max="5000"></label>
+          <label>Bodega principal<select id="cfPrin"></select></label>
+        </div>
+        <div style="display:grid;gap:8px">
+          <h3>Mezcla por tema</h3>
+          <div class="temas" id="cfTemas"></div>
+        </div>
+        <div style="display:grid;gap:6px"><h3>Ubicaciones que NO se usan para surtir</h3>
+          <div class="locs" id="cfLocs"><span class="muted">Se muestran al abrir los datos.</span></div></div>
+        <div class="row"><button type="button" class="ghost small" id="cfReset">Volver a los ajustes iniciales</button></div>
+      </div>
+    </details>
+  </section>
+
+  <section id="out" hidden style="display:grid;gap:14px">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="outTitle">Sugerido de envío</h2>
+      <div class="row">
+        <button type="button" class="ghost" id="rehacer">Volver a sugerir</button>
+        <button type="button" id="xls">Descargar Excel</button>
+        <button type="button" class="ghost" id="xlsFit">Exportar para Fitness One</button>
+        <button type="button" class="ghost" id="guardar">Guardar como enviado</button>
+      </div>
+    </div>
+    <div class="tot" id="tot"></div>
+    <p class="notice" id="envNote" hidden></p>
+    <div id="tablas" style="display:grid;gap:14px"></div>
+
+    <section class="card">
+      <h3>Agregar un libro a mano</h3>
+      <div class="row"><input type="search" id="busca" placeholder="Título, autor, ISBN o referencia" style="flex:1;min-width:220px">
+        <select id="buscaTema"></select></div>
+      <div class="res" id="buscaRes"></div>
+    </section>
+  </section>
+</div></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const Q = n => "Q" + Number(n || 0).toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ---------------------------------------------------------------- ajustes
+const TEMAS0 = [
+  { id: "dep", nombre: "Deporte / fitness / nutrición", dos: 6, uno: 0, claves: "DEPORT, FITNESS, NUTRICI, EJERCICIO, ENTRENAMIENTO, RUNNING, CORRER, FUTBOL, YOGA, DIETA, ALIMENTACION, SALUD, ATLET, CICLISMO, MARATON" },
+  { id: "rel", nombre: "Religioso / espiritual", dos: 1, uno: 2, claves: "RELIGI, ESPIRITU, CRISTIAN, BIBLIA, BIBLIC, TEOLOG, CATOLIC, DEVOCIONAL, ORACION, IGLESIA" },
+  { id: "emp", nombre: "Empresarial / finanzas", dos: 3, uno: 2, claves: "EMPRESA, NEGOCIO, ADMINISTRACION, FINANZA, ECONOMIA, LIDERAZGO, MARKETING, MERCADEO, EMPRENDI, VENTAS, INVERSION, GERENCIA" },
+  { id: "aut", nombre: "Autoayuda / hábitos", dos: 5, uno: 2, claves: "AUTOAYUDA, SUPERACION, DESARROLLO PERSONAL, CRECIMIENTO PERSONAL, MOTIVACION, PSICOLOGIA POPULAR, HABITOS, AUTOESTIMA, BIENESTAR" },
+];
+const CF0 = { esp: 36, margen: 35, minRes: 4, dejar: 2, tope: 0, prin: "BOD", sinLocs: null, temas: TEMAS0 };
+let CF = Object.assign(structuredClone(CF0), lsGet("fit-ajustes", {}));
+const SUC0 = ["Fitness One Rus"];
+let SUCS = lsGet("fit-sucursales", SUC0), SUC = lsGet("fit-suc", SUCS[0]);
+let SEL = lsGet("fit-sel", {});        // { sucursal: { barra: { u, tema } } }
+let ENV = lsGet("fit-enviados", {});    // { sucursal: [{ fecha, items:[[barra, u]] }] }
+let D = null;   // datos de Odoo
+let ITEMS = []; // [{ barra, ref, titulo, autor, editorial, pvp, cat, tema, genero, st:Map, v30, v90, portada, tid }]
+
+function guardarCF() { lsSet("fit-ajustes", CF); }
+function pintarAjustes() {
+  $("cfEsp").value = CF.esp; $("cfMargen").value = CF.margen; $("cfMinRes").value = CF.minRes; $("cfDejar").value = CF.dejar; $("cfTope").value = CF.tope;
+  $("cfTemas").innerHTML = `<div class="tema-row h"><span>Tema y palabras que lo identifican (en género, tema o categoría de Odoo)</span><span>Títulos × 2</span><span>Títulos × 1</span><span>Espacios</span></div>` +
+    CF.temas.map((t, i) => `<div style="display:grid;gap:4px"><div class="tema-row"><b>${esc(t.nombre)}</b>
+      <input type="number" min="0" max="100" data-i="${i}" data-k="dos" value="${t.dos}"><input type="number" min="0" max="100" data-i="${i}" data-k="uno" value="${t.uno}">
+      <span class="mono">${t.dos * 2 + t.uno}</span></div>
+      <textarea data-i="${i}" data-k="claves" aria-label="Palabras para ${esc(t.nombre)}">${esc(t.claves)}</textarea></div>`).join("");
+  $("buscaTema").innerHTML = CF.temas.map(t => `<option value="${t.id}">${esc(t.nombre)}</option>`).join("");
+}
+$("cfTemas").addEventListener("change", e => {
+  const i = e.target.dataset.i, k = e.target.dataset.k; if (i == null) return;
+  CF.temas[i][k] = k === "claves" ? e.target.value : Math.max(0, parseInt(e.target.value) || 0);
+  guardarCF(); pintarAjustes(); prepararItems(); sugerir(true);
+});
+for (const [id, k] of [["cfEsp", "esp"], ["cfMargen", "margen"], ["cfMinRes", "minRes"], ["cfDejar", "dejar"], ["cfTope", "tope"]])
+  $(id).addEventListener("change", e => { CF[k] = Math.max(0, parseFloat(e.target.value) || 0); guardarCF(); if (k === "margen" || k === "esp") pintar(); else sugerir(true); });
+$("cfPrin").addEventListener("change", e => { CF.prin = e.target.value; guardarCF(); sugerir(true); });
+$("cfLocs").addEventListener("change", e => {
+  const l = e.target.dataset.loc; if (!l) return;
+  CF.sinLocs = CF.sinLocs.filter(x => x !== l); if (e.target.checked) CF.sinLocs.push(l);
+  guardarCF(); sugerir(true);
+});
+$("cfReset").addEventListener("click", () => { const s = CF.sinLocs; CF = structuredClone(CF0); CF.sinLocs = null; guardarCF(); pintarAjustes(); if (D) { pintarLocs(); prepararItems(); sugerir(true); } });
+
+function pintarSucs() {
+  if (!SUCS.includes(SUC)) SUC = SUCS[0];
+  $("suc").innerHTML = SUCS.map(s => `<option ${s === SUC ? "selected" : ""}>${esc(s)}</option>`).join("");
+}
+$("suc").addEventListener("change", e => { SUC = e.target.value; lsSet("fit-suc", SUC); if (!SEL[SUC]) sugerir(true); else pintar(); });
+$("sucNueva").addEventListener("click", () => {
+  const n = (prompt("Nombre de la nueva sucursal de Fitness One") || "").trim();
+  if (!n || SUCS.includes(n)) return;
+  SUCS.push(n); lsSet("fit-sucursales", SUCS); SUC = n; lsSet("fit-suc", SUC); pintarSucs(); sugerir(true);
+});
+
+// ---------------------------------------------------------------- datos cifrados
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+let SOBRE = null;
+async function abrir(clave, silencioso) {
+  $("stErr").hidden = true;
+  try {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(SOBRE.s), iterations: SOBRE.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    let plano;
+    try { plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(SOBRE.iv) }, key, b64(SOBRE.d)); } catch (e) { throw new Error("clave"); }
+    D = JSON.parse(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
+    listo();
+  } catch (e) {
+    if (!silencioso) { $("stErr").textContent = e.message === "clave" ? "Clave incorrecta. Revísala e intenta de nuevo." : "No se pudieron abrir los datos en este navegador."; $("stErr").hidden = false; }
+    $("claveForm").hidden = false;
+  }
+}
+function fechaLocal(v) { const d = new Date(String(v).replace(" ", "T") + ":00Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+$("claveForm").addEventListener("submit", e => { e.preventDefault(); const c = $("clave").value.trim(); if (c) abrir(c); });
+(async () => {
+  pintarAjustes(); pintarSucs();
+  try {
+    const r = await fetch("datos.enc?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw 0;
+    SOBRE = await r.json();
+    $("stStatus").textContent = "Escribe la clave de existencias (la misma de Mayoreo Walmart).";
+    let c = null; try { c = localStorage.getItem("surtido-clave"); } catch (e) {}
+    if (c) await abrir(c, true); else $("claveForm").hidden = false;
+  } catch (e) { $("stStatus").textContent = "Todavía no se han publicado los datos. Se generan en la próxima sincronización con Odoo."; }
+})();
+
+const esTienda = l => l !== CF.prin;
+function pintarLocs() {
+  if (!CF.sinLocs) { CF.sinLocs = D.L.filter(l => /WAL|MAYOR|FITNE|DEVOL|MERMA|DANAD|BAZAR|TRANS/i.test(l)); guardarCF(); }
+  $("cfLocs").innerHTML = D.L.map(l => `<label><input type="checkbox" data-loc="${esc(l)}" ${CF.sinLocs.includes(l) ? "checked" : ""}> ${esc(l)}</label>`).join("");
+  if (!D.L.includes(CF.prin)) CF.prin = D.L.find(l => /^BOD/i.test(l)) || D.L[0];
+  $("cfPrin").innerHTML = D.L.map(l => `<option ${l === CF.prin ? "selected" : ""}>${esc(l)}</option>`).join("");
+}
+function listo() {
+  $("stStatus").textContent = `Listos: ${Object.keys(D.p).length.toLocaleString("es-GT")} libros con existencia (datos de Odoo al ${fechaLocal(D.v)}).`;
+  $("stStatus").className = "status ok"; $("s1").classList.add("done"); $("claveForm").hidden = true;
+  pintarLocs(); prepararItems();
+  if (!SEL[SUC]) sugerir(true); else pintar();
+}
+
+// ---------------------------------------------------------------- clasificación
+function temaDe(txt) {
+  for (const t of CF.temas) {
+    const cl = t.claves.split(",").map(s => norm(s).trim()).filter(Boolean);
+    if (cl.some(c => txt.includes(c))) return t.id;
+  }
+  return "";
+}
+function prepararItems() {
+  if (!D) return;
+  ITEMS = Object.entries(D.p).map(([barra, r]) => {
+    const st = new Map(); for (let i = 0; i < r[8].length; i += 2) st.set(D.L[r[8][i]], r[8][i + 1]);
+    const it = { barra, ref: r[0], titulo: r[1], autor: r[2], editorial: r[3], pvp: r[4], cat: r[5], tema: r[6], genero: r[7], st, v30: r[9], v90: r[10], portada: r[12] || "", sinopsis: r[13] || "", paginas: r[14] || "" };
+    it.tid = temaDe(norm([it.genero, it.tema, it.cat].join(" | ")));
+    return it;
+  });
+}
+const POR = () => new Map(ITEMS.map(i => [i.barra, i]));
+
+// De dónde sacar: primero la bodega principal, luego las tiendas con más existencia (dejando un mínimo en cada una)
+function fuentes(it) {
+  const out = [];
+  for (const [l, n] of it.st) {
+    if (CF.sinLocs.includes(l)) continue;
+    const usable = l === CF.prin ? n : Math.max(0, n - CF.dejar);
+    if (usable > 0) out.push([l, usable]);
+  }
+  return out.sort((a, b) => (b[0] === CF.prin) - (a[0] === CF.prin) || b[1] - a[1]);
+}
+const disponible = it => fuentes(it).reduce((s, x) => s + x[1], 0);
+function sacarDe(it, u) {
+  const r = []; let falta = u;
+  for (const [l, n] of fuentes(it)) { if (falta <= 0) break; const t = Math.min(n, falta); r.push([l, t]); falta -= t; }
+  return { r, falta };
+}
+function candidatos(tid, excluir) {
+  return ITEMS.filter(it => it.tid === tid && !excluir.has(it.barra) && (!CF.tope || it.pvp <= CF.tope) && it.pvp > 0 && disponible(it) >= CF.minRes)
+    .sort((a, b) => ((b.st.get(CF.prin) || 0) >= 2) - ((a.st.get(CF.prin) || 0) >= 2) || b.v90 - a.v90 || b.v30 - a.v30 || (b.st.get(CF.prin) || 0) - (a.st.get(CF.prin) || 0) || a.titulo.localeCompare(b.titulo, "es"));
+}
+
+// ---------------------------------------------------------------- sugerido
+function sugerir(forzar) {
+  if (!D) return;
+  if (SEL[SUC] && !forzar) return pintar();
+  const sel = {}, usados = new Set();
+  for (const t of CF.temas) {
+    const c = candidatos(t.id, usados);
+    c.slice(0, t.dos + t.uno).forEach((it, i) => { const u = i < t.dos ? 2 : 1; sel[it.barra] = { u: Math.min(u, disponible(it)), tema: t.id }; usados.add(it.barra); });
+  }
+  SEL[SUC] = sel; lsSet("fit-sel", SEL); pintar();
+}
+$("rehacer").addEventListener("click", () => { if (confirmarRehacer()) sugerir(true); });
+function confirmarRehacer() { return !Object.keys(SEL[SUC] || {}).length || window.confirm("Se perderán los cambios hechos a mano en esta sucursal. ¿Volver a sugerir?"); }
+
+function filas() {
+  const P = POR(), sel = SEL[SUC] || {};
+  return Object.entries(sel).map(([barra, s]) => ({ it: P.get(barra), ...s, barra })).filter(x => x.it);
+}
+function pintar() {
+  if (!D) return;
+  $("out").hidden = false;
+  $("outTitle").textContent = "Sugerido de envío · " + SUC;
+  const fs = filas(), P = POR();
+  const unidades = fs.reduce((s, x) => s + x.u, 0), pvp = fs.reduce((s, x) => s + x.u * x.it.pvp, 0);
+  const fact = pvp * (1 - CF.margen / 100);
+  const faltan = fs.reduce((s, x) => s + sacarDe(x.it, x.u).falta, 0);
+  $("tot").innerHTML = `<div><span>Unidades / espacios</span><b class="${unidades !== CF.esp ? "mal" : ""}">${unidades} / ${CF.esp}</b></div>
+    <div><span>Títulos</span><b>${fs.filter(x => x.u > 0).length}</b></div>
+    <div><span>Valor a PVP</span><b>${Q(pvp)}</b></div>
+    <div><span>A facturar (PVP − ${CF.margen}%)</span><b>${Q(fact)}</b></div>
+    <div><span>Ganancia de Fitness One</span><b>${Q(pvp - fact)}</b></div>` + (faltan ? `<div><span>Sin existencia para surtir</span><b class="mal">${faltan}</b></div>` : "");
+  const env = (ENV[SUC] || []).slice(-1)[0];
+  if (env) {
+    const f = new Date(env.fecha), cambio = new Date(f.getTime() + 90 * 864e5);
+    $("envNote").textContent = `Último envío guardado: ${f.toLocaleDateString("es-GT", { day: "numeric", month: "long", year: "numeric" })} (${env.items.reduce((s, x) => s + x[1], 0)} unidades). Revisión de cambio a los 90 días: ${cambio.toLocaleDateString("es-GT", { day: "numeric", month: "long", year: "numeric" })}.`;
+    $("envNote").hidden = false;
+  } else $("envNote").hidden = true;
+
+  $("tablas").innerHTML = [...CF.temas, { id: "", nombre: "Sin tema" }].map(t => {
+    const ft = fs.filter(x => x.tema === t.id).sort((a, b) => b.u - a.u || b.it.v90 - a.it.v90);
+    if (!ft.length && !t.id) return "";
+    const meta = t.id ? t.dos * 2 + t.uno : 0, u = ft.reduce((s, x) => s + x.u, 0);
+    return `<section class="card"><div class="row" style="justify-content:space-between"><h3 style="font-size:15px;color:var(--ink)">${esc(t.nombre)}</h3>
+      <span class="${t.id && u !== meta ? "chip c-quieto" : "chip c-new"}">${u}${t.id ? " de " + meta : ""} unidades</span></div>
+      ${ft.length ? `<div class="tbl" style="max-height:none"><table><thead><tr><th></th><th>Título</th><th class="n">PVP</th><th class="n">Ventas 90 d</th><th class="n">En ${esc(CF.prin)}</th><th>Sacar de</th><th class="n">Unidades</th><th></th></tr></thead><tbody>
+      ${ft.map(x => { const s = sacarDe(x.it, x.u); return `<tr>
+        <td>${x.it.portada ? `<img class="cover" loading="lazy" src="${esc(x.it.portada)}" alt="">` : `<span class="cover"></span>`}</td>
+        <td><b>${esc(x.it.titulo)}</b><div class="small-t">${esc(x.it.autor)}${x.it.editorial ? " · " + esc(x.it.editorial) : ""} · <span class="mono">${esc(x.barra)}</span></div><div class="small-t">${esc(x.it.genero || x.it.tema || x.it.cat)}</div></td>
+        <td class="n">${Q(x.it.pvp)}</td><td class="n">${x.it.v90}</td><td class="n">${x.it.st.get(CF.prin) || 0}</td>
+        <td class="from">${s.r.map(([l, n]) => `<b>${esc(l)}</b> ${n}`).join(" · ")}${s.falta ? ` <span class="chip c-quieto">faltan ${s.falta}</span>` : ""}</td>
+        <td class="n"><input type="number" min="0" max="20" value="${x.u}" data-u="${esc(x.barra)}" aria-label="Unidades"></td>
+        <td><div class="acc"><button type="button" class="ghost small" data-cambiar="${esc(x.barra)}" ${t.id ? "" : "disabled"}>Cambiar</button><button type="button" class="ghost small" data-quitar="${esc(x.barra)}">Quitar</button></div></td></tr>`; }).join("")}
+      </tbody></table></div>` : `<p class="muted">No hay libros de este tema con existencia suficiente. Revisa las palabras del tema en Ajustes.</p>`}</section>`;
+  }).join("");
+}
+$("tablas").addEventListener("change", e => {
+  const b = e.target.dataset.u; if (!b) return;
+  SEL[SUC][b].u = Math.max(0, parseInt(e.target.value) || 0); lsSet("fit-sel", SEL); pintar();
+});
+$("tablas").addEventListener("click", e => {
+  const q = e.target.dataset.quitar, c = e.target.dataset.cambiar;
+  if (q) { delete SEL[SUC][q]; lsSet("fit-sel", SEL); pintar(); }
+  if (c) {
+    const s = SEL[SUC][c], nuevo = candidatos(s.tema, new Set([...Object.keys(SEL[SUC]), ...(SALT[SUC] || [])]))[0];
+    (SALT[SUC] = SALT[SUC] || []).push(c);
+    if (!nuevo) { alert("No hay más libros de este tema con existencia suficiente."); return; }
+    delete SEL[SUC][c]; SEL[SUC][nuevo.barra] = { u: Math.min(s.u, disponible(nuevo)), tema: s.tema }; lsSet("fit-sel", SEL); pintar();
+  }
+});
+const SALT = {};   // títulos descartados con "Cambiar" en esta sesión
+
+// ---------------------------------------------------------------- búsqueda manual
+$("busca").addEventListener("input", () => {
+  const q = norm($("busca").value).trim();
+  if (q.length < 3 || !D) { $("buscaRes").innerHTML = ""; return; }
+  const ws = q.split(/\s+/), sel = SEL[SUC] || {};
+  const r = ITEMS.filter(it => !sel[it.barra] && ws.every(w => norm(it.titulo + " " + it.autor + " " + it.barra + " " + it.ref).includes(w))).sort((a, b) => b.v90 - a.v90).slice(0, 30);
+  $("buscaRes").innerHTML = r.length ? r.map(it => `<button type="button" data-add="${esc(it.barra)}"><span><b>${esc(it.titulo)}</b> · ${esc(it.autor)} <span class="small-t">${esc(it.genero || it.cat)}</span></span><span class="small-t">${Q(it.pvp)} · vende ${it.v90} · disp. ${disponible(it)}</span></button>`).join("") : `<p class="muted">Sin resultados con existencia.</p>`;
+});
+$("buscaRes").addEventListener("click", e => {
+  const b = e.target.closest("[data-add]")?.dataset.add; if (!b) return;
+  (SEL[SUC] = SEL[SUC] || {})[b] = { u: 1, tema: $("buscaTema").value }; lsSet("fit-sel", SEL);
+  $("busca").value = ""; $("buscaRes").innerHTML = ""; pintar();
+});
+
+// ---------------------------------------------------------------- Excel y envío
+$("xls").addEventListener("click", () => {
+  const fs = filas().filter(x => x.u > 0), nom = id => (CF.temas.find(t => t.id === id) || { nombre: "Sin tema" }).nombre;
+  const f = 1 - CF.margen / 100, wb = XLSX.utils.book_new();
+  const add = (n, rows, w) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ "": "Sin datos" }]); ws["!cols"] = w.map(x => ({ wch: x })); XLSX.utils.book_append_sheet(wb, ws, n); };
+  add("Envío", fs.map(x => ({ "Tema": nom(x.tema), "Código de barras": x.barra, "Referencia": x.it.ref, "Título": x.it.titulo, "Autor": x.it.autor, "Editorial": x.it.editorial,
+    "Unidades": x.u, "PVP": x.it.pvp, "Precio Fitness One": +(x.it.pvp * f).toFixed(2), "Subtotal a facturar": +(x.u * x.it.pvp * f).toFixed(2), "Ventas 90 días (cadena)": x.it.v90,
+    "Sacar de": sacarDe(x.it, x.u).r.map(([l, n]) => `${l} ${n}`).join(" · ") })), [22, 15, 12, 44, 24, 18, 9, 9, 12, 12, 12, 26]);
+  const pb = []; for (const x of fs) for (const [l, n] of sacarDe(x.it, x.u).r) pb.push({ "Bodega": l, "Código de barras": x.barra, "Referencia": x.it.ref, "Título": x.it.titulo, "Unidades": n });
+  pb.sort((a, b) => (b.Bodega === CF.prin) - (a.Bodega === CF.prin) || a.Bodega.localeCompare(b.Bodega) || a.Título.localeCompare(b.Título, "es"));
+  add("Por bodega", pb, [10, 15, 12, 44, 9]);
+  add("Para facturar", fs.map(x => ({ "Código de barras": x.barra, "Cantidad": x.u, "Precio unitario": +(x.it.pvp * f).toFixed(2) })), [15, 9, 13]);
+  XLSX.writeFile(wb, `Fitness One - ${SUC} - ${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+// Para Fitness One: hoja lista para importar en su Odoo + ficha con la metadata
+$("xlsFit").addEventListener("click", () => {
+  const fs = filas().filter(x => x.u > 0); if (!fs.length) return;
+  const nom = id => (CF.temas.find(t => t.id === id) || { nombre: "Otros" }).nombre;
+  const cat = id => "Libros / De Museo / " + nom(id).split(" / ")[0];
+  const f = 1 - CF.margen / 100, wb = XLSX.utils.book_new();
+  const add = (n, rows, w) => { const ws = Array.isArray(rows[0]) ? XLSX.utils.aoa_to_sheet(rows) : XLSX.utils.json_to_sheet(rows); ws["!cols"] = w.map(x => ({ wch: x })); XLSX.utils.book_append_sheet(wb, ws, n); };
+  // Encabezados con el nombre técnico de Odoo: el importador los reconoce solo, en cualquier idioma
+  add("Importar en Odoo", fs.map(x => ({ "name": x.it.titulo, "barcode": /^\d+$/.test(x.barra) ? x.barra : "", "list_price": x.it.pvp,
+    "standard_price": +(x.it.pvp * f).toFixed(2), "categ_id": cat(x.tema), "image_1920": x.it.portada,
+    "seller_ids/partner_id": "De Museo", "seller_ids/price": +(x.it.pvp * f).toFixed(2) })), [44, 15, 11, 13, 34, 50, 18, 13]);
+  add("Ficha de los libros", fs.map(x => ({ "Código de barras (ISBN)": x.barra.replace(/^r:/, ""), "Título": x.it.titulo, "Autor": x.it.autor, "Editorial": x.it.editorial,
+    "Categoría": cat(x.tema), "Género": x.it.genero || x.it.tema, "Páginas": x.it.paginas, "Sinopsis": x.it.sinopsis,
+    "PVP (con IVA)": x.it.pvp, ["Costo Fitness One (PVP − " + CF.margen + "%)"]: +(x.it.pvp * f).toFixed(2), "Unidades enviadas": x.u, "Portada": x.it.portada })), [16, 40, 24, 18, 30, 18, 8, 80, 11, 14, 10, 50]);
+  const cats = [...new Set(fs.map(x => cat(x.tema)))];
+  add("Instrucciones", [
+    ["Cómo cargar estos libros en Odoo"], [""],
+    ["1. Antes de importar, crear en Odoo:"],
+    ["   • El proveedor (contacto) llamado exactamente: De Museo"],
+    ["   • Estas categorías de producto (Inventario → Configuración → Categorías de producto):"],
+    ...cats.map(c => ["       " + c]),
+    ["2. Ir a Inventario → Productos → Productos → ⚙ → Importar registros y subir este archivo (hoja \"Importar en Odoo\")."],
+    ["3. Revisar que cada columna quede ligada a su campo: Nombre, Código de barras, Precio de venta, Costo, Categoría del producto, Imagen, Proveedores."],
+    ["4. Después de importar, marcar los productos como almacenables (con seguimiento de inventario) si su versión de Odoo no lo hace por defecto."],
+    [""],
+    ["Precios: el precio de venta (list_price) YA INCLUYE IVA. Si en su Odoo el impuesto de venta no está configurado como \"incluido en el precio\", ajústenlo para no cobrar el IVA dos veces."],
+    ["Costo: PVP menos " + CF.margen + "% de descuento."],
+    ["Imágenes: la columna image_1920 trae el enlace a la portada en el servidor de De Museo; Odoo la descarga al importar. Los libros sin enlace quedan sin imagen."],
+  ], [110]);
+  XLSX.writeFile(wb, `Fitness One - productos para Odoo - ${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+$("guardar").addEventListener("click", () => {
+  const items = filas().filter(x => x.u > 0).map(x => [x.barra, x.u]);
+  if (!items.length) return;
+  (ENV[SUC] = ENV[SUC] || []).push({ fecha: new Date().toISOString(), items }); lsSet("fit-enviados", ENV); pintar();
+});
+</script>
+</body>
+</html>

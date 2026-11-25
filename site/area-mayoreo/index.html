@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mayoreo · Herramientas De Museo</title>
+<meta name="description" content="Herramientas De Museo para Mayoreo. Clientes Walmart y Fitness One.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="theme-color" content="#0b1748">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<link rel="stylesheet" href="../estilo/indices.css">
+</head>
+<body>
+<header class="bar"><div class="wrap bar-in">
+  <a class="bar-logo" href="../"><img src="../checador/logo.png" alt="De Museo" width="800" height="143"></a>
+  <a class="bar-back" href="../">Todas las áreas</a>
+</div></header>
+<main class="wrap">
+  <div class="cab">
+    <h1><span class="guide">Mayoreo</span></h1>
+    <p>Clientes de mayoreo: Walmart y Fitness One. 2 herramientas.</p>
+  </div>
+  <ol class="rows">
+    <li><a class="row" href="../mayoreo/"><span class="n">01</span><b>Mayoreo Walmart</b><span class="d">Sube las existencias de las tiendas Walmart y ve qué mandar a cada una y desde qué bodega.</span></a></li>
+    <li><a class="row" href="../fitness/"><span class="n">02</span><b>Mayoreo · Fitness One</b><span class="d">Sugerido de libros para el stand de Fitness One, desde la Bodega Central y las tiendas con más existencia.</span></a></li>
+  </ol>
+</main>
+<footer class="wrap"><p class="sync" id="sync"></p></footer>
+<script>
+(function () {
+  function codigoVersion(v, total, bazar) {
+    const d = new Date(String(v).replace(" ", "T") + ":00Z");
+    if (isNaN(d)) return "";
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guatemala", year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).map(x => [x.type, x.value]));
+    return `v${p.year}.${p.month}${p.day}.${p.hour}${p.minute}` + (total != null ? ` · r${total}-b${bazar}` : "");
+  }
+  const n = new Intl.NumberFormat("es-GT");
+  fetch("../ultima-sincronizacion.json", { cache: "no-cache" }).then(r => r.json()).then(d => {
+    const fecha = new Date(String(d.fecha_utc).replace(" ", "T") + ":00Z");
+    const hora = isNaN(fecha) ? "" : new Intl.DateTimeFormat("es-GT", { timeZone: "America/Guatemala", weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }).format(fecha);
+    const horas = isNaN(fecha) ? null : Math.max(0, Math.round((Date.now() - fecha) / 36e5));
+    const val = { productos: n.format(d.productos), bazar: n.format(d.en_bazar), ubicaciones: n.format(d.ubicaciones), hora: hora, hace: horas == null ? "" : (horas < 1 ? "hace menos de una hora" : horas === 1 ? "hace 1 hora" : "hace " + horas + " horas") };
+    document.querySelectorAll("[data-dato]").forEach(el => { el.textContent = val[el.dataset.dato] || ""; });
+    document.querySelectorAll("[data-sync]").forEach(el => { el.hidden = false; });
+    const s = document.getElementById("sync"); if (s) s.textContent = codigoVersion(d.fecha_utc, d.productos, d.en_bazar);
+  }).catch(() => {});
+})();
+</script>
+</body>
+</html>
