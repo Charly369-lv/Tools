@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Sube la factura del proveedor y ve qué libros ya existen en Odoo y cuáles hay que crear.">
+<meta name="description" content="Sube la factura del proveedor y ve qué productos ya existen en Odoo, cuáles hay que crear y en qué categoría.">
 <link rel="icon" href="../favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="../icono-180.png">
 <title>Recepción de facturas De Museo</title>
@@ -114,6 +114,11 @@ body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-vi
 .find { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .find input { flex: 1 1 260px; font: 16px var(--f-body); padding: 10px 12px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-height: 44px; }
 .hnum { font-family: var(--f-num); font-weight: 700; }
+.catbox { display: grid; gap: 4px; margin-top: 8px; max-width: 420px; }
+.catbox select { font-size: 14px; }
+.conf-Alta { background: var(--green-bg); color: var(--green); }
+.conf-Media { background: var(--amber-bg); color: var(--amber); }
+.conf-Baja { background: var(--red-bg); color: var(--red); }
 .reason { display: block; font-size: 12px; color: var(--amber); font-weight: 700; margin-top: 4px; }
 td .num, .tile b, td.num { font-family: var(--f-num); }
 </style>
@@ -127,8 +132,8 @@ td .num, .tile b, td.num { font-family: var(--f-num); }
 <main class="pad"><div class="inner">
   <section class="card" id="stepLoad">
     <div style="display:grid;gap:6px">
-      <h2>¿Qué libros de esta factura ya están en Odoo?</h2>
-      <p class="muted">Sube la factura del proveedor antes de ingresarla al sistema. Cada línea se busca en Odoo por ISBN o item, y te dice cuáles ya existen y cuáles hay que crear. El archivo no sale de este equipo.</p>
+      <h2>¿Qué productos de esta factura ya están en Odoo?</h2>
+      <p class="muted">Sube la factura del proveedor antes de ingresarla al sistema. Cada línea se busca en Odoo por ISBN, código de barras o item: te dice cuáles ya existen, cuáles hay que crear y propone su categoría. El archivo no sale de este equipo.</p>
     </div>
     <div id="catStatus" class="muted"><span id="catMsg">Cargando catálogo…</span><div class="loadbar" style="margin-top:6px"><i id="catBar"></i></div></div>
     <label class="drop" id="drop" for="file">
@@ -171,6 +176,7 @@ td .num, .tile b, td.num { font-family: var(--f-num); }
     </div>
     <div id="bigAlert"></div>
     <div class="sum" id="sum"></div>
+    <p class="muted" id="gbInfo" aria-live="polite"></p>
     <div class="find">
       <input type="search" id="q" placeholder="Buscar en la factura por ISBN, item o título" autocomplete="off" aria-label="Buscar en la factura">
       <span class="muted" id="qInfo"></span>
@@ -179,7 +185,7 @@ td .num, .tile b, td.num { font-family: var(--f-num); }
       <thead><tr><th>#</th><th>Estado</th><th>En la factura</th><th>En Odoo</th><th class="num">Cant.</th></tr></thead>
       <tbody id="tb"></tbody>
     </table></div>
-    <p class="muted">Las líneas en amarillo hay que revisarlas a mano: el ISBN viene con error, el libro está archivado en Odoo, o solo se parece por el título (puede ser otra edición). Elige en la lista si es el mismo libro o si es nuevo.</p>
+    <p class="muted">Las líneas en amarillo hay que revisarlas a mano: el ISBN viene con error, el producto está archivado en Odoo, o solo se parece por el título (puede ser otra edición). Elige en la lista si es el mismo o si es nuevo. En los nuevos, revisa la categoría propuesta, sobre todo las de confianza baja.</p>
   </section>
 </div></main>
 
@@ -231,8 +237,10 @@ async function loadCatalog() {
     const r = await fetch("../pedidos/inactivos.json?v=" + encodeURIComponent(CAT_V));
     if (r.ok) { const x = await r.json(); for (const p of x.p) { if (p[0]) INAC_C.set(String(p[0]), p); if (p[1]) INAC_R.set(norm(p[1]), p); } }
   } catch (e) {}
+  await loadCategorias();
+  buildModel();
   catReady = true;
-  $("catMsg").textContent = "Catálogo de Odoo listo · " + codigoVersion(b.v, CAT.length, b.bz.length);
+  $("catMsg").textContent = (CAT_OF ? "" : "Catálogo listo (las categorías de Odoo llegan con la próxima sincronización) · ") + "Catálogo de Odoo listo · " + codigoVersion(b.v, CAT.length, b.bz.length);
   $("catBar").parentElement.hidden = true;
   if (pendingRun) { const f2 = pendingRun; pendingRun = null; f2(); }
 }
@@ -306,6 +314,150 @@ function byName(name) {
   }
   scored.sort((a, b) => b[0] - a[0]);
   return scored.slice(0, 5);
+}
+
+
+// ---------- categoría propuesta ----------
+// Aprende de Odoo (categorias.json: categoría de cada producto del catálogo, en la misma posición)
+// y de Google Books (autor, editorial y temas por ISBN). Más adelante: Metabooks y DILVE.
+const CATS_BASE = ["2001 AROMAS / 30002 ACCESORIOS DE AROMAS", "2001 AROMAS / 30008 ACEITES", "2001 AROMAS / 30035 DIFUSORES", "2001 AROMAS / 30044 ESCENCIAS", "2001 AROMAS / 30055 INCIENSOS", "2001 AROMAS / 30096 PIPAS", "2001 AROMAS / 30109 VELAS", "2002 HOGAR / 30003 ACCESORIOS DE COCINA Y MESA", "2002 HOGAR / 30004 ACCESORIOS DE HOGAR", "2002 HOGAR / 30029 CONTENEDORES", "2002 HOGAR / 30032 DECORACIÓN DEL HOGAR", "2002 HOGAR / 30040 ELECTRONICO", "2002 HOGAR / 30052 HIDRATACIÓN Y ALMACENAMIENTO DE ALIMENTOS", "2002 HOGAR / 30053 HIGIENE", "2002 HOGAR / 30063 JUGUETES", "2002 HOGAR / 30065 MASAJES", "2002 HOGAR / 30069 MUEBLES", "2002 HOGAR / 30099 REGALOS VARIOS", "2002 HOGAR / 30100 REVISAR", "2002 HOGAR / 30105 TÉ", "2002 HOGAR / 30106 TEXTILES", "2002 HOGAR / 30108 VAJILLA", "2002 HOGAR / 30113 OTROS HOGAR", "2003 INTERNO / 30057 INTERNO", "2004 JUEGOS DE MESA / 30060 JUEGOS CLASICOS", "2004 JUEGOS DE MESA / 30061 JUEGOS DE MATERIALES", "2004 JUEGOS DE MESA / 30062 JUEGOS DE SALON", "2004 JUEGOS DE MESA / 30071 MUÑECOS Y PELUCHES", "2005 LIBRERIA VARIOS / 30001 ACCESORIO DE LIBROS", "2005 LIBRERIA VARIOS / 30013 APUNTES", "2005 LIBRERIA VARIOS / 30095 PINTURAS", "2005 LIBRERIA VARIOS / 30103 TARJETAS VARIAS", "2005 LIBRERIA VARIOS / 30107 UTILES", "2006 LIBROS / 30014 ARQUITECTURA Y DISEÑO", "2006 LIBROS / 30015 ARTE", "2006 LIBROS / 30016 ASTROLOGIA", "2006 LIBROS / 30017 ASTRONOMIA", "2006 LIBROS / 30018 AUDIOLIBROS", "2006 LIBROS / 30019 AUTOAYUDA Y SUPERACION PERSONAL", "2006 LIBROS / 30021 BIOGRAFIAS", "2006 LIBROS / 30024 BUDISMO", "2006 LIBROS / 30026 CINE Y MUSICA", "2006 LIBROS / 30027 COCINA", "2006 LIBROS / 30028 COMIC Y MANGA", "2006 LIBROS / 30033 DEPORTES", "2006 LIBROS / 30034 DICCIONARIOS Y ENCICLOPEDIAS", "2006 LIBROS / 30037 DISEÑO Y DECORACION", "2006 LIBROS / 30038 ECONOMIA", "2006 LIBROS / 30039 EDUCACION", "2006 LIBROS / 30042 EMPRESA Y LIDERAZGO", "2006 LIBROS / 30043 ENSAYO Y NO FICCION", "2006 LIBROS / 30045 ESOTERISMO Y OCULTISMO", "2006 LIBROS / 30046 ESPIRITUALIDAD Y RELIGION", "2006 LIBROS / 30047 FENG SHUI", "2006 LIBROS / 30048 FILOSOFIA Y PSICOLOGIA", "2006 LIBROS / 30049 FOTOGRAFIA", "2006 LIBROS / 30050 GUIAS TURISTICAS", "2006 LIBROS / 30054 HISTORIA", "2006 LIBROS / 30056 INFANTIL", "2006 LIBROS / 30058 JARDINERIA", "2006 LIBROS / 30064 LGBTQ+", "2006 LIBROS / 30067 MEDITACION", "2006 LIBROS / 30068 MODA", "2006 LIBROS / 30070 MUJER", "2006 LIBROS / 30072 NARRATIVA", "2006 LIBROS / 30073 NARRATIVA CLASICA", "2006 LIBROS / 30074 NARRATIVA DE TERROR", "2006 LIBROS / 30075 NARRATIVA EN INGLES", "2006 LIBROS / 30076 NARRATIVA EROTICA", "2006 LIBROS / 30077 NARRATIVA FANTASTICA Y DE FICCION", "2006 LIBROS / 30078 NARRATIVA GUATEMALTECA", "2006 LIBROS / 30079 NARRATIVA HISTORICA", "2006 LIBROS / 30080 NARRATIVA ILUSTRADA", "2006 LIBROS / 30081 NARRATIVA JUVENIL", "2006 LIBROS / 30082 NARRATIVA POLICIACA NEGRA", "2006 LIBROS / 30086 PADRES", "2006 LIBROS / 30087 PAQUETES ESPECIALES", "2006 LIBROS / 30088 PAREJA", "2006 LIBROS / 30089 PASATIEMPOS", "2006 LIBROS / 30094 PINTURA Y DIBUJO", "2006 LIBROS / 30097 POESIA", "2006 LIBROS / 30098 POLITICA Y SOCIEDAD", "2006 LIBROS / 30101 SALUD Y BIENESTAR", "2006 LIBROS / 30102 SEXUALIDAD", "2006 LIBROS / 30104 TAROT", "2006 LIBROS / 30110 NARRATIVA ROMANTICA", "2006 LIBROS / 30114 BAZAR 1", "2006 LIBROS / 30115 BAZAR 2", "2006 LIBROS / 30116 BAZAR 3", "2007 MODAS Y ACCESORIOS / 30005 ACCESORIOS DE MODA", "2007 MODAS Y ACCESORIOS / 30006 ACCESORIOS PARA DAMA", "2007 MODAS Y ACCESORIOS / 30007 ACCESORIOS PARA VIAJE", "2007 MODAS Y ACCESORIOS / 30020 BILLETERAS", "2007 MODAS Y ACCESORIOS / 30022 BISUTERIA", "2007 MODAS Y ACCESORIOS / 30023 BOLSAS PARA DAMA", "2007 MODAS Y ACCESORIOS / 30059 JOYERIA", "2007 MODAS Y ACCESORIOS / 30112 OTROS MODA Y ACCESORIOS", "2007 MODAS Y ACCESORIOS / 30111 ANTEOJOS Y ACCESORIOS", "2008 MUSICA / 30036 DISCOS", "2009 PIEDRAS / 30009 ADORNOS DE PIEDRAS SEMIPRECIOSAS", "2009 PIEDRAS / 30012 AMULETOS", "2009 PIEDRAS / 30030 CRISTALES", "2009 PIEDRAS / 30090 PIEDRAS DECORATIVAS", "2009 PIEDRAS / 30091 PIEDRAS SEMIPRECIOSAS", "2009 PIEDRAS / 30092 PIEDRAS Y MINERALES EN JO", "2009 PIEDRAS / 30093 PIEDRAS Y MINERALES RUSTI", "2010 TEMPORADA / 30010 ADORNOS NAVIDEÑOS", "2010 TEMPORADA / 30011 AGENDAS", "2010 TEMPORADA / 30025 CALENDARIOS", "2010 TEMPORADA / 30031 CUADROS DE TEMPORADA", "2010 TEMPORADA / 30041 EMPAQUES", "2010 TEMPORADA / 30051 HALLOWEEN", "2010 TEMPORADA / 30066 MASCARAS", "2010 TEMPORADA / 30083 NAVIDAD", "2010 TEMPORADA / 30084 ND", "2010 TEMPORADA / 30085 OTROS TEMPORADA"];
+let CATS = CATS_BASE.slice(), CAT_OF = null, catModel = null;
+const NOCAT = /BAZAR|REVISAR|INTERNO|\/ \d+ ND$/;
+const leaf = c => String(c).split(" / ").pop().replace(/^\d+\s*/, "");
+const madre = c => String(c).split(" / ")[0].replace(/^\d+\s*/, "");
+async function loadCategorias() {
+  try {
+    const r = await fetch("categorias.json?v=" + encodeURIComponent(CAT_V));
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.p.length !== CAT.length) return; // de otra sincronización: no cuadra con el catálogo
+    CATS = d.c.filter(c => c.includes(" / ")); const pos = new Map(CATS.map((c, i) => [c, i]));
+    CAT_OF = d.p.map(i => i >= 0 && pos.has(d.c[i]) ? pos.get(d.c[i]) : -1);
+  } catch (e) {}
+}
+function buildModel() {
+  const usable = CATS.map(c => !NOCAT.test(norm(c)));
+  const M = { aut: new Map(), edi: new Map(), tok: new Map(), prior: new Float64Array(CATS.length), ntok: new Float64Array(CATS.length), usable, n: 0 };
+  if (CAT_OF) CAT.forEach((p, i) => {
+    const c = CAT_OF[i]; if (c < 0 || !usable[c]) return;
+    M.prior[c]++; M.n++;
+    const add = (map, k) => { if (!k) return; let m = map.get(k); if (!m) map.set(k, m = new Map()); m.set(c, (m.get(c) || 0) + 1); };
+    add(M.aut, autKey(p[3])); add(M.edi, norm(p[4]).trim());
+    for (const t of CTOK[i]) { add(M.tok, t); M.ntok[c]++; }
+  });
+  catModel = M;
+}
+// "GARCÍA MÁRQUEZ, GABRIEL" y "Gabriel García Márquez" → la misma llave
+const autKey = a => { const t = norm(a).replace(/[^A-Z ]/g, " ").split(/\s+/).filter(x => x.length > 1).sort(); return t.length ? t.join(" ") : ""; };
+
+// Temas de Google Books (en inglés) → subcategoría de Odoo (se busca por el nombre)
+const GB_MAP = [
+  [/JUVENILE FICTION|YOUNG ADULT FICTION/, "NARRATIVA JUVENIL"], [/JUVENILE NONFICTION|PICTURE BOOK|BABY|TODDLER/, "INFANTIL"],
+  [/COMICS|GRAPHIC NOVEL|MANGA/, "COMIC Y MANGA"], [/FANTASY|SCIENCE FICTION|DYSTOPIAN/, "NARRATIVA FANTASTICA"],
+  [/MYSTERY|THRILLER|CRIME|DETECTIVE|SUSPENSE/, "NARRATIVA POLICIACA"], [/ROMANCE/, "NARRATIVA ROMANTICA"], [/HORROR/, "NARRATIVA DE TERROR"],
+  [/EROTICA/, "NARRATIVA EROTICA"], [/FICTION.*HISTORICAL/, "NARRATIVA HISTORICA"], [/FICTION.*CLASSICS/, "NARRATIVA CLASICA"],
+  [/LGBT/, "LGBTQ"], [/^FICTION/, "NARRATIVA"], [/POETRY/, "POESIA"],
+  [/SELF.HELP/, "AUTOAYUDA"], [/BIOGRAPHY|AUTOBIOGRAPHY/, "BIOGRAFIAS"], [/BUSINESS|LEADERSHIP|MANAGEMENT/, "EMPRESA Y LIDERAZGO"],
+  [/ECONOMICS/, "ECONOMIA"], [/PHILOSOPHY|PSYCHOLOGY/, "FILOSOFIA Y PSICOLOGIA"], [/HISTORY/, "HISTORIA"],
+  [/POLITICAL|SOCIAL SCIENCE|SOCIOLOGY/, "POLITICA Y SOCIEDAD"], [/BUDDHISM/, "BUDISMO"], [/RELIGION|BIBLES|CHRISTIAN/, "ESPIRITUALIDAD Y RELIGION"],
+  [/TAROT/, "TAROT"], [/ASTROLOGY/, "ASTROLOGIA"], [/FENG SHUI/, "FENG SHUI"], [/MEDITATION|MINDFULNESS/, "MEDITACION"],
+  [/BODY, MIND|OCCULT|SPIRITUALISM|NEW AGE/, "ESOTERISMO"], [/COOKING/, "COCINA"], [/GARDENING/, "JARDINERIA"],
+  [/HEALTH|FITNESS|DIET/, "SALUD Y BIENESTAR"], [/SPORTS|RECREATION/, "DEPORTES"], [/TRAVEL/, "GUIAS TURISTICAS"],
+  [/ARCHITECTURE/, "ARQUITECTURA"], [/DESIGN|HOUSE & HOME/, "DISEÑO Y DECORACION"], [/PHOTOGRAPHY/, "FOTOGRAFIA"],
+  [/PERFORMING ARTS|MUSIC/, "CINE Y MUSICA"], [/ART/, "ARTE"], [/PARENTING/, "PADRES"], [/FAMILY|RELATIONSHIPS/, "PAREJA"],
+  [/SEXUALITY|SEX/, "SEXUALIDAD"], [/GAMES|PUZZLES|ACTIVITIES/, "PASATIEMPOS"], [/EDUCATION|STUDY AIDS/, "EDUCACION"],
+  [/REFERENCE|DICTIONAR|LANGUAGE/, "DICCIONARIOS"], [/ASTRONOMY/, "ASTRONOMIA"], [/FASHION/, "MODA"], [/WOMEN/, "MUJER"],
+  [/SCIENCE|NATURE|TECHNOLOGY|ESSAYS|LITERARY CRITICISM|TRUE CRIME|MEDICAL/, "ENSAYO Y NO FICCION"],
+];
+function catByLeaf(word) { const w = norm(word); const i = CATS.findIndex(c => norm(leaf(c)).startsWith(w) && !NOCAT.test(norm(c))); return i; }
+
+// Google Books por ISBN (solo se envía el ISBN). Se guarda en el equipo para no repetir la consulta.
+const GB = new Map();
+async function googleBooks(isbn) {
+  if (GB.has(isbn)) return GB.get(isbn);
+  let v = null;
+  try { const c = localStorage.getItem("gb:" + isbn); if (c) { v = JSON.parse(c); GB.set(isbn, v); return v; } } catch (e) {}
+  try {
+    const r = await fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn + "&maxResults=1");
+    if (r.status === 429) return null; // demasiadas consultas: se intenta otro día
+    if (r.ok) {
+      const d = await r.json(), x = d.items && d.items[0] && d.items[0].volumeInfo;
+      v = x ? { t: [x.title, x.subtitle].filter(Boolean).join(": "), a: (x.authors || []).join(", "), e: x.publisher || "", c: x.categories || [] } : {};
+      try { localStorage.setItem("gb:" + isbn, JSON.stringify(v)); } catch (e) {}
+    }
+  } catch (e) {}
+  GB.set(isbn, v);
+  return v;
+}
+
+// Junta las pistas y devuelve { c: índice de categoría, conf: "Alta"|"Media"|"Baja", why: texto }
+function proponer(L) {
+  const M = catModel, K = CATS.length, sc = new Float64Array(K), why = [];
+  const g = L.gb || {}, isBook = /^97[89]/.test(L.code) || !!g.t;
+  const share = (m, w, need) => {
+    if (!m) return 0; let tot = 0; for (const n of m.values()) tot += n;
+    const f = w * Math.min(1, tot / need); for (const [c, n] of m) sc[c] += f * n / tot; return tot;
+  };
+  if (M && g.a) for (const a of g.a.split(",")) { const n = share(M.aut.get(autKey(a)), 4, 3); if (n) why.push(`${n} ${n === 1 ? "producto" : "productos"} de ${a.trim()} en Odoo`); }
+  if (M && g.e) { const n = share(M.edi.get(norm(g.e).trim()), 1.2, 10); if (n) why.push(`editorial ${g.e}`); }
+  for (const cat of g.c || []) { const u = norm(cat); const hit = GB_MAP.find(([re]) => re.test(u)); if (hit) { const i = catByLeaf(hit[1]); if (i >= 0) { sc[i] += 3; why.push(`Google Books: ${cat}`); } } }
+  // Palabras del título comparadas con los nombres de lo que ya hay en cada categoría (sirve también para lo que no es libro)
+  if (M && M.n) {
+    const ts = tokens(L.name + " " + (g.t || "")).filter(t => M.tok.has(t));
+    if (ts.length) {
+      const V = M.tok.size, lp = new Float64Array(K).fill(-Infinity); let mx = -Infinity;
+      for (let c = 0; c < K; c++) {
+        if (!M.usable[c] || !M.prior[c]) continue;
+        let s = Math.log(M.prior[c] / M.n);
+        for (const t of ts) s += Math.log(((M.tok.get(t).get(c) || 0) + 0.5) / (M.ntok[c] + 0.5 * V));
+        lp[c] = s; if (s > mx) mx = s;
+      }
+      let z = 0; for (let c = 0; c < K; c++) if (lp[c] > -Infinity) z += Math.exp(lp[c] - mx);
+      for (let c = 0; c < K; c++) if (lp[c] > -Infinity) sc[c] += 2 * Math.exp(lp[c] - mx) / z;
+      why.push("palabras del título");
+    }
+  }
+  // Con ISBN casi siempre es libro, pero agendas y calendarios también pueden traerlo
+  if (isBook) for (let c = 0; c < K; c++) if (!/LIBROS$/.test(norm(madre(CATS[c])))) sc[c] *= 0.35;
+  for (let c = 0; c < K; c++) if (M && !M.usable[c]) sc[c] = 0;
+  let best = -1, tot = 0;
+  for (let c = 0; c < K; c++) { tot += sc[c]; if (best < 0 || sc[c] > sc[best]) best = c; }
+  if (best < 0 || !sc[best]) return { c: -1, conf: "", why: "Sin pistas: elígela a mano" };
+  const p = sc[best] / tot, strong = sc[best] >= 3;
+  const conf = p >= 0.55 && strong ? "Alta" : p >= 0.35 && sc[best] >= 1.5 ? "Media" : "Baja";
+  return { c: best, conf, why: why.slice(0, 3).join(" · ") };
+}
+
+let gbBusy = false;
+async function proponerTodo() {
+  const pend = RES.filter(L => (L.st === "new" || L.st === "rev") && !L.p && L.prop === undefined);
+  if (!pend.length) return;
+  if (!catModel) buildModel();
+  const isbns = pend.filter(L => /^97[89]\d{10}$/.test(L.code) || /^\d{9}[\dX]$/.test(L.code));
+  let done = 0; gbBusy = true; paintGb(0, isbns.length);
+  const q = isbns.slice();
+  await Promise.all(Array.from({ length: 4 }, async () => {
+    while (q.length) {
+      const L = q.shift(); const code = /^\d{9}[\dX]$/.test(L.code) ? isbn10to13(L.code) : L.code;
+      L.gb = await googleBooks(code); done++;
+      if (done % 10 === 0) paintGb(done, isbns.length);
+    }
+  }));
+  for (const L of pend) L.prop = proponer(L);
+  gbBusy = false; paintGb(done, isbns.length);
+  render();
+}
+function paintGb(d, t) {
+  const el = $("gbInfo"); if (!el) return;
+  el.textContent = gbBusy ? `Buscando datos de los libros nuevos en Google Books… ${n0(d)} de ${n0(t)}` : (t ? `Categorías propuestas. Google Books encontró ${n0(RES.filter(L => L.gb && L.gb.t).length)} de ${n0(t)} libros nuevos.` : "Categorías propuestas.");
+}
+const catOf = L => L.cat != null ? L.cat : L.prop ? L.prop.c : -1;
+let CAT_OPTS = "";
+function catOptions() {
+  if (CAT_OPTS) return CAT_OPTS;
+  const g = new Map();
+  CATS.forEach((c, i) => { if (catModel && !catModel.usable[i]) return; const m = madre(c); if (!g.has(m)) g.set(m, []); g.get(m).push(`<option value="${i}">${esc(leaf(c))}</option>`); });
+  return CAT_OPTS = [...g].map(([m, o]) => `<optgroup label="${esc(m)}">${o.join("")}</optgroup>`).join("");
 }
 
 // ---------- lectura del archivo ----------
@@ -422,6 +574,7 @@ function run() {
   classify();
   $("stepRes").hidden = false;
   render();
+  proponerTodo();
 }
 function classify() {
   const seen = new Map();
@@ -432,8 +585,8 @@ function classify() {
     if (L.choice != null) { L.st = L.choice >= 0 ? "ok" : "new"; L.how = L.choice >= 0 ? "Elegido a mano por título" : "Marcado como nuevo"; }
     else if (L.p) L.st = "ok";
     else if (L.inac) { L.st = "rev"; L.reason = "Está archivado en Odoo: reactívalo en lugar de crearlo"; }
-    else if (L.err) { L.st = "rev"; L.reason = L.err + ". Revisa el libro físico"; }
-    else if (L.similar) { L.st = "rev"; L.reason = "Hay un libro con título parecido. ¿Es el mismo o es otra edición?"; }
+    else if (L.err) { L.st = "rev"; L.reason = L.err + ". Revisa el producto físico"; }
+    else if (L.similar) { L.st = "rev"; L.reason = "Hay un producto con nombre parecido. ¿Es el mismo o es otra edición?"; }
     else if (!L.code && !L.ref) { L.st = "rev"; L.reason = "La línea no trae ISBN ni item"; }
     else L.st = "new";
     const k = L.p ? "p" + (L.p[0] || L.p[1]) : L.code ? "c" + codeVariants(L.code).slice(-1)[0] : L.ref ? "r" + norm(L.ref) : null;
@@ -455,7 +608,7 @@ function render() {
   $("bigAlert").innerHTML = cnt.rev
     ? `<div class="notice"><b>${n0(cnt.rev)} ${cnt.rev === 1 ? "línea necesita" : "líneas necesitan"} revisión</b> antes de crear los nuevos. Toca "Revisar" para verlas.</div>`
     : cnt.new ? `<div class="notice ok">Todo revisado: ${n0(cnt.ok)} ya existen y ${n0(cnt.new)} hay que crearlos en Odoo.</div>`
-    : `<div class="notice ok">Todos los libros de esta factura ya existen en Odoo.</div>`;
+    : `<div class="notice ok">Todos los productos de esta factura ya existen en Odoo.</div>`;
   const tiles = [["all", "t-all", "Todas"], ["ok", "t-ok", "Ya existen"], ["rev", "t-rev", "Revisar"], ["new", "t-new", "Nuevos"], ["rep", "t-rep", "Repetidos en la factura"]];
   $("sum").innerHTML = tiles.filter(([k]) => k === "all" || cnt[k]).map(([k, cls, lab]) => `<button type="button" class="tile ${cls}" data-f="${k}" aria-pressed="${filter === k}"><b>${n0(cnt[k])}</b><span>${lab}</span></button>`).join("");
   $("btnNuevos").disabled = !cnt.new;
@@ -471,10 +624,17 @@ function render() {
     if (L.how) prod += `<br><span class="how">Encontrado por: ${esc(L.how)}</span>`;
     if (L.reason) prod += `<span class="reason">${esc(L.reason)}</span>`;
     if (L.cands.length) {
-      prod += `<div class="cands"><select data-r="${L.r}" aria-label="Elegir libro">
+      prod += `<div class="cands"><select data-r="${L.r}" aria-label="Elegir producto">
         <option value="">${L.choice == null ? "¿Es alguno de estos?" : "Cambiar elección…"}</option>
         ${L.cands.map(([sc, i]) => { const c = CAT[i]; return `<option value="${i}" ${L.choice === i ? "selected" : ""}>${esc(c[2].slice(0, 70))} (${esc(c[1] ? "Item " + c[1] : c[0])})</option>`; }).join("")}
-        <option value="-1" ${L.choice === -1 ? "selected" : ""}>Ninguno: es un libro nuevo</option></select></div>`;
+        <option value="-1" ${L.choice === -1 ? "selected" : ""}>Ninguno: es un producto nuevo</option></select></div>`;
+    }
+    if (!p && (L.st === "new" || L.st === "rev")) {
+      const g = L.gb || {}, c = catOf(L), pr = L.prop;
+      if (g.a || g.e) prod += `<br><span class="how">${esc([g.a, g.e].filter(Boolean).join(" · "))} <span class="mono">(Google Books)</span></span>`;
+      prod += `<div class="catbox"><span class="how">Categoría ${L.cat != null ? "elegida" : "propuesta"}${pr && pr.conf && L.cat == null ? ` <span class="chip conf-${pr.conf}">Confianza ${pr.conf.toLowerCase()}</span>` : ""}</span>
+        <select data-cat="${L.r}" aria-label="Categoría en Odoo">${pr === undefined && L.cat == null ? `<option value="">Proponiendo…</option>` : `<option value="">— Elegir categoría —</option>`}${catOptions().replace(`value="${c}"`, `value="${c}" selected`)}</select>
+        ${pr && pr.why && L.cat == null ? `<span class="how">Por: ${esc(pr.why)}</span>` : ""}</div>`;
     }
     return `<tr class="r-${L.st}"><td class="num how">${L.r + 1}</td><td><span class="chip ${s.chip}">${s.label}</span>${L.rep ? `<br><span class="chip c-rep">Repetido</span>` : ""}</td><td>${entrada}</td><td>${prod}</td><td class="num">${L.qty === "" ? "" : n0(L.qty)}</td></tr>`;
   }).join("") || `<tr><td colspan="5" class="muted" style="padding:20px;text-align:center">No hay líneas ${query ? "con esa búsqueda" : "en este filtro"}.</td></tr>`;
@@ -482,10 +642,12 @@ function render() {
 $("sum").addEventListener("click", e => { const b = e.target.closest("[data-f]"); if (b) { filter = b.dataset.f; render(); } });
 $("q").addEventListener("input", e => { query = norm(e.target.value.trim()); render(); });
 $("tb").addEventListener("change", e => {
+  const k = e.target.closest("select[data-cat]");
+  if (k) { const L = RES.find(x => x.r === +k.dataset.cat); if (L) { L.cat = k.value === "" ? null : +k.value; render(); } return; }
   const s = e.target.closest("select[data-r]"); if (!s) return;
   const L = RES.find(x => x.r === +s.dataset.r); if (!L) return;
   L.choice = s.value === "" ? null : +s.value;
-  classify(); render();
+  classify(); render(); proponerTodo();
 });
 
 // ---------- descargas ----------
@@ -526,17 +688,21 @@ $("btnNuevos").addEventListener("click", () => {
     const k = code || "r" + norm(L.ref) || "n" + norm(L.name);
     const a = nuevos.get(k);
     if (a) { a.qty = (+a.qty || 0) + (+L.qty || 0); a.lineas.push(L.r + 1); }
-    else nuevos.set(k, { code, name: L.name.replace(/\s+/g, " ").trim(), qty: L.qty, cost: L.cost, lineas: [L.r + 1] });
+    else { const c = catOf(L), g = L.gb || {}; nuevos.set(k, { code, name: L.name.replace(/\s+/g, " ").trim() || (g.t || "").toUpperCase(), qty: L.qty, cost: L.cost, lineas: [L.r + 1], cat: c >= 0 ? CATS[c] : "", conf: L.cat != null ? "Elegida a mano" : L.prop ? L.prop.conf : "", a: g.a || "", e: g.e || "" }); }
   }
   const list = [...nuevos.values()];
-  const imp = [["name", "barcode"], ...list.map(n => [n.name || "(SIN TÍTULO)", n.code])];
-  const det = [["Línea de la factura", "ISBN", "Título", "Cantidad", "Costo en la factura"], ...list.map(n => [n.lineas.join(", "), n.code, n.name, n.qty, n.cost])];
+  const imp = [["name", "barcode", "categ_id"], ...list.map(n => [n.name || "(SIN TÍTULO)", n.code, n.cat])];
+  const det = [["Línea de la factura", "ISBN", "Título", "Cantidad", "Costo en la factura", "Categoría", "Confianza", "Autor (Google Books)", "Editorial (Google Books)"], ...list.map(n => [n.lineas.join(", "), n.code, n.name, n.qty, n.cost, n.cat, n.conf, n.a, n.e])];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, hoja(imp, [60, 16]), "Productos nuevos");
+  XLSX.utils.book_append_sheet(wb, hoja(imp, [60, 16, 48]), "Productos nuevos");
   XLSX.utils.book_append_sheet(wb, hoja(det), "Detalle de la factura");
   XLSX.writeFile(wb, `${fileName}_nuevos-odoo.xlsx`);
+  const sinCat = list.filter(n => !n.cat).length;
   const rev = RES.filter(L => L.st === "rev").length;
-  if (rev) { $("bigAlert").innerHTML = `<div class="notice">Se descargaron ${n0(list.length)} libros nuevos. Quedan ${n0(rev)} líneas en "Revisar" que <b>no</b> van en el archivo: resuélvelas y vuelve a descargar.</div>`; }
+  const avisos = [];
+  if (sinCat) avisos.push(`${n0(sinCat)} ${sinCat === 1 ? "producto va" : "productos van"} sin categoría: complétala en el archivo o en Odoo`);
+  if (rev) avisos.push(`quedan ${n0(rev)} líneas en "Revisar" que <b>no</b> van en el archivo: resuélvelas y vuelve a descargar`);
+  if (avisos.length) $("bigAlert").innerHTML = `<div class="notice">Se descargaron ${n0(list.length)} productos nuevos. Ojo: ${avisos.join("; ")}.</div>`;
 });
 </script>
 </body>

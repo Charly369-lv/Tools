@@ -315,6 +315,7 @@ def main():
     por_cat = collections.Counter()
     ejemplos = collections.defaultdict(list)
     rows, seen = [], set()
+    cats = []  # categoría de cada fila del catálogo (misma posición), para Recepción de facturas
     fila_de = {}  # id de producto → fila del catálogo
     stats = collections.Counter()
     for p in prods:
@@ -367,6 +368,7 @@ def main():
             if len(ejemplos[pct]) < 3:
                 ejemplos[pct].append(f"{code or ref}  Q{precio} − {pct}% = Q{pb:.2f} → Q{pbr}  ({titulo[:40]})")
         rows.append(row)
+        cats.append(cat)
         fila_de[p["id"]] = row
         stats["productos"] += 1
 
@@ -394,6 +396,10 @@ def main():
     version = time.strftime("%Y-%m-%d %H:%M", time.gmtime())
     write_checador(os.path.join(a.out, "checador"), rows, version, alternos)
     write_inventario(os.path.join(a.out, "inventario"), prods, locations, version, alternos)
+    try:
+        write_categorias(o, os.path.join(a.out, "recepcion"), cats, version)
+    except Exception as e:  # si falla, lo demás se publica igual
+        print("  Aviso: no se pudieron publicar las categorías para Recepción de facturas.", e)
     if inactivos is not None:
         activos_c = {r[0] for r in rows if r[0]}
         activos_r = {r[1] for r in rows if r[1]}
@@ -519,6 +525,20 @@ def write_checador(out, rows, version, alternos=None):
     idx = {id(r): i for i, r in enumerate(rows)}
     x = {code: idx[id(r)] for code, r in alternos.items() if id(r) in idx}
     dump(f"{out}/catalogo.json", {"v": version, "a": A, "e": E, "t": T, "p": comp, "x": x})
+
+
+def write_categorias(o, out, cats, version):
+    """Categoría de cada producto del catálogo (misma posición que catalogo.json) y la lista completa
+    de categorías de Odoo. Recepción de facturas aprende de aquí para proponer la categoría de lo nuevo."""
+    nombres = []
+    try:
+        nombres = [clean(c["complete_name"]) for c in o.search_read_all("product.category", [], ["complete_name"], order="complete_name") if c.get("complete_name")]
+    except SystemExit as e:
+        print("  Aviso: no se pudo leer la lista de categorías; se usan las de los productos.", e)
+    lista = list(dict.fromkeys(nombres + sorted({clean(c) for c in cats if c})))
+    ix = {c: i for i, c in enumerate(lista)}
+    dump(f"{out}/categorias.json", {"v": version, "c": lista, "p": [ix.get(clean(c), -1) if c else -1 for c in cats]})
+    print(f"  Categorías para Recepción de facturas: {len(lista)} categorías, {sum(1 for c in cats if c):,} productos con categoría")
 
 
 def write_inventario(out, prods, locations, version, alternos=None):
