@@ -1,0 +1,87 @@
+rules_version = '2';
+
+// =====================================================================
+//  Reglas de seguridad del calendario de salones De Museo
+//  Se pegan en Firebase, en Firestore Database, pestaña Reglas, y luego Publicar.
+//  Si agrega o quita tiendas o salones, cambie también la configuración al inicio del script de site/salones/index.html.
+// =====================================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Las 12 tiendas que pueden ENTRAR y VER el calendario.
+    function tiendas() {
+      return [
+        'centrohistorico@demuseo.com', 'majadas@demuseo.com',
+        'antigua@demuseo.com',         'americas@demuseo.com',
+        'videre@demuseo.com',          'miraflores@demuseo.com',
+        'pradera@demuseo.com',         'concepcion@demuseo.com',
+        'portales@demuseo.com',        'sankris@demuseo.com',
+        'coban@demuseo.com',           'xela@demuseo.com'
+      ];
+    }
+
+    // Qué salones puede EDITAR cada tienda (las demás no editan nada).
+    function permisos() {
+      return {
+        'centrohistorico@demuseo.com': ['zona1'],
+        'majadas@demuseo.com':         ['majadas1', 'majadas2'],
+        'antigua@demuseo.com':         ['antigua'],
+        'americas@demuseo.com':        ['americas']
+      };
+    }
+
+    function correo() {
+      return request.auth.token.email;
+    }
+
+    function esTienda() {
+      return request.auth != null && correo() in tiendas();
+    }
+
+    function puedeEditar(salon) {
+      return esTienda() && salon in permisos().get(correo(), []);
+    }
+
+    function textoOpcional(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    function eventoValido(d) {
+      return d.keys().hasOnly(['salon', 'titulo', 'inicio', 'fin', 'cliente',
+                               'telefono', 'observaciones', 'creadoPor',
+                               'creadoEn', 'modificadoPor', 'modificadoEn'])
+        && d.keys().hasAll(['salon', 'titulo', 'inicio', 'fin'])
+        && d.titulo is string && d.titulo.size() > 0 && d.titulo.size() <= 120
+        && d.inicio is timestamp && d.fin is timestamp && d.fin > d.inicio
+        && d.fin < d.inicio + duration.value(2, 'd')
+        && textoOpcional(d.get('cliente', ''), 120)
+        && textoOpcional(d.get('telefono', ''), 30)
+        && textoOpcional(d.get('observaciones', ''), 3000)
+        && d.modificadoPor == correo()
+        && d.modificadoEn == request.time;
+    }
+
+    match /eventos/{id} {
+      allow read: if esTienda();
+
+      allow create: if puedeEditar(request.resource.data.salon)
+        && eventoValido(request.resource.data)
+        && request.resource.data.creadoPor == correo()
+        && request.resource.data.creadoEn == request.time;
+
+      // Puede cambiar un evento de su salón, y moverlo solo a otro salón suyo.
+      allow update: if puedeEditar(resource.data.salon)
+        && puedeEditar(request.resource.data.salon)
+        && eventoValido(request.resource.data)
+        && request.resource.data.creadoPor == resource.data.creadoPor
+        && request.resource.data.creadoEn == resource.data.creadoEn;
+
+      allow delete: if puedeEditar(resource.data.salon);
+    }
+
+    // Todo lo demás está cerrado.
+    match /{documento=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Salones de eventos · Herramientas De Museo</title>
+<meta name="description" content="Qué salón de De Museo está ocupado, qué día y a qué hora.">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="theme-color" content="#0b1748">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<link rel="stylesheet" href="../estilo/tokens.css">
+<link rel="stylesheet" href="../estilo/base.css">
+<style>
+/* Hallmark · shape: app screen · genre: editorial · theme: specimen + brand (De Museo, from site/estilo/tokens.css) · redesign: full
+ * paper: oklch(96.5% 0.016 82) · accent: #112369 · display: Bodoni Moda 400 · body: Archivo
+ * nav: the site's navy band with the logo back to Tienda, the store's name and Salir · signature: the week by salon, five salons down and seven days across, each booking ruled into its cell · states: loading (a skeleton of the board), empty week, load error, read-only store, delete confirm
+ * axes: light/high-contrast-serif/cool · posture: restrained · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H5 E4 S5 R5 V3 · weakest: V, the board borrows the site's directory rules on purpose so the tool reads as one of the family; earned the difference by making the salon-by-day table the first thing on screen instead of a generic month grid */
+
+:root {
+  --color-danger: oklch(46% 0.17 28);
+  --color-danger-wash: oklch(95% 0.03 28);
+  --color-today: oklch(93.5% 0.022 262);
+  --color-scrim: oklch(17% 0.03 265 / 0.5);
+  --color-skeleton: var(--color-paper-3);
+  --control-h: 40px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-paper: oklch(17% 0.03 265); --color-paper-2: oklch(21% 0.032 265); --color-paper-3: oklch(26% 0.034 265);
+    --color-ink: oklch(94% 0.012 82); --color-ink-2: oklch(86% 0.014 82); --color-muted: oklch(72% 0.02 265);
+    --color-rule: oklch(32% 0.03 265); --color-rule-2: oklch(44% 0.03 265);
+    --color-accent: oklch(78% 0.09 268); --color-accent-ink: oklch(17% 0.03 265); --color-focus: #f2bd3c;
+    --color-danger: oklch(74% 0.14 28); --color-danger-wash: oklch(26% 0.05 28);
+    --color-today: oklch(23% 0.05 265);
+    --color-scrim: oklch(8% 0.02 265 / 0.7);
+  }
+}
+@media (pointer: coarse) { :root { --control-h: 44px; } }
+
+.wrap { width: 100%; max-width: var(--container); margin-inline: auto; padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px)); }
+
+/* Banda de marca */
+.bar { background: var(--color-band); color: var(--color-on-band); }
+.bar :focus-visible { outline-color: var(--color-focus-on-band); }
+.bar-in { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); min-height: 72px; }
+.bar-logo { display: block; flex-shrink: 0; }
+.bar-logo img { width: min(200px, 44vw); }
+.bar-der { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
+.bar-tienda { color: var(--color-on-band-2); font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-btn { min-height: 44px; padding: 0 var(--space-sm); background: none; border: 0; color: var(--color-on-band-2); font-size: var(--text-sm); text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; transition: color var(--dur-micro) var(--ease-out); }
+.bar-btn:hover { color: var(--color-on-band); }
+.bar-btn:active { opacity: 0.7; }
+.bar-btn:focus-visible { outline: 2px solid var(--color-focus-on-band); outline-offset: 2px; }
+
+.prueba-in { display: block; }
+.campo-sig { margin-top: var(--space-md); }
+.prueba { background: var(--color-paper-2); border-bottom: var(--rule-hair) solid var(--color-rule); font-size: var(--text-sm); color: var(--color-ink-2); padding-block: var(--space-xs); }
+
+/* Controles */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs); min-height: var(--control-h); padding: 0 var(--space-md); border: var(--rule-hair) solid var(--color-accent); border-radius: 0; background: var(--color-accent); color: var(--color-accent-ink); font: 600 var(--text-sm)/1 var(--font-body); white-space: nowrap; cursor: pointer; transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out); }
+.btn:hover { background: color-mix(in oklab, var(--color-accent) 86%, var(--color-ink)); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.btn[aria-busy="true"] { cursor: progress; }
+.btn--quiet { background: transparent; color: var(--color-ink); border-color: var(--color-rule-2); }
+.btn--quiet:hover { background: var(--color-paper-2); }
+.btn--peligro { background: transparent; color: var(--color-danger); border-color: var(--color-rule-2); }
+.btn--peligro:hover { background: var(--color-danger-wash); }
+.btn--icono { width: var(--control-h); padding: 0; }
+.btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.enlace { background: none; border: 0; padding: 0; min-height: 44px; color: var(--color-accent); font: inherit; font-size: var(--text-sm); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; cursor: pointer; transition: text-decoration-thickness var(--dur-micro) var(--ease-out); }
+.enlace:hover { text-decoration-thickness: 2px; }
+.enlace:active { opacity: 0.7; }
+.enlace:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+label, legend { display: block; font-size: var(--text-sm); font-weight: 500; color: var(--color-muted); margin-bottom: var(--space-2xs); }
+input, select, textarea { width: 100%; min-height: var(--control-h); padding: var(--space-xs) var(--space-sm); border: var(--rule-hair) solid var(--color-muted); border-radius: 0; background: var(--color-paper); color: var(--color-ink); font-size: max(16px, var(--text-md)); }
+input:hover, select:hover, textarea:hover { border-color: var(--color-ink-2); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -1px; }
+input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--color-danger); }
+input:disabled, select:disabled, textarea:disabled { opacity: 0.55; cursor: not-allowed; }
+textarea { resize: vertical; line-height: 1.5; }
+.check { display: flex; align-items: center; gap: var(--space-xs); color: var(--color-ink); font-weight: 400; margin: var(--space-xs) 0 0; min-height: 44px; cursor: pointer; }
+.check input { width: 18px; min-height: 18px; height: 18px; accent-color: var(--color-accent); }
+
+.seg { display: inline-flex; border: var(--rule-hair) solid var(--color-rule-2); margin: 0; padding: 0; min-width: 0; }
+.seg legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; min-height: 0; }
+.seg label { display: inline-flex; align-items: center; min-height: calc(var(--control-h) - 2px); padding: 0 var(--space-md); margin: 0; color: var(--color-ink); font-weight: 500; cursor: pointer; transition: background-color var(--dur-micro) var(--ease-out); }
+.seg label + input + label { border-left: var(--rule-hair) solid var(--color-rule); }
+.seg label:hover { background: var(--color-paper-2); }
+.seg input:checked + label { background: var(--color-ink); color: var(--color-paper); }
+.seg input:focus-visible + label { outline: 2px solid var(--color-focus); outline-offset: 2px; position: relative; z-index: 1; }
+
+/* Ingreso */
+.ingreso { padding-block: var(--space-2xl) var(--space-3xl); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-xl); }
+@media (min-width: 60rem) { .ingreso { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--gap-columns); align-items: end; } }
+.ingreso h1 { font-size: clamp(3rem, 8vw, 6rem); font-variation-settings: "opsz" 96; line-height: 1.02; max-width: 11ch; }
+.ingreso-texto p { margin-top: var(--space-md); color: var(--color-muted); font-size: var(--text-lg); max-width: 36ch; }
+.form-ingreso { display: grid; gap: var(--space-md); border-top: 3px double var(--color-rule-2); padding-top: var(--space-lg); }
+.form-ingreso .btn { width: 100%; min-height: 48px; }
+.form-ingreso .enlace { justify-self: start; }
+
+/* Pantalla principal */
+.cab { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-xs) var(--space-lg); padding-block: var(--space-xl) var(--space-md); }
+.cab h1 { font-size: var(--text-3xl); font-variation-settings: "opsz" 96; max-width: none; }
+.cab-rango { font-size: var(--text-lg); color: var(--color-ink-2); }
+.cab-rango::first-letter { text-transform: uppercase; }
+
+.barra { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); padding-block: var(--space-sm); border-top: var(--rule-hair) solid var(--color-rule-2); border-bottom: var(--rule-hair) solid var(--color-rule); }
+.barra-fechas { display: flex; gap: var(--space-2xs); }
+.barra-filtro { display: flex; align-items: center; gap: var(--space-xs); }
+.barra-filtro label { margin: 0; white-space: nowrap; }
+.barra-filtro select { width: auto; min-width: 12rem; }
+.barra .btn-nuevo { margin-left: auto; }
+.nota { margin-top: var(--space-md); color: var(--color-muted); font-size: var(--text-sm); max-width: 70ch; }
+.estado { margin-top: var(--space-lg); }
+.estado p { color: var(--color-ink-2); }
+.estado .btn { margin-top: var(--space-sm); }
+.vista { padding-block: var(--space-lg) var(--space-3xl); }
+
+/* El tablero: la semana por salón */
+.tablero-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+.tablero-scroll:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; }
+.tablero { width: 100%; min-width: 880px; border-collapse: collapse; table-layout: fixed; }
+.tablero col.c-salon { width: 15rem; }
+.tablero thead th { padding: var(--space-xs) var(--space-sm) var(--space-sm); border-bottom: 3px double var(--color-rule-2); text-align: left; font-weight: 500; font-size: var(--text-sm); color: var(--color-muted); vertical-align: bottom; }
+.tablero thead th .dia-n { display: block; font-family: var(--font-num); font-weight: 700; font-size: var(--text-xl); line-height: 1.1; color: var(--color-ink); font-variant-numeric: lining-nums tabular-nums; }
+.tablero thead th.es-hoy { background: var(--color-today); }
+.tablero thead th.es-hoy .dia-n { color: var(--color-accent); }
+.tablero tbody th { position: sticky; left: 0; z-index: 2; background: var(--color-paper); padding: var(--space-md) var(--space-md) var(--space-md) 0; text-align: left; vertical-align: top; border-bottom: var(--rule-hair) solid var(--color-rule); font-weight: 400; }
+.salon-n { display: block; font-weight: 600; font-size: var(--text-md); line-height: 1.25; color: var(--color-ink); }
+.salon-t { display: block; font-size: var(--text-sm); color: var(--color-muted); margin-top: var(--space-3xs); }
+.salon-suyo { display: inline-block; margin-top: var(--space-xs); font-size: var(--text-xs); color: var(--color-accent); border: var(--rule-hair) solid currentColor; padding: 0 var(--space-2xs); }
+.tablero td { vertical-align: top; padding: var(--space-xs); border-bottom: var(--rule-hair) solid var(--color-rule); border-left: var(--rule-hair) solid var(--color-rule); height: 6.5rem; }
+.tablero td.es-hoy { background: var(--color-today); }
+.celda { display: grid; gap: var(--space-2xs); align-content: start; height: 100%; }
+
+.ev { display: grid; gap: var(--space-3xs); width: 100%; text-align: left; padding: var(--space-xs); border: var(--rule-hair) solid var(--color-rule); background: var(--color-paper-2); color: var(--color-ink); font: inherit; cursor: pointer; transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out); }
+.ev:hover { background: var(--color-paper-3); border-color: var(--color-rule-2); }
+.ev:active { transform: translateY(1px); }
+.ev:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.ev-h { font-family: var(--font-num); font-weight: 700; font-size: var(--text-xs); font-variant-numeric: tabular-nums; color: var(--color-ink-2); }
+.ev-t { font-size: var(--text-sm); line-height: 1.3; overflow-wrap: anywhere; }
+.es-pasado .ev { background: transparent; }
+.es-pasado .ev-t { color: var(--color-ink-2); }
+
+.agregar { justify-self: start; min-height: 32px; padding: 0 var(--space-2xs); background: none; border: 0; color: var(--color-accent); font: inherit; font-size: var(--text-sm); text-decoration: underline; text-underline-offset: 0.18em; cursor: pointer; opacity: 0; transition: opacity var(--dur-micro) var(--ease-out); }
+td:hover .agregar, .agregar:focus-visible { opacity: 1; }
+.agregar:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.agregar:active { opacity: 0.7; }
+@media (pointer: coarse) { .agregar { opacity: 1; } }
+
+.vacio-semana { margin-top: var(--space-md); color: var(--color-muted); font-size: var(--text-sm); }
+
+/* Esqueleto mientras carga */
+.esqueleto { display: grid; gap: var(--space-xs); margin-top: var(--space-lg); }
+.esqueleto span { display: block; height: 6.5rem; background: var(--color-skeleton); opacity: 0.6; animation: latido 1.4s var(--ease-out) infinite alternate; }
+.esqueleto span:first-child { height: 3.5rem; }
+@keyframes latido { from { opacity: 0.35; } to { opacity: 0.7; } }
+@media (prefers-reduced-motion: reduce) { .esqueleto span { animation: none; } }
+
+/* Mes */
+.mes { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.mes thead th { padding: var(--space-xs); border-bottom: 3px double var(--color-rule-2); text-align: left; font-weight: 500; font-size: var(--text-sm); color: var(--color-muted); }
+.mes td { vertical-align: top; height: 8.5rem; padding: var(--space-xs); border-bottom: var(--rule-hair) solid var(--color-rule); border-left: var(--rule-hair) solid var(--color-rule); }
+.mes td:first-child { border-left: 0; }
+.mes td.fuera { background: color-mix(in oklab, var(--color-paper-2) 60%, var(--color-paper)); }
+.mes td.fuera .mes-n { color: var(--color-muted); font-weight: 400; }
+.mes td.es-hoy { background: var(--color-today); }
+.mes td.es-hoy .mes-n { color: var(--color-accent); }
+.mes-n { display: block; font-family: var(--font-num); font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: var(--space-2xs); }
+.mes .ev { padding: var(--space-3xs) var(--space-2xs); }
+.mes .ev-t { font-size: var(--text-xs); }
+.mas { min-height: 32px; justify-self: start; }
+
+/* Agenda */
+.agenda-dia { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-xs) var(--gap-columns); padding-block: var(--space-md); border-bottom: var(--rule-hair) solid var(--color-rule); }
+@media (min-width: 48rem) { .agenda-dia { grid-template-columns: 11rem minmax(0, 1fr); } }
+.agenda-dia:first-child { border-top: 3px double var(--color-rule-2); }
+.agenda-fecha { font-family: var(--font-body); font-size: var(--text-md); font-weight: 600; line-height: 1.3; }
+.agenda-fecha::first-letter { text-transform: uppercase; }
+.agenda-fecha.es-hoy { color: var(--color-accent); }
+.agenda-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); }
+.fila { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3xs) var(--space-md); width: 100%; text-align: left; padding: var(--space-sm); border: var(--rule-hair) solid var(--color-rule); background: var(--color-paper-2); color: var(--color-ink); font: inherit; cursor: pointer; transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out); }
+@media (min-width: 48rem) { .fila { grid-template-columns: 11rem minmax(0, 1fr) minmax(0, 14rem); align-items: baseline; } }
+.fila:hover { background: var(--color-paper-3); border-color: var(--color-rule-2); }
+.fila:active { transform: translateY(1px); }
+.fila:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.fila-h { font-family: var(--font-num); font-weight: 700; font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.fila-t { font-weight: 500; overflow-wrap: anywhere; }
+.fila-c { display: block; font-weight: 400; font-size: var(--text-sm); color: var(--color-muted); }
+.fila-s { font-size: var(--text-sm); color: var(--color-ink-2); }
+.agenda-vacia { padding-block: var(--space-xl); border-top: 3px double var(--color-rule-2); }
+.agenda-vacia p { color: var(--color-ink-2); }
+.agenda-vacia .btn { margin-top: var(--space-md); }
+
+/* Diálogos */
+dialog { width: calc(100% - 2 * var(--space-md)); max-width: 36rem; max-height: calc(100dvh - 2 * var(--space-md)); padding: 0; border: var(--rule-hair) solid var(--color-rule-2); border-radius: 0; background: var(--color-paper); color: var(--color-ink); }
+dialog::backdrop { background: var(--color-scrim); }
+dialog[open] { animation: aparecer var(--dur-short) var(--ease-out); }
+@keyframes aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { dialog[open] { animation: none; } }
+.dlg { padding: var(--space-lg); display: grid; gap: var(--space-md); }
+.dlg-cab { display: flex; justify-content: space-between; align-items: start; gap: var(--space-md); }
+.dlg-cab h2 { font-size: var(--text-2xl); font-variation-settings: "opsz" 96; line-height: 1.08; max-width: none; overflow-wrap: anywhere; }
+.cerrar { flex-shrink: 0; margin: calc(var(--space-xs) * -1) calc(var(--space-xs) * -1) 0 0; background: none; border: 0; width: 44px; height: 44px; display: grid; place-items: center; color: var(--color-muted); cursor: pointer; transition: color var(--dur-micro) var(--ease-out); }
+.cerrar:hover { color: var(--color-ink); }
+.cerrar:active { opacity: 0.7; }
+.cerrar:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 0; }
+.cerrar svg { width: 20px; height: 20px; }
+.det-salon { color: var(--color-ink-2); }
+.det-cuando { font-size: var(--text-lg); }
+.det-cuando::first-letter { text-transform: uppercase; }
+.det-datos { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); border-top: var(--rule-hair) solid var(--color-rule); }
+.det-datos > div { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3xs); padding-block: var(--space-sm); border-bottom: var(--rule-hair) solid var(--color-rule); }
+@media (min-width: 40rem) { .det-datos > div { grid-template-columns: 8rem minmax(0, 1fr); gap: var(--space-md); } }
+.det-datos dt { font-size: var(--text-sm); color: var(--color-muted); font-weight: 500; }
+.det-datos dd { margin: 0; overflow-wrap: anywhere; }
+.det-datos dd a { color: var(--color-ink); text-decoration-color: var(--color-accent); }
+.det-obs { white-space: pre-wrap; }
+.sin-dato { color: var(--color-muted); }
+.det-registro { font-size: var(--text-sm); color: var(--color-muted); }
+.acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-xs); padding-top: var(--space-xs); }
+.acciones .izq { margin-right: auto; }
+.confirmar { border-top: 3px double var(--color-rule-2); padding-top: var(--space-md); display: grid; gap: var(--space-sm); }
+
+.form-ev { display: grid; gap: var(--space-md); }
+.par { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-md); }
+@media (min-width: 40rem) { .par { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .trio { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); } }
+.error { background: var(--color-danger-wash); color: var(--color-danger); padding: var(--space-sm); font-size: var(--text-sm); border: var(--rule-hair) solid var(--color-danger); }
+.form-ingreso .error { margin: 0; }
+
+.aviso { position: fixed; z-index: 500; left: 50%; bottom: max(var(--space-lg), env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--color-ink); color: var(--color-paper); padding: var(--space-sm) var(--space-md); font-size: var(--text-sm); max-width: calc(100vw - 2 * var(--space-md)); }
+
+@media (max-width: 48rem) {
+  .barra .btn-nuevo { margin-left: 0; width: 100%; order: -1; }
+  .barra-filtro { width: 100%; }
+  .barra-filtro select { flex: 1; min-width: 0; }
+  .cab h1 { font-size: var(--text-2xl); }
+  .tablero col.c-salon { width: 9.5rem; }
+  .salon-t { display: none; }
+  .mes td { height: 5rem; padding: var(--space-2xs); }
+  .mes .ev { display: none; }
+  .mes .mas { min-height: 28px; min-width: 28px; padding: 0 var(--space-2xs); justify-self: start; display: grid; place-items: center; background: var(--color-accent); color: var(--color-accent-ink); font-family: var(--font-num); font-weight: 700; font-size: var(--text-xs); text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap bar-in">
+  <a class="bar-logo" href="../tienda/"><img src="../checador/logo.png" alt="De Museo, volver a Tienda" width="800" height="143"></a>
+  <div class="bar-der">
+    <span class="bar-tienda" id="bar-tienda"></span>
+    <button class="bar-btn" id="salir" type="button" hidden>Salir</button>
+  </div>
+</div></header>
+<p class="prueba" id="prueba" hidden><span class="wrap prueba-in">Modo de prueba. Lo que haga aquí no se guarda; falta pegar los datos de Firebase en este archivo.</span></p>
+
+<noscript><main class="wrap estado"><p>Este calendario necesita JavaScript. Actívelo en el navegador y vuelva a cargar la página.</p></main></noscript>
+
+<!-- Ingreso -->
+<main class="wrap ingreso" id="pantalla-ingreso" hidden>
+  <div class="ingreso-texto">
+    <h1>Salones de eventos</h1>
+    <p>Los cinco salones de De Museo en una sola semana. Entre con el usuario de su tienda.</p>
+  </div>
+  <form class="form-ingreso" id="form-ingreso" novalidate>
+    <div id="campo-prueba" hidden>
+      <label for="tienda-prueba">Tienda que quiere probar</label>
+      <select id="tienda-prueba" name="tienda"></select>
+    </div>
+    <div id="campos-reales">
+      <div>
+        <label for="correo">Usuario de la tienda</label>
+        <input id="correo" name="correo" type="email" autocomplete="username" inputmode="email" required>
+      </div>
+      <div class="campo-sig">
+        <label for="clave">Contraseña</label>
+        <input id="clave" name="clave" type="password" autocomplete="current-password" required>
+      </div>
+    </div>
+    <p class="error" id="error-ingreso" role="alert" hidden></p>
+    <button class="btn" type="submit" id="btn-entrar">Entrar</button>
+    <button class="enlace" type="button" id="olvide">Olvidé la contraseña</button>
+  </form>
+</main>
+
+<!-- Calendario -->
+<main class="wrap" id="pantalla-app" hidden>
+  <div class="cab">
+    <h1>Salones</h1>
+    <p class="cab-rango" id="rango"></p>
+  </div>
+  <div class="barra">
+    <div class="barra-fechas">
+      <button class="btn btn--quiet btn--icono" type="button" id="anterior" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="btn btn--quiet" type="button" id="hoy">Hoy</button>
+      <button class="btn btn--quiet btn--icono" type="button" id="siguiente" aria-label="Siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+    <fieldset class="seg" id="vistas">
+      <legend>Vista</legend>
+      <input type="radio" name="vista" id="v-semana" value="semana"><label for="v-semana">Semana</label>
+      <input type="radio" name="vista" id="v-mes" value="mes"><label for="v-mes">Mes</label>
+      <input type="radio" name="vista" id="v-agenda" value="agenda"><label for="v-agenda">Agenda</label>
+    </fieldset>
+    <div class="barra-filtro">
+      <label for="filtro">Salón</label>
+      <select id="filtro" name="salon"><option value="">Los cinco</option></select>
+    </div>
+    <button class="btn btn-nuevo" type="button" id="nuevo" hidden>Nuevo evento</button>
+  </div>
+  <p class="nota" id="nota-lectura" hidden>Su tienda ve todos los eventos. Crearlos y cambiarlos les toca a las tiendas que tienen salón.</p>
+  <div class="estado" id="estado" role="status" aria-live="polite"></div>
+  <section class="vista" id="vista" aria-labelledby="rango"></section>
+</main>
+
+<!-- Detalle -->
+<dialog id="dlg-detalle" aria-labelledby="det-titulo">
+  <div class="dlg">
+    <div class="dlg-cab">
+      <h2 id="det-titulo"></h2>
+      <button class="cerrar" type="button" data-cerrar aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div>
+      <p class="det-cuando" id="det-cuando"></p>
+      <p class="det-salon" id="det-salon"></p>
+    </div>
+    <dl class="det-datos">
+      <div><dt>Cliente</dt><dd id="det-cliente"></dd></div>
+      <div><dt>Teléfono</dt><dd id="det-telefono"></dd></div>
+      <div><dt>Observaciones</dt><dd id="det-obs" class="det-obs"></dd></div>
+    </dl>
+    <p class="det-registro" id="det-registro"></p>
+    <div class="acciones" id="det-acciones">
+      <button class="btn btn--peligro izq" type="button" id="btn-eliminar">Eliminar</button>
+      <button class="btn" type="button" id="btn-editar">Modificar</button>
+    </div>
+    <div class="confirmar" id="det-confirmar" hidden>
+      <p id="confirmar-texto"></p>
+      <div class="acciones">
+        <button class="btn btn--quiet" type="button" id="btn-no-eliminar">No, dejarlo</button>
+        <button class="btn btn--peligro" type="button" id="btn-si-eliminar">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<!-- Formulario -->
+<dialog id="dlg-form" aria-labelledby="form-titulo">
+  <form class="dlg form-ev" id="form-ev" novalidate>
+    <div class="dlg-cab">
+      <h2 id="form-titulo">Nuevo evento</h2>
+      <button class="cerrar" type="button" data-cerrar aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div>
+      <label for="f-salon">Salón</label>
+      <select id="f-salon" name="salon" required></select>
+    </div>
+    <div>
+      <label for="f-titulo">Evento</label>
+      <input id="f-titulo" name="titulo" maxlength="120" autocomplete="off" required placeholder="Cumpleaños de Sofía">
+    </div>
+    <div class="par trio">
+      <div><label for="f-fecha">Fecha</label><input id="f-fecha" name="fecha" type="date" required></div>
+      <div><label for="f-inicio">Desde</label><input id="f-inicio" name="inicio" type="time" step="900" required></div>
+      <div><label for="f-fin">Hasta</label><input id="f-fin" name="fin" type="time" step="900" required></div>
+    </div>
+    <label class="check"><input id="f-sigdia" name="sigdia" type="checkbox"> Termina después de medianoche</label>
+    <div class="par">
+      <div><label for="f-cliente">Cliente</label><input id="f-cliente" name="cliente" maxlength="120" autocomplete="off"></div>
+      <div><label for="f-telefono">Teléfono</label><input id="f-telefono" name="telefono" type="tel" inputmode="tel" maxlength="30" autocomplete="off"></div>
+    </div>
+    <div>
+      <label for="f-obs">Observaciones</label>
+      <textarea id="f-obs" name="observaciones" rows="4" maxlength="3000" placeholder="Montaje, menú, anticipo, quién atiende"></textarea>
+    </div>
+    <p class="error" id="error-form" role="alert" hidden></p>
+    <div class="acciones">
+      <button class="btn btn--quiet" type="button" data-cerrar>Cancelar</button>
+      <button class="btn" type="submit" id="btn-guardar">Guardar evento</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="aviso" id="aviso" role="status" hidden></div>
+
+<script type="module">
+// =====================================================================
+//  Configuración. Pegue aquí los datos de su proyecto de Firebase.
+//  Mientras apiKey diga "PEGAR_AQUI", la página funciona en modo de prueba.
+//  Si cambia TIENDAS o SALONES, cambie también salones/firestore.rules.
+// =====================================================================
+const FIREBASE_CONFIG = {
+  apiKey: "PEGAR_AQUI",
+  authDomain: "PEGAR_AQUI",
+  projectId: "PEGAR_AQUI",
+  storageBucket: "PEGAR_AQUI",
+  messagingSenderId: "PEGAR_AQUI",
+  appId: "PEGAR_AQUI",
+};
+
+// id interno (no cambiarlo cuando ya haya eventos), nombre completo, nombre corto y tienda
+const SALONES = [
+  { id: "zona1",    nombre: "Salón Zona 1",        corto: "Zona 1",       tienda: "Centro Histórico" },
+  { id: "majadas1", nombre: "Majadas ONCE, salón 1", corto: "Majadas 1",  tienda: "Majadas ONCE" },
+  { id: "majadas2", nombre: "Majadas ONCE, salón 2", corto: "Majadas 2",  tienda: "Majadas ONCE" },
+  { id: "antigua",  nombre: "Salón Antigua",       corto: "Antigua",      tienda: "La Antigua Guatemala" },
+  { id: "americas", nombre: "Salón Las Américas",  corto: "Las Américas", tienda: "Parque Las Américas" },
+];
+
+// Usuario de cada tienda y los salones que puede editar
+const TIENDAS = {
+  "centrohistorico@demuseo.com": { nombre: "Centro Histórico",      salones: ["zona1"] },
+  "majadas@demuseo.com":         { nombre: "Majadas ONCE",          salones: ["majadas1", "majadas2"] },
+  "antigua@demuseo.com":         { nombre: "La Antigua Guatemala",  salones: ["antigua"] },
+  "americas@demuseo.com":        { nombre: "Parque Las Américas",   salones: ["americas"] },
+  "videre@demuseo.com":          { nombre: "Vidēre",                salones: [] },
+  "miraflores@demuseo.com":      { nombre: "Miraflores",            salones: [] },
+  "pradera@demuseo.com":         { nombre: "Galerías La Pradera",   salones: [] },
+  "concepcion@demuseo.com":      { nombre: "Pradera Concepción",    salones: [] },
+  "portales@demuseo.com":        { nombre: "Portales",              salones: [] },
+  "sankris@demuseo.com":         { nombre: "SanKris Mall",          salones: [] },
+  "coban@demuseo.com":           { nombre: "Plaza Magdalena Cobán", salones: [] },
+  "xela@demuseo.com":            { nombre: "Interplaza Xela",       salones: [] },
+};
+
+// =====================================================================
+const PRUEBA = new URLSearchParams(location.search).has("prueba") || String(FIREBASE_CONFIG.apiKey).startsWith("PEGAR");
+const SALON = Object.fromEntries(SALONES.map((s) => [s.id, s]));
+const $ = (id) => document.getElementById(id);
+const DIA = 864e5;
+
+let backend = null;
+let usuario = null;
+let eventos = [];
+let cargado = false;
+let desuscribir = null;
+let editandoId = null;
+let detalleId = null;
+
+const fmtDiaLargo = new Intl.DateTimeFormat("es-GT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const fmtDiaAgenda = new Intl.DateTimeFormat("es-GT", { weekday: "long", day: "numeric", month: "long" });
+const fmtDiaSemana = new Intl.DateTimeFormat("es-GT", { weekday: "short" });
+const fmtMes = new Intl.DateTimeFormat("es-GT", { month: "long", year: "numeric" });
+const fmtMesCorto = new Intl.DateTimeFormat("es-GT", { month: "long" });
+const fmtHora = new Intl.DateTimeFormat("es-GT", { hour: "numeric", minute: "2-digit", hour12: true });
+const fmtRegistro = new Intl.DateTimeFormat("es-GT", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true });
+
+const tiendaDe = (c) => TIENDAS[(c || "").toLowerCase()];
+const nombreTienda = (c) => tiendaDe(c)?.nombre || c || "otra tienda";
+const misSalones = () => tiendaDe(usuario)?.salones || [];
+const puedeEditar = (id) => misSalones().includes(id);
+const esMovil = () => matchMedia("(max-width: 48rem)").matches;
+
+// ---------- Fechas ----------
+const inicioDia = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const sumarDias = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const lunesDe = (d) => { const x = inicioDia(d); const dow = (x.getDay() + 6) % 7; return sumarDias(x, -dow); };
+const mismoDia = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const dd = (n) => String(n).padStart(2, "0");
+const aISO = (d) => `${d.getFullYear()}-${dd(d.getMonth() + 1)}-${dd(d.getDate())}`;
+const aHora = (d) => `${dd(d.getHours())}:${dd(d.getMinutes())}`;
+const deISO = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+const hora = (d) => fmtHora.format(d).replace(/\s/g, "\u00a0");
+const punto = (t) => (/[.?!]$/.test(t) ? t : t + ".");
+const horario = (e) => `${hora(e.inicio)} a ${hora(e.fin)}`;
+
+// ---------- Estado en la dirección ----------
+const estado = (() => {
+  const q = new URLSearchParams(location.search);
+  const vista = ["semana", "mes", "agenda"].includes(q.get("vista")) ? q.get("vista") : (esMovil() ? "agenda" : "semana");
+  const salon = SALON[q.get("salon")] ? q.get("salon") : "";
+  return { vista, fecha: deISO(q.get("fecha")) || inicioDia(new Date()), salon };
+})();
+function guardarEstado() {
+  const q = new URLSearchParams(location.search);
+  q.set("vista", estado.vista);
+  q.set("fecha", aISO(estado.fecha));
+  estado.salon ? q.set("salon", estado.salon) : q.delete("salon");
+  history.replaceState(null, "", `${location.pathname}?${q}`);
+}
+
+// ---------- Firebase ----------
+async function backendFirebase() {
+  const base = "https://www.gstatic.com/firebasejs/10.12.2/";
+  const [appMod, authMod, fs] = await Promise.all([
+    import(base + "firebase-app.js"), import(base + "firebase-auth.js"), import(base + "firebase-firestore.js"),
+  ]);
+  const app = appMod.initializeApp(FIREBASE_CONFIG);
+  const auth = authMod.getAuth(app);
+  const db = fs.getFirestore(app);
+  const col = fs.collection(db, "eventos");
+  const aDoc = (d) => ({
+    salon: d.salon, titulo: d.titulo,
+    inicio: fs.Timestamp.fromDate(d.inicio), fin: fs.Timestamp.fromDate(d.fin),
+    cliente: d.cliente, telefono: d.telefono, observaciones: d.observaciones,
+  });
+  const fecha = (v) => (v && typeof v.toDate === "function" ? v.toDate() : null);
+  return {
+    alCambiarSesion: (cb) => authMod.onAuthStateChanged(auth, (u) => cb(u ? (u.email || "").toLowerCase() : null)),
+    entrar: (c, k) => authMod.signInWithEmailAndPassword(auth, c, k),
+    salir: () => authMod.signOut(auth),
+    recuperar: (c) => authMod.sendPasswordResetEmail(auth, c),
+    suscribir(cb, alFallar) {
+      const desde = sumarDias(new Date(), -400);
+      const q = fs.query(col, fs.where("inicio", ">=", fs.Timestamp.fromDate(desde)), fs.orderBy("inicio"));
+      return fs.onSnapshot(q, (snap) => cb(snap.docs.map((doc) => {
+        const x = doc.data({ serverTimestamps: "estimate" });
+        return { ...x, id: doc.id, inicio: fecha(x.inicio), fin: fecha(x.fin), creadoEn: fecha(x.creadoEn), modificadoEn: fecha(x.modificadoEn) };
+      })), alFallar);
+    },
+    crear: (d) => fs.addDoc(col, { ...aDoc(d), creadoPor: usuario, creadoEn: fs.serverTimestamp(), modificadoPor: usuario, modificadoEn: fs.serverTimestamp() }),
+    actualizar: (id, d) => fs.updateDoc(fs.doc(db, "eventos", id), { ...aDoc(d), modificadoPor: usuario, modificadoEn: fs.serverTimestamp() }),
+    eliminar: (id) => fs.deleteDoc(fs.doc(db, "eventos", id)),
+  };
+}
+
+// ---------- Modo de prueba (en memoria) ----------
+function backendPrueba() {
+  let sesionCb = () => {}, datosCb = () => {}, n = 0;
+  const datos = [];
+  const hoy = inicioDia(new Date());
+  const ej = (salon, titulo, dia, hi, hf, cliente, telefono, obs) => {
+    const c = Object.keys(TIENDAS).find((k) => TIENDAS[k].salones.includes(salon));
+    const i = sumarDias(hoy, dia); i.setHours(hi, (hi % 1) * 60);
+    const f = sumarDias(hoy, dia); f.setHours(hf, (hf % 1) * 60);
+    const t = sumarDias(new Date(), -3);
+    datos.push({ id: "p" + ++n, salon, titulo, inicio: i, fin: f, cliente, telefono, observaciones: obs, creadoPor: c, creadoEn: t, modificadoPor: c, modificadoEn: t });
+  };
+  ej("zona1", "Cumpleaños infantil", 1, 15, 18, "Familia Morales", "5512 3344", "30 niños. Piñata en el patio. El pastel lo trae el cliente.");
+  ej("majadas1", "Reunión de directorio", 2, 8, 11, "Cooperativa El Sembrador", "2345 6789", "Mesa en U para 16 personas, proyector y café toda la mañana.");
+  ej("majadas2", "Taller de lectura", 2, 16, 18, "Club de lectura Majadas", "", "");
+  ej("antigua", "Recepción de boda civil", 4, 12, 17, "Ana López y Diego Ruiz", "4455 6677", "80 invitados. Flores blancas. Anticipo recibido.");
+  ej("americas", "Baby shower", 5, 10, 13, "Gabriela Pérez", "3030 1212", "Mesa de postres. Los globos los trae el cliente.");
+  ej("zona1", "Presentación de libro", 8, 18, 20, "Editorial de ejemplo", "2222 0000", "Sillas en fila para 50 personas.");
+  ej("majadas1", "Capacitación de ventas", 9, 9, 13, "Distribuidora de ejemplo", "", "");
+  ej("antigua", "Cena de fin de año", 12, 19, 23, "Hotel de ejemplo", "7832 0000", "Menú de tres tiempos. Música en vivo hasta las 10:30 p. m.");
+  ej("americas", "Clase de acuarela", -2, 9, 11.5, "Taller Colores", "", "");
+  const emitir = () => setTimeout(() => datosCb(datos.map((d) => ({ ...d }))), 120);
+  return {
+    alCambiarSesion(cb) { sesionCb = cb; cb(null); },
+    async entrar(c) { sesionCb(c); },
+    async salir() { sesionCb(null); },
+    async recuperar() {},
+    suscribir(cb) { datosCb = cb; emitir(); return () => { datosCb = () => {}; }; },
+    async crear(d) { const t = new Date(); datos.push({ ...d, id: "p" + ++n, creadoPor: usuario, creadoEn: t, modificadoPor: usuario, modificadoEn: t }); emitir(); },
+    async actualizar(id, d) { const i = datos.findIndex((x) => x.id === id); datos[i] = { ...datos[i], ...d, modificadoPor: usuario, modificadoEn: new Date() }; emitir(); },
+    async eliminar(id) { const i = datos.findIndex((x) => x.id === id); if (i >= 0) datos.splice(i, 1); emitir(); },
+  };
+}
+
+// ---------- Arranque ----------
+async function iniciar() {
+  prepararIngreso();
+  prepararDialogos();
+  prepararBarra();
+  try {
+    backend = PRUEBA ? backendPrueba() : await backendFirebase();
+  } catch (e) {
+    console.error(e);
+    mostrarIngreso();
+    mostrarError("error-ingreso", "No se pudo conectar. Revise el internet y vuelva a cargar la página.");
+    return;
+  }
+  backend.alCambiarSesion(async (correo) => {
+    if (correo && !tiendaDe(correo)) {
+      await backend.salir();
+      mostrarIngreso();
+      mostrarError("error-ingreso", "Ese usuario no está en la lista de tiendas. Pida acceso al administrador.");
+      return;
+    }
+    usuario = correo;
+    correo ? abrirApp() : cerrarApp();
+  });
+}
+
+// ---------- Ingreso ----------
+function prepararIngreso() {
+  if (PRUEBA) {
+    $("prueba").hidden = false;
+    $("campo-prueba").hidden = false;
+    $("campos-reales").hidden = true;
+    $("olvide").hidden = true;
+    $("correo").required = false;
+    $("clave").required = false;
+    for (const [c, t] of Object.entries(TIENDAS)) {
+      const o = document.createElement("option");
+      o.value = c;
+      o.textContent = t.salones.length ? `${t.nombre} (tiene salón)` : t.nombre;
+      $("tienda-prueba").append(o);
+    }
+  }
+  $("form-ingreso").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    ocultar("error-ingreso");
+    const correo = $("correo").value.trim().toLowerCase();
+    if (!PRUEBA && (!correo || !$("clave").value)) {
+      mostrarError("error-ingreso", "Escriba el usuario y la contraseña de su tienda.");
+      (correo ? $("clave") : $("correo")).focus();
+      return;
+    }
+    const b = $("btn-entrar");
+    b.disabled = true; b.setAttribute("aria-busy", "true");
+    try {
+      await backend.entrar(PRUEBA ? $("tienda-prueba").value : correo, $("clave").value);
+    } catch (err) {
+      console.error(err);
+      const code = err?.code || "";
+      mostrarError("error-ingreso",
+        /invalid-credential|wrong-password|user-not-found|invalid-email/.test(code) ? "El usuario o la contraseña no coinciden."
+        : /too-many-requests/.test(code) ? "Hubo demasiados intentos. Espere unos minutos y vuelva a probar."
+        : /network/.test(code) ? "No hay internet en este momento."
+        : "No se pudo entrar. Vuelva a intentarlo.");
+    } finally {
+      b.disabled = false; b.removeAttribute("aria-busy");
+    }
+  });
+  $("olvide").addEventListener("click", async () => {
+    const correo = $("correo").value.trim().toLowerCase();
+    if (!correo) { mostrarError("error-ingreso", "Escriba primero el usuario de su tienda."); $("correo").focus(); return; }
+    try { await backend.recuperar(correo); } catch (e) { console.warn(e); }
+    mostrarError("error-ingreso", "Si ese correo tiene buzón, le llegará un enlace para cambiar la contraseña. Si no, el administrador puede darle una nueva.");
+  });
+  $("salir").addEventListener("click", () => backend.salir());
+}
+
+function mostrarIngreso() {
+  $("pantalla-app").hidden = true;
+  $("pantalla-ingreso").hidden = false;
+  $("salir").hidden = true;
+  $("bar-tienda").textContent = "";
+}
+
+function cerrarApp() {
+  if (desuscribir) { desuscribir(); desuscribir = null; }
+  eventos = []; cargado = false;
+  $("clave").value = "";
+  mostrarIngreso();
+}
+
+// ---------- App ----------
+function abrirApp() {
+  $("pantalla-ingreso").hidden = true;
+  $("pantalla-app").hidden = false;
+  $("salir").hidden = false;
+  $("bar-tienda").textContent = tiendaDe(usuario).nombre;
+  const editor = misSalones().length > 0;
+  $("nuevo").hidden = !editor;
+  $("nota-lectura").hidden = editor;
+
+  cargado = false;
+  pintar();
+  const lento = setTimeout(() => { if (!cargado) $("estado").textContent = "Está tardando más de lo normal. Revise el internet."; }, 10000);
+  desuscribir = backend.suscribir(
+    (lista) => {
+      clearTimeout(lento);
+      cargado = true;
+      eventos = lista.filter((e) => e.inicio && e.fin && SALON[e.salon]).sort((a, b) => a.inicio - b.inicio);
+      pintar();
+      if (detalleId && $("dlg-detalle").open) {
+        eventos.some((e) => e.id === detalleId) ? abrirDetalle(detalleId) : $("dlg-detalle").close();
+      }
+    },
+    (err) => {
+      clearTimeout(lento);
+      console.error(err);
+      $("vista").textContent = "";
+      const box = $("estado");
+      box.textContent = "";
+      const p = document.createElement("p");
+      p.textContent = err?.code === "permission-denied"
+        ? "Su usuario no tiene permiso para ver los salones. Pida acceso al administrador."
+        : "No se pudieron cargar los eventos.";
+      const b = document.createElement("button");
+      b.className = "btn btn--quiet"; b.type = "button"; b.textContent = "Volver a cargar";
+      b.addEventListener("click", () => location.reload());
+      box.append(p, b);
+    }
+  );
+}
+
+function prepararBarra() {
+  document.querySelectorAll('input[name="vista"]').forEach((r) => {
+    r.addEventListener("change", () => { estado.vista = r.value; pintar(); });
+  });
+  for (const s of SALONES) {
+    const o = document.createElement("option");
+    o.value = s.id; o.textContent = s.nombre;
+    $("filtro").append(o);
+  }
+  $("filtro").addEventListener("change", () => { estado.salon = $("filtro").value; pintar(); });
+  $("anterior").addEventListener("click", () => mover(-1));
+  $("siguiente").addEventListener("click", () => mover(1));
+  $("hoy").addEventListener("click", () => { estado.fecha = inicioDia(new Date()); pintar(); });
+  $("nuevo").addEventListener("click", () => abrirFormulario(null, { fecha: estado.vista === "semana" && !mismoDia(lunesDe(estado.fecha), lunesDe(new Date())) ? lunesDe(estado.fecha) : inicioDia(new Date()) }));
+}
+
+function mover(paso) {
+  const f = new Date(estado.fecha);
+  if (estado.vista === "semana") estado.fecha = sumarDias(f, 7 * paso);
+  else { f.setDate(1); f.setMonth(f.getMonth() + paso); estado.fecha = f; }
+  pintar();
+}
+
+const salonesVisibles = () => SALONES.filter((s) => !estado.salon || s.id === estado.salon);
+const eventosEntre = (desde, hasta) => eventos.filter((e) => e.inicio < hasta && e.fin > desde && (!estado.salon || e.salon === estado.salon));
+
+function pintar() {
+  guardarEstado();
+  $(`v-${estado.vista}`).checked = true;
+  $("filtro").value = estado.salon;
+  const etiqueta = estado.vista === "semana" ? ["Semana anterior", "Semana siguiente"] : ["Mes anterior", "Mes siguiente"];
+  $("anterior").setAttribute("aria-label", etiqueta[0]);
+  $("siguiente").setAttribute("aria-label", etiqueta[1]);
+
+  if (!cargado) {
+    $("estado").textContent = "Cargando eventos…";
+    const sk = document.createElement("div");
+    sk.className = "esqueleto"; sk.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 6; i++) sk.append(document.createElement("span"));
+    $("vista").replaceChildren(sk);
+    pintarRango();
+    return;
+  }
+  $("estado").textContent = "";
+  pintarRango();
+  if (estado.vista === "semana") pintarSemana();
+  else if (estado.vista === "mes") pintarMes();
+  else pintarAgenda();
+}
+
+function pintarRango() {
+  let t;
+  if (estado.vista === "semana") {
+    const l = lunesDe(estado.fecha), d = sumarDias(l, 6);
+    t = l.getMonth() === d.getMonth()
+      ? `${l.getDate()} al ${d.getDate()} de ${fmtMesCorto.format(d)} de ${d.getFullYear()}`
+      : `${l.getDate()} de ${fmtMesCorto.format(l)} al ${d.getDate()} de ${fmtMesCorto.format(d)} de ${d.getFullYear()}`;
+  } else t = fmtMes.format(estado.fecha);
+  $("rango").textContent = t;
+}
+
+// El tablero
+function pintarSemana() {
+  const lunes = lunesDe(estado.fecha);
+  const dias = [...Array(7)].map((_, i) => sumarDias(lunes, i));
+  const hoy = inicioDia(new Date());
+  const enSemana = eventosEntre(lunes, sumarDias(lunes, 7));
+
+  const scroll = el("div", "tablero-scroll");
+  scroll.tabIndex = 0;
+  scroll.setAttribute("aria-label", "Semana por salón. Deslice para ver todos los días.");
+  const tabla = el("table", "tablero");
+  const cg = el("colgroup");
+  cg.append(Object.assign(el("col", "c-salon")));
+  dias.forEach(() => cg.append(el("col")));
+  tabla.append(cg);
+
+  const trh = el("tr");
+  const th0 = el("th"); th0.scope = "col"; th0.textContent = "Salón";
+  trh.append(th0);
+  for (const d of dias) {
+    const th = el("th"); th.scope = "col";
+    if (mismoDia(d, hoy)) { th.classList.add("es-hoy"); th.setAttribute("aria-current", "date"); }
+    const nom = fmtDiaSemana.format(d).replace(".", "");
+    th.append(document.createTextNode(nom.charAt(0).toUpperCase() + nom.slice(1)));
+    const n = el("span", "dia-n"); n.textContent = d.getDate();
+    th.append(n);
+    trh.append(th);
+  }
+  tabla.append(el("thead", null, trh));
+
+  const tb = el("tbody");
+  for (const s of salonesVisibles()) {
+    const tr = el("tr");
+    const th = el("th"); th.scope = "row";
+    th.append(el("span", "salon-n", s.nombre), el("span", "salon-t", s.tienda));
+    if (puedeEditar(s.id)) th.append(el("span", "salon-suyo", "Su salón"));
+    tr.append(th);
+    for (const d of dias) {
+      const td = el("td");
+      if (mismoDia(d, hoy)) td.classList.add("es-hoy");
+      else if (d < hoy) td.classList.add("es-pasado");
+      const celda = el("div", "celda");
+      const delDia = enSemana.filter((e) => e.salon === s.id && e.inicio < sumarDias(d, 1) && e.fin > d);
+      for (const e of delDia) celda.append(botonEvento(e, true));
+      if (puedeEditar(s.id) && d >= hoy) {
+        const a = el("button", "agregar", "Agregar");
+        a.type = "button";
+        a.setAttribute("aria-label", `Agregar evento en ${s.nombre}, ${fmtDiaAgenda.format(d)}`);
+        a.addEventListener("click", () => abrirFormulario(null, { fecha: d, salon: s.id }));
+        celda.append(a);
+      }
+      td.append(celda);
+      tr.append(td);
+    }
+    tb.append(tr);
+  }
+  tabla.append(tb);
+  scroll.append(tabla);
+  const nodos = [scroll];
+  if (!enSemana.length) nodos.push(el("p", "vacio-semana", estado.salon ? "Este salón no tiene eventos esta semana." : "Ningún salón tiene eventos esta semana."));
+  $("vista").replaceChildren(...nodos);
+}
+
+function botonEvento(e, conHora) {
+  const b = el("button", "ev");
+  b.type = "button";
+  if (conHora) b.append(el("span", "ev-h", horario(e)));
+  else b.append(el("span", "ev-h", hora(e.inicio)));
+  b.append(el("span", "ev-t", estado.vista === "mes" ? `${SALON[e.salon].corto}: ${e.titulo}` : e.titulo));
+  b.setAttribute("aria-label", `${e.titulo}, ${SALON[e.salon].nombre}, ${fmtDiaAgenda.format(e.inicio)}, ${horario(e)}`);
+  b.addEventListener("click", () => abrirDetalle(e.id));
+  return b;
+}
+
+function pintarMes() {
+  const primero = new Date(estado.fecha.getFullYear(), estado.fecha.getMonth(), 1);
+  const inicio = lunesDe(primero);
+  const ultimo = new Date(primero.getFullYear(), primero.getMonth() + 1, 0);
+  const semanas = Math.ceil(((ultimo - inicio) / DIA + 1) / 7);
+  const hoy = inicioDia(new Date());
+  const tabla = el("table", "mes");
+  const trh = el("tr");
+  for (let i = 0; i < 7; i++) {
+    const th = el("th"); th.scope = "col";
+    const nom = fmtDiaSemana.format(sumarDias(inicio, i)).replace(".", "");
+    th.textContent = nom.charAt(0).toUpperCase() + nom.slice(1);
+    trh.append(th);
+  }
+  tabla.append(el("thead", null, trh));
+  const tb = el("tbody");
+  for (let w = 0; w < semanas; w++) {
+    const tr = el("tr");
+    for (let i = 0; i < 7; i++) {
+      const d = sumarDias(inicio, w * 7 + i);
+      const td = el("td");
+      if (d.getMonth() !== primero.getMonth()) td.classList.add("fuera");
+      if (mismoDia(d, hoy)) { td.classList.add("es-hoy"); td.setAttribute("aria-current", "date"); }
+      const celda = el("div", "celda");
+      celda.append(el("span", "mes-n", d.getDate()));
+      const delDia = eventosEntre(d, sumarDias(d, 1));
+      const max = esMovil() ? 4 : 3;
+      delDia.slice(0, max).forEach((e) => celda.append(botonEvento(e, false)));
+      if (delDia.length > max || (esMovil() && delDia.length)) {
+        const m = el("button", "enlace mas", esMovil() ? `${delDia.length}` : `${delDia.length - max} más`);
+        m.type = "button";
+        m.setAttribute("aria-label", `Ver los ${delDia.length} eventos del ${fmtDiaAgenda.format(d)}`);
+        m.addEventListener("click", () => { estado.fecha = d; estado.vista = esMovil() ? "agenda" : "semana"; pintar(); });
+        if (!esMovil() || delDia.length) celda.append(m);
+      }
+      td.append(celda);
+      tr.append(td);
+    }
+    tb.append(tr);
+  }
+  tabla.append(tb);
+  $("vista").replaceChildren(tabla);
+}
+
+function pintarAgenda() {
+  const primero = new Date(estado.fecha.getFullYear(), estado.fecha.getMonth(), 1);
+  const sig = new Date(primero.getFullYear(), primero.getMonth() + 1, 1);
+  const lista = eventosEntre(primero, sig);
+  const hoy = inicioDia(new Date());
+  if (!lista.length) {
+    const v = el("div", "agenda-vacia");
+    v.append(el("p", null, estado.salon ? `${SALON[estado.salon].nombre} no tiene eventos en ${fmtMesCorto.format(primero)}.` : `No hay eventos en ${fmtMesCorto.format(primero)}.`));
+    if (misSalones().length) {
+      const b = el("button", "btn", "Nuevo evento"); b.type = "button";
+      b.addEventListener("click", () => abrirFormulario(null, { fecha: primero < hoy && sig > hoy ? hoy : primero }));
+      v.append(b);
+    }
+    $("vista").replaceChildren(v);
+    return;
+  }
+  const porDia = new Map();
+  for (const e of lista) {
+    const k = aISO(e.inicio < primero ? primero : e.inicio);
+    if (!porDia.has(k)) porDia.set(k, []);
+    porDia.get(k).push(e);
+  }
+  const nodos = [];
+  for (const [k, evs] of porDia) {
+    const d = deISO(k);
+    const bloque = el("section", "agenda-dia");
+    const h = el("h2", "agenda-fecha", fmtDiaAgenda.format(d));
+    if (mismoDia(d, hoy)) h.classList.add("es-hoy");
+    const ul = el("ul", "agenda-lista");
+    for (const e of evs) {
+      const b = el("button", "fila"); b.type = "button";
+      b.append(el("span", "fila-h", horario(e)));
+      const t = el("span", "fila-t", e.titulo);
+      if (e.cliente) t.append(el("span", "fila-c", e.cliente));
+      b.append(t, el("span", "fila-s", SALON[e.salon].nombre));
+      b.addEventListener("click", () => abrirDetalle(e.id));
+      ul.append(el("li", null, b));
+    }
+    bloque.append(h, ul);
+    nodos.push(bloque);
+  }
+  $("vista").replaceChildren(...nodos);
+}
+
+// ---------- Detalle ----------
+function dato(elm, v, enlaceTel) {
+  elm.textContent = "";
+  elm.classList.toggle("sin-dato", !(v && v.trim()));
+  if (!(v && v.trim())) { elm.textContent = "Sin dato"; return; }
+  if (enlaceTel) {
+    const a = el("a", null, v);
+    a.href = "tel:" + v.replace(/[^\d+]/g, "");
+    elm.append(a);
+  } else elm.textContent = v;
+}
+
+function abrirDetalle(id) {
+  const e = eventos.find((x) => x.id === id);
+  if (!e) return;
+  detalleId = id;
+  const s = SALON[e.salon];
+  $("det-titulo").textContent = e.titulo;
+  const cuando = mismoDia(e.inicio, e.fin)
+    ? `${fmtDiaLargo.format(e.inicio)}, de ${hora(e.inicio)} a ${hora(e.fin)}`
+    : `${fmtDiaLargo.format(e.inicio)}, de ${hora(e.inicio)} a ${hora(e.fin)} del día siguiente`;
+  $("det-cuando").textContent = cuando;
+  $("det-salon").textContent = `${s.nombre}, tienda ${s.tienda}`;
+  dato($("det-cliente"), e.cliente);
+  dato($("det-telefono"), e.telefono, true);
+  dato($("det-obs"), e.observaciones);
+  let r = "";
+  if (e.creadoPor) r = punto(`Lo registró ${nombreTienda(e.creadoPor)}${e.creadoEn ? " el " + fmtRegistro.format(e.creadoEn) : ""}`);
+  if (e.modificadoEn && e.creadoEn && e.modificadoEn - e.creadoEn > 5000) r += " " + punto(`Último cambio de ${nombreTienda(e.modificadoPor)} el ${fmtRegistro.format(e.modificadoEn)}`);
+  $("det-registro").textContent = r;
+  $("det-acciones").hidden = !puedeEditar(e.salon);
+  $("det-confirmar").hidden = true;
+  if (!$("dlg-detalle").open) $("dlg-detalle").showModal();
+}
+
+$("btn-editar").addEventListener("click", () => { const id = detalleId; $("dlg-detalle").close(); abrirFormulario(id); });
+$("btn-eliminar").addEventListener("click", () => {
+  const e = eventos.find((x) => x.id === detalleId);
+  if (!e) return;
+  $("confirmar-texto").textContent = `¿Eliminar "${e.titulo}"? No se puede deshacer.`;
+  $("det-acciones").hidden = true;
+  $("det-confirmar").hidden = false;
+  $("btn-no-eliminar").focus();
+});
+$("btn-no-eliminar").addEventListener("click", () => { $("det-confirmar").hidden = true; $("det-acciones").hidden = false; $("btn-eliminar").focus(); });
+$("btn-si-eliminar").addEventListener("click", async () => {
+  const b = $("btn-si-eliminar");
+  b.disabled = true; b.setAttribute("aria-busy", "true");
+  try {
+    await backend.eliminar(detalleId);
+    $("dlg-detalle").close();
+    aviso("Evento eliminado.");
+  } catch (err) {
+    console.error(err);
+    aviso(mensajeError(err));
+  } finally {
+    b.disabled = false; b.removeAttribute("aria-busy");
+  }
+});
+
+// ---------- Formulario ----------
+function abrirFormulario(id, pre = {}) {
+  editandoId = id;
+  ocultar("error-form");
+  $("form-ev").reset();
+  $("form-ev").querySelectorAll("[aria-invalid]").forEach((x) => x.removeAttribute("aria-invalid"));
+  const sel = $("f-salon");
+  sel.textContent = "";
+  for (const sid of misSalones()) {
+    const o = el("option", null, SALON[sid].nombre); o.value = sid; sel.append(o);
+  }
+  if (id) {
+    const e = eventos.find((x) => x.id === id);
+    if (!e || !puedeEditar(e.salon)) return;
+    $("form-titulo").textContent = "Cambiar evento";
+    $("btn-guardar").textContent = "Guardar cambios";
+    sel.value = e.salon;
+    $("f-titulo").value = e.titulo || "";
+    $("f-fecha").value = aISO(e.inicio);
+    $("f-inicio").value = aHora(e.inicio);
+    $("f-fin").value = aHora(e.fin);
+    $("f-sigdia").checked = !mismoDia(e.inicio, e.fin);
+    $("f-cliente").value = e.cliente || "";
+    $("f-telefono").value = e.telefono || "";
+    $("f-obs").value = e.observaciones || "";
+  } else {
+    $("form-titulo").textContent = "Nuevo evento";
+    $("btn-guardar").textContent = "Guardar evento";
+    const preferido = pre.salon || (estado.salon && puedeEditar(estado.salon) ? estado.salon : misSalones()[0]);
+    if (preferido) sel.value = preferido;
+    $("f-fecha").value = aISO(pre.fecha || new Date());
+  }
+  $("dlg-form").showModal();
+  $("f-titulo").focus();
+}
+
+$("form-ev").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  ocultar("error-form");
+  $("form-ev").querySelectorAll("[aria-invalid]").forEach((x) => x.removeAttribute("aria-invalid"));
+  const salon = $("f-salon").value;
+  const titulo = $("f-titulo").value.trim();
+  const fecha = $("f-fecha").value, hi = $("f-inicio").value, hf = $("f-fin").value;
+  const falla = (campo, msg) => { if (campo) { campo.setAttribute("aria-invalid", "true"); campo.focus(); } mostrarError("error-form", msg); };
+
+  if (!puedeEditar(salon)) return falla($("f-salon"), "Ese salón no es de su tienda.");
+  if (!titulo) return falla($("f-titulo"), "Escriba el nombre del evento.");
+  if (!fecha) return falla($("f-fecha"), "Elija la fecha.");
+  if (!hi) return falla($("f-inicio"), "Escriba la hora en que empieza.");
+  if (!hf) return falla($("f-fin"), "Escriba la hora en que termina.");
+
+  const inicio = new Date(`${fecha}T${hi}`);
+  const fin = new Date(`${fecha}T${hf}`);
+  if ($("f-sigdia").checked) fin.setDate(fin.getDate() + 1);
+  if (isNaN(inicio) || isNaN(fin)) return falla($("f-fecha"), "La fecha o la hora no son válidas.");
+  if (fin <= inicio) return falla($("f-fin"), "La hora de fin tiene que ser después de la de inicio. Si el evento pasa de medianoche, marque la casilla de abajo.");
+
+  const choque = eventos.find((e) => e.salon === salon && e.id !== editandoId && e.inicio < fin && e.fin > inicio);
+  if (choque) return falla($("f-inicio"), `Ese horario choca con "${choque.titulo}" (${SALON[salon].nombre}, de ${hora(choque.inicio)} a ${hora(choque.fin)}). Elija otra hora u otro salón.`);
+
+  const datos = { salon, titulo, inicio, fin, cliente: $("f-cliente").value.trim(), telefono: $("f-telefono").value.trim(), observaciones: $("f-obs").value.trim() };
+  const b = $("btn-guardar");
+  b.disabled = true; b.setAttribute("aria-busy", "true");
+  try {
+    editandoId ? await backend.actualizar(editandoId, datos) : await backend.crear(datos);
+    $("dlg-form").close();
+    aviso(editandoId ? "Cambios guardados." : "Evento guardado.");
+    estado.fecha = inicioDia(inicio);
+    pintar();
+  } catch (err) {
+    console.error(err);
+    mostrarError("error-form", mensajeError(err));
+  } finally {
+    b.disabled = false; b.removeAttribute("aria-busy");
+  }
+});
+
+// ---------- Utilidades ----------
+function el(tag, cls, contenido) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (contenido instanceof Node) n.append(contenido);
+  else if (contenido != null) n.textContent = contenido;
+  return n;
+}
+function prepararDialogos() {
+  document.querySelectorAll("dialog").forEach((d) => {
+    d.addEventListener("click", (e) => {
+      if (e.target.closest("[data-cerrar]") || e.target === d) d.close();
+    });
+  });
+  $("dlg-detalle").addEventListener("close", () => { detalleId = null; });
+}
+function mensajeError(err) {
+  const c = err?.code || "";
+  if (c === "permission-denied") return "Su tienda no tiene permiso para hacer ese cambio.";
+  if (c === "unavailable") return "No hay internet. El cambio se enviará cuando vuelva la conexión.";
+  return "No se pudo guardar. Vuelva a intentarlo.";
+}
+function mostrarError(id, msg) { $(id).textContent = msg; $(id).hidden = false; }
+function ocultar(id) { $(id).hidden = true; }
+let avisoT;
+function aviso(msg) {
+  $("aviso").textContent = msg; $("aviso").hidden = false;
+  clearTimeout(avisoT); avisoT = setTimeout(() => { $("aviso").hidden = true; }, 3200);
+}
+let eraMovil = esMovil();
+addEventListener("resize", () => { if (esMovil() !== eraMovil) { eraMovil = esMovil(); if (cargado && estado.vista === "mes") pintar(); } });
+
+iniciar();
+</script>
+</body>
+</html>
