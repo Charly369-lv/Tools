@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Elige los 10 libros de la semana y arma el correo para clientes.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
 <meta name="robots" content="noindex,nofollow">
 <title>Boletín de Novedades</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
 <style>
 /* Boletín: elige 10 libros (2 editorial del mes, 2 infantil, 2 juvenil, 2 literario, 1 autoayuda, 1 ensayo)
    que no estén en bazar, tengan 15+ unidades y estén repartidos entre las tiendas. */
@@ -34,7 +36,7 @@ header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block
 main { padding-block: 22px 56px; }
 main .inner { display: grid; gap: 18px; }
 h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
-h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
 p { margin: 0; }
 .muted { color: var(--muted); font-size: 14px; }
 .small-t { font-size: 12px; color: var(--muted); }
@@ -61,10 +63,10 @@ details > summary { cursor: pointer; font-weight: 700; }
 .cats details { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 
 /* Progreso */
-.bar { position: sticky; top: 0; z-index: 5; background: var(--navy-deep); color: #fff; border-radius: 12px; padding: 12px 16px; display: flex; gap: 10px 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.bar { position: sticky; top: 0; z-index: 5; background: var(--navy-deep); color: var(--blanco); border-radius: 12px; padding: 12px 16px; display: flex; gap: 10px 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
 .bar b { font-size: 18px; }
-.bar .row button { border-color: #fff; }
-.bar .row button.ghost { color: #fff; border-color: rgba(255,255,255,.4); }
+.bar .row button { border-color: var(--blanco); }
+.bar .row button.ghost { color: var(--blanco); border-color: rgba(255,255,255,.4); }
 
 /* Secciones */
 .sec { display: grid; gap: 10px; }
@@ -80,7 +82,7 @@ details > summary { cursor: pointer; font-weight: 700; }
 .met { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; }
 .met span { white-space: nowrap; }
 .met b { font-variant-numeric: tabular-nums; }
-.chip { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--soft); color: var(--ink); }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 4px; background: var(--soft); color: var(--ink); }
 .chip.new { background: var(--gold); color: #3a2a00; }
 .bk .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
 .alts { border: 1px dashed var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
@@ -101,15 +103,25 @@ details > summary { cursor: pointer; font-weight: 700; }
 .ed-book { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; }
 .ed-book b { font-size: 13px; }
 .prev-wrap { background: var(--soft); border-radius: 12px; padding: 12px; display: grid; justify-items: center; position: sticky; top: 70px; }
-#prev { width: 640px; max-width: 100%; height: 78vh; border: 0; border-radius: 8px; background: #fff; transition: width .2s; }
+#prev { width: 640px; max-width: 100%; height: 78vh; border: 0; border-radius: 8px; background: var(--blanco); }
 #prev.movil { width: 390px; }
 @media (max-width: 900px) { .ed-grid { grid-template-columns: 1fr; } .prev-wrap { position: static; } }
 textarea { width: 100%; min-height: 220px; font: 13px/1.5 var(--f-mono); padding: 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
 </style>
 </head>
 <body>
 <header class="mast pad"><div class="inner">
-  <img src="../checador/logo.png" alt="De Museo" width="800" height="144">
+  <a class="logo-link" href="../gerencia/" aria-label="Volver a las herramientas de Gerencia" title="Volver a Gerencia"><img src="../checador/logo.png" alt="De Museo" width="800" height="144"></a>
   <span class="mast-t">Boletín de novedades</span>
 </div></header>
 
@@ -286,7 +298,7 @@ async function cargarCatalogo() {
     $("stStatus").textContent = "Escribe la clave de existencias para armar el boletín.";
     if (c) await abrirStock(c, true); else $("claveForm").hidden = false;
   } catch (e) {
-    $("stStatus").textContent = e.message === "existencias" ? "Todavía no hay existencias publicadas. Corre la actualización de datos y vuelve a abrir." : "No se pudo cargar el catálogo. Revisa la conexión y recarga.";
+    $("stStatus").textContent = e.message === "existencias" ? "Todavía no hay existencias publicadas. Corre la actualización de datos y vuelve a abrir." : "No se pudo cargar el catálogo. Revisa la conexión a internet y recarga la página.";
   }
 })();
 
@@ -562,7 +574,7 @@ $("cfCats").addEventListener("change", e => {
 });
 
 // ---------------------------------------------------------------- boletín para clientes (correo)
-let TXT = Object.assign({ asunto: "", titulo: "Un mundo por descubrir esta semana", intro: "Cada semana nuestros libreros eligen diez libros para que sigas descubriendo: historias para todas las edades, ideas que inspiran y una editorial invitada. Todos te esperan ya en tu librería De Museo.", notas: {}, portadas: {}, urls: {},
+let TXT = Object.assign({ asunto: "", titulo: "Un mundo por descubrir esta semana", intro: "Cada semana nuestros libreros eligen diez libros, más la editorial invitada del mes. Todos están en tu librería De Museo.", notas: {}, portadas: {}, urls: {},
   plantilla: "https://demuseo.com/?s={ref}&post_type=product" }, lsGet("boletin-textos", {}));
 // 23/11: el enlace adivinado /producto/<título>-<PLU>/ fallaba en muchos libros (en la tienda el nombre de la
 // página no siempre coincide con el título ni lleva el PLU). Se cambia por la búsqueda del PLU en la tienda.
@@ -570,7 +582,7 @@ if (!TXT.plantilla || TXT.plantilla === "https://demuseo.com/producto/{slug}-{re
 TXT.urls = TXT.urls || {};
 // Voz De Museo (19/11): si el título o la introducción seguían con el texto de antes, se actualizan
 if (TXT.titulo === "Lecturas para esta semana") TXT.titulo = "Un mundo por descubrir esta semana";
-if (TXT.intro === "Seleccionamos para ti las novedades que ya están en nuestras librerías: historias para todas las edades, ideas que inspiran y la editorial invitada del mes.") TXT.intro = "Cada semana nuestros libreros eligen diez libros para que sigas descubriendo: historias para todas las edades, ideas que inspiran y una editorial invitada. Todos te esperan ya en tu librería De Museo.";
+if (TXT.intro === "Estas son las novedades que ya están en nuestras librerías, más la editorial invitada del mes.") TXT.intro = "Cada semana nuestros libreros eligen diez libros, más la editorial invitada del mes. Todos están en tu librería De Museo.";
 // Enlace al libro en demuseo.com (WooCommerce). Cada producto se titula "Título – PLU", así que buscar el PLU
 // lleva a su página (o a una lista corta si otro título contiene esos mismos dígitos). {slug}, {ref} e {isbn} sirven en la plantilla.
 function slugWP(s) {
@@ -702,8 +714,8 @@ function correoHTML() {
     <div style="font-family:${SERIF};font-size:16px;line-height:1.6;color:${MUTED};font-style:italic;">${e2(TXT.intro)}</div></td></tr>
   ${sec.join("\n")}
   <tr><td align="center" style="background:${DEEP};padding:34px 30px;">
-    <div style="font-family:${SERIF};font-size:22px;line-height:1.3;color:#ffffff;font-weight:700;margin:0 0 8px;">Tu próximo descubrimiento te espera</div>
-    <div style="font-family:${SANS};font-size:14px;line-height:1.6;color:#d8dcf0;">Encuentra estos libros en cualquiera de nuestras librerías De Museo. Nuestros libreros estarán encantados de recomendarte el siguiente.</div></td></tr>
+    <div style="font-family:${SERIF};font-size:22px;line-height:1.3;color:#ffffff;font-weight:700;margin:0 0 8px;">Encuéntralos en cualquier librería De Museo</div>
+    <div style="font-family:${SANS};font-size:14px;line-height:1.6;color:#d8dcf0;">Están en todas nuestras librerías. Si buscas otro, pregúntale a nuestros libreros.</div></td></tr>
   <tr><td align="center" style="padding:22px 30px 28px;font-family:${SANS};font-size:11px;line-height:1.6;color:${MUTED};">
     Precios en quetzales, válidos en tiendas físicas De Museo hasta agotar existencias.<br>
     Recibes este correo porque te registraste para recibir novedades de De Museo. <a href="{{baja}}" style="color:${MUTED};">Dejar de recibir estos correos</a>.</td></tr>

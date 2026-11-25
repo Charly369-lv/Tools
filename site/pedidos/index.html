@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Sube un pedido y ve qué libros ya están en bazar antes de volver a pedirlos.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
 <title>Revisor de Pedidos De Museo</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
 <style>
 /* Layout: banda azul De Museo; paso 1 subir pedido, paso 2 columnas, paso 3 semáforo con resumen, filtros, tabla y descargas */
 :root {
@@ -34,7 +36,7 @@ header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block
 main { padding-block: 22px 56px; }
 main .inner { display: grid; gap: 18px; }
 h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(22px, 4.6vw, 28px); line-height: 1.15; }
-h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
 p { margin: 0; }
 .muted { color: var(--muted); font-size: 14px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 14px; }
@@ -50,15 +52,15 @@ textarea { width: 100%; min-height: 130px; font-family: var(--f-mono); font-size
 .drop.over { border-color: var(--navy); background: var(--soft); }
 .drop b { font-size: 18px; }
 .loadbar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden; }
-.loadbar i { display: block; height: 100%; width: 0; background: var(--navy); transition: width .2s; }
+.loadbar i { display: block; height: 100%; width: 0; background: var(--navy); }
 
 .map { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-.map label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.map label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
 
 .sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .tile { border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; border: 2px solid transparent; cursor: pointer; text-align: left; font: inherit; color: inherit; min-height: 0; }
 .tile b { font-family: var(--f-display); font-weight: 900; font-size: 32px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
-.tile span { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.tile span { font-size: 12px; font-weight: 800; }
 .tile[aria-pressed="true"] { border-color: var(--ink); }
 .t-all { background: var(--surface); border-color: var(--line); color: var(--ink); }
 .t-bazar { background: var(--red-bg); color: var(--red); }
@@ -67,17 +69,17 @@ textarea { width: 100%; min-height: 130px; font-family: var(--f-mono); font-size
 .t-new, .t-inac { background: var(--gray-bg); color: var(--gray); }
 .t-rep { background: var(--soft); color: var(--ink); }
 
-.alert { border-radius: 10px; padding: 14px 16px; background: var(--red-bg); color: var(--ink); display: grid; gap: 4px; border-left: 6px solid var(--red); }
+.alert { border-radius: 10px; padding: 14px 16px; background: var(--red-bg); color: var(--ink); display: grid; gap: 4px; border: 1px solid var(--red); }
 .alert b { color: var(--red); font-size: 17px; }
 
 .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 70vh; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; }
+th { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mono { font-family: var(--f-mono); font-size: 13px; }
-.chip { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
-.c-bazar { background: var(--red); color: #fff; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.c-bazar { background: var(--fill-red); color: var(--blanco); }
 .c-rev { background: var(--amber-bg); color: var(--amber); border: 1px solid currentColor; }
 .c-ok { background: var(--green-bg); color: var(--green); }
 .c-new, .c-inac { background: var(--gray-bg); color: var(--gray); }
@@ -99,11 +101,21 @@ tr.r-rev td { background: var(--amber-bg); }
 :root { --f-num: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
 .tile b { font-family: var(--f-num) !important; font-weight: 800 !important; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
 
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
 </style>
 </head>
 <body>
 <header class="mast pad"><div class="inner">
-  <img src="../checador/logo.png" alt="De Museo" width="800" height="144">
+  <a class="logo-link" href="../gerencia/" aria-label="Volver a las herramientas de Gerencia" title="Volver a Gerencia"><img src="../checador/logo.png" alt="De Museo" width="800" height="144"></a>
   <span class="mast-t">Revisor de pedidos</span>
 </div></header>
 
@@ -433,7 +445,7 @@ function render() {
   $("resTitle").textContent = `${n0(RES.length)} líneas revisadas`;
   const bz = RES.filter(L => L.st === "bazar"), pb = RES.filter(L => L.possibleBz);
   $("bigAlert").innerHTML = bz.length
-    ? `<div class="alert"><b>⚠ ${n0(bz.length)} ${bz.length === 1 ? "producto de este pedido está" : "productos de este pedido están"} en el Bazar de Descuentos.</b><span>No los vuelvas a pedir: se vendieron en oferta. ${pb.length ? `Revisa también ${n0(pb.length)} línea(s) en amarillo que podrían estar en bazar.` : ""}</span></div>`
+    ? `<div class="alert"><b>${n0(bz.length)} ${bz.length === 1 ? "producto de este pedido está" : "productos de este pedido están"} en el Bazar de Descuentos.</b><span>No los vuelvas a pedir: se vendieron en oferta. ${pb.length ? `Revisa también ${n0(pb.length)} línea(s) en amarillo que podrían estar en bazar.` : ""}</span></div>`
     : pb.length ? `<div class="notice">Ningún producto confirmado en bazar, pero ${n0(pb.length)} línea(s) en amarillo podrían estarlo. Confírmalas abajo.</div>`
     : `<div class="notice ok">Ningún producto de este pedido está en bazar.</div>`;
   const tiles = [["all", "t-all", "Todas"], ["bazar", "t-bazar", "En bazar"], ["rev", "t-rev", "Revisar"], ["ok", "t-ok", "OK"], ["new", "t-new", "Nuevos"], ["inac", "t-inac", "Inactivos"], ["rep", "t-rep", "Repetidos"]];
@@ -448,7 +460,7 @@ function render() {
     if (L.cands.length && (L.approx || L.multi)) {
       prod += `<div class="cands"><select data-r="${L.r}" aria-label="Elegir producto">
         <option value="">${L.choice == null ? (L.approx ? "¿Es este? Confírmalo o elige otro…" : "Elige el producto correcto…") : "Cambiar elección…"}</option>
-        ${L.cands.map(([sc, i]) => { const c = CAT[i]; return `<option value="${i}" ${L.choice === i || (L.choice == null && L.approx && L.i === i) ? "selected" : ""}>${isBz(c) ? "🔴 BAZAR " + c[8] + "% · " : ""}${esc(c[2].slice(0, 70))} (${esc(c[1] || c[0])})</option>`; }).join("")}
+        ${L.cands.map(([sc, i]) => { const c = CAT[i]; return `<option value="${i}" ${L.choice === i || (L.choice == null && L.approx && L.i === i) ? "selected" : ""}>${isBz(c) ? "BAZAR " + c[8] + "% · " : ""}${esc(c[2].slice(0, 70))} (${esc(c[1] || c[0])})</option>`; }).join("")}
         <option value="-1" ${L.choice === -1 ? "selected" : ""}>Ninguno: es un producto nuevo</option></select></div>`;
     }
     const price = p ? (isBz(p) ? `<span class="price"><b>${fmt(p[7])}</b> <span class="chip c-bazar">−${p[8]}%</span><br><s>${fmt(p[5])}</s></span>` : (p[5] ? fmt(p[5]) : "—")) : "—";

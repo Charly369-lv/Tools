@@ -1,0 +1,87 @@
+/* Hallmark · shape: app screen (launcher, an index-first directory) · genre: editorial · theme: specimen (dealt 1/3, seed ndice-herramientas-internas-para-7b8b·39c04d26·2026-11-25·r0) + brand
+ * paper: oklch(96.5% 0.016 82) · accent: #112369 · display: Bodoni Moda 400 · body: Archivo
+ * nav: a navy band with the wordmark and one way back · footer: the sync code alone · hero: Settled, the word list is the first screen
+ * signature: the directory, each area set at poster size on its cap and baseline guides, its tools ruled beside it · states: catalogue figures hidden until the nightly file loads
+ * axes: light/high-contrast-serif/cool · posture: restrained · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H5 E4 S5 R4 V4 · weakest: P, a directory is the expected answer for a launcher; earned it by letting each tool be reached from the hub in one tap and printing the real catalogue counts */
+@import url("./tokens.css");
+@import url("./base.css");
+
+.wrap { width: 100%; max-width: 1200px; margin-inline: auto; padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px)); }
+
+/* Banda */
+.bar { background: var(--color-band); color: var(--color-on-band); }
+.bar :focus-visible { outline-color: var(--color-focus-on-band); }
+.bar-in { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); min-height: 72px; }
+.bar-logo { display: block; }
+.bar-logo img { width: min(200px, 50vw); }
+.bar-note { color: var(--color-on-band-2); font-size: var(--text-sm); }
+.bar-back { color: var(--color-on-band-2); font-size: var(--text-sm); text-decoration: none; white-space: nowrap; min-height: 44px; display: inline-flex; align-items: center; padding-inline: var(--space-sm); margin-right: calc(var(--space-sm) * -1); transition: color var(--dur-micro) var(--ease-out); }
+.bar-back:hover { color: var(--color-on-band); text-decoration: underline; text-underline-offset: 0.2em; }
+.bar-back:active { opacity: 0.7; }
+
+/* Guías tipográficas: altura de mayúscula y línea base, en azul translúcido */
+.guide { display: inline-block; padding-inline: 0.04em 0.12em; background:
+  linear-gradient(var(--color-guide), var(--color-guide)) 0 0.27em / 100% 1px no-repeat,
+  linear-gradient(var(--color-guide), var(--color-guide)) 0 0.47em / 100% 1px no-repeat,
+  linear-gradient(var(--color-guide), var(--color-guide)) 0 0.97em / 100% 1px no-repeat; }
+
+.intro { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-xs) var(--space-lg); padding-block: var(--space-xl) var(--space-md); border-bottom: var(--rule-hair) solid var(--color-rule-2); }
+.intro h1 { font-size: var(--text-2xl); font-variation-settings: "opsz" 96; max-width: none; }
+.intro p { color: var(--color-muted); }
+
+/* Directorio */
+.dir { list-style: none; margin: 0; padding: 0; }
+.dir-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-md); padding-block: var(--space-xl); border-bottom: var(--rule-hair) solid var(--color-rule); }
+@media (min-width: 60rem) { .dir-row { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--gap-columns); align-items: start; } }
+@media (min-width: 60rem) { .dir-name { position: sticky; top: var(--space-md); } }
+.dir-name { max-width: none; font-size: clamp(4rem, 13vw, 9.5rem); font-weight: 400; font-variation-settings: "opsz" 96; line-height: 1.02; }
+.dir-name a { text-decoration: none; color: var(--color-ink); border-radius: 2px; transition: color var(--dur-micro) var(--ease-out); }
+.dir-name a:hover { color: var(--color-accent); }
+.dir-name a:active { opacity: 0.75; }
+.dir-lead { color: var(--color-muted); }
+.dir-open { color: var(--color-accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; font-weight: 600; white-space: nowrap; transition: text-decoration-thickness var(--dur-micro) var(--ease-out); }
+.dir-open:hover { text-decoration-thickness: 2px; }
+.dir-open:active { opacity: 0.7; }
+.dir-tools { list-style: none; margin: var(--space-sm) 0 0; padding: 0; border-top: var(--rule-hair) solid var(--color-rule-2); }
+.dir-tools li { border-bottom: var(--rule-hair) solid var(--color-rule); }
+.dir-tools a { display: flex; align-items: baseline; gap: var(--space-md); min-height: 48px; padding-block: var(--space-sm); color: var(--color-ink); text-decoration: none; transition: background-color var(--dur-micro) var(--ease-out); }
+.dir-tools a:hover { background: var(--color-paper-2); }
+.dir-tools a:hover .t { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+.dir-tools a:active { background: var(--color-paper-3); }
+.n { font-family: var(--font-outlier); font-size: var(--text-sm); color: var(--color-muted); font-variant-numeric: tabular-nums; min-width: 2ch; }
+.dir-tools .t { font-size: var(--text-lg); }
+
+/* Cifras del catálogo */
+.cifras { padding-block: var(--space-xl) var(--space-lg); }
+.cifras dl { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); border-top: 3px double var(--color-rule-2); }
+@media (min-width: 48rem) { .cifras dl { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cifras dl > div { padding: var(--space-md) 0; border-bottom: var(--rule-hair) solid var(--color-rule); display: flex; flex-direction: column-reverse; gap: var(--space-2xs); }
+@media (min-width: 48rem) { .cifras dl > div + div { padding-left: var(--space-lg); border-left: var(--rule-hair) solid var(--color-rule); } }
+.cifras dt { color: var(--color-muted); font-size: var(--text-sm); }
+.cifras dd { margin: 0; font-family: var(--font-num); font-weight: 700; font-variant-numeric: lining-nums tabular-nums; font-size: var(--text-3xl); line-height: 1.1; color: var(--color-ink); }
+.cifras > p { margin-top: var(--space-md); color: var(--color-muted); font-size: var(--text-sm); }
+
+/* Página de área */
+.cab { padding-block: var(--space-xl) var(--space-lg); border-bottom: var(--rule-hair) solid var(--color-rule-2); }
+.cab h1 { max-width: none; font-size: clamp(4.5rem, 16vw, 11rem); font-weight: 400; font-variation-settings: "opsz" 96; line-height: 1.02; }
+.cab p { margin-top: var(--space-sm); color: var(--color-muted); font-size: var(--text-lg); }
+.rows { list-style: none; margin: 0; padding: 0; }
+.rows li { border-bottom: var(--rule-hair) solid var(--color-rule); }
+.row { display: grid; grid-template-columns: 3ch minmax(0, 1fr); gap: var(--space-2xs) var(--space-md); padding-block: var(--space-lg); color: var(--color-ink); text-decoration: none; transition: background-color var(--dur-micro) var(--ease-out); }
+@media (min-width: 60rem) { .row { grid-template-columns: 4ch minmax(0, 6fr) minmax(0, 5fr); align-items: baseline; gap: var(--gap-columns); } }
+.row b { font-family: var(--font-display); font-weight: 400; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.05; overflow-wrap: break-word; min-width: 0; }
+.row .d { grid-column: 2; color: var(--color-muted); max-width: 48ch; }
+@media (min-width: 60rem) { .row .d { grid-column: 3; } }
+.row:hover { background: var(--color-paper-2); }
+.row:hover b { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.12em; }
+.row:active { background: var(--color-paper-3); }
+.mas { padding-block: var(--space-2xl) 0; }
+.mas h2 { font-size: var(--text-2xl); font-weight: 400; font-variation-settings: "opsz" 96; }
+.mas > p { margin-top: var(--space-2xs); color: var(--color-muted); }
+.rows.small { margin-top: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule-2); }
+.rows.small .row { padding-block: var(--space-md); }
+.rows.small .row b { font-size: var(--text-2xl); }
+
+footer { padding-block: var(--space-xl); }
+.sync { color: var(--color-muted); font-size: var(--text-xs); font-family: var(--font-mono); min-height: 1.2em; }

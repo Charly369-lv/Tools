@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Empaca cada caja con su sello y la tienda la recibe escaneando, con control por operador.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
 <meta name="robots" content="noindex,nofollow">
 <title>Despachos De Museo</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
 <style>
 /* Despachos: el CEDIS empaca por caja escaneando cada unidad y sella; la tienda recibe a ciegas y se comparan diferencias */
 :root {
@@ -24,7 +26,7 @@
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
 .pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .inner { max-width: 1100px; margin: 0 auto; }
-header.mast { background: var(--navy-deep); color: #fff; padding-block: 12px; }
+header.mast { background: var(--navy-deep); color: var(--blanco); padding-block: 12px; }
 .mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 8px 14px; flex-wrap: wrap; }
 .mast img { display: block; width: min(170px, 44vw); height: auto; }
 .who { display: flex; gap: 10px; align-items: center; font-size: 14px; flex-wrap: wrap; }
@@ -32,8 +34,10 @@ header.mast { background: var(--navy-deep); color: #fff; padding-block: 12px; }
 main { padding-block: 18px 60px; }
 main .inner { display: grid; gap: 16px; }
 h1 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(24px, 5vw, 32px); line-height: 1.1; }
+/* Números de caja en Archivo 700: el 4 de Bodoni se confunde con 1 */
+.nf { font-family: var(--f-body); font-weight: 700; font-variant-numeric: lining-nums tabular-nums; }
 h2 { margin: 0; font-size: 18px; font-weight: 800; }
-h3 { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+h3 { margin: 0; font-size: 12px; font-weight: 800; color: var(--muted); }
 p { margin: 0; }
 .muted { color: var(--muted); font-size: 14px; }
 .small { font-size: 12px; color: var(--muted); }
@@ -41,12 +45,12 @@ p { margin: 0; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 12px; min-width: 0; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .between { justify-content: space-between; }
-button { font: 700 16px var(--f-body); border-radius: 10px; cursor: pointer; padding: 10px 16px; border: 2px solid var(--navy); background: var(--navy); color: #fff; min-height: 46px; }
+button { font: 700 16px var(--f-body); border-radius: 10px; cursor: pointer; padding: 10px 16px; border: 2px solid var(--navy); background: var(--navy); color: var(--blanco); min-height: 46px; }
 button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
 button.ok { background: var(--green); border-color: var(--green); }
 button.warn { background: var(--red); border-color: var(--red); }
 button.sm { min-height: 34px; padding: 4px 10px; font-size: 13px; }
-.mast button.ghost { color: #fff; border-color: rgba(255,255,255,.35); }
+.mast button.ghost { color: var(--blanco); border-color: rgba(255,255,255,.35); }
 button:disabled { opacity: .45; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 input, select, textarea { font: 16px var(--f-body); padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); min-width: 0; }
@@ -61,14 +65,14 @@ label.f { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var
 .flash { border-radius: 12px; padding: 14px 18px; font-weight: 800; font-size: 20px; line-height: 1.25; display: grid; gap: 2px; }
 .flash small { font-size: 14px; font-weight: 600; }
 .flash.ok { background: var(--green-bg); color: var(--green); }
-.flash.err { background: var(--red); color: #fff; animation: shake .35s; }
+.flash.err { background: var(--fill-red); color: var(--blanco); animation: shake .35s; }
 .flash.info { background: var(--soft); color: var(--ink); }
 @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 @media (prefers-reduced-motion: reduce) { .flash.err { animation: none; } }
 
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .kpi { background: var(--soft); border-radius: 10px; padding: 10px 12px; }
-.kpi span { display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.kpi span { display: block; font-size: 11px; font-weight: 800; color: var(--muted); }
 .kpi b { font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .bar { height: 10px; border-radius: 999px; background: var(--soft); overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--green); }
@@ -76,13 +80,13 @@ label.f { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var
 .tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; max-height: 60vh; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; }
+th { font-size: 11px; font-weight: 800; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 td.big { font-size: 18px; font-weight: 900; }
 tr.done td { color: var(--muted); }
 tr.over td { background: var(--red-bg); }
 tr.cur td { background: var(--amber-bg); }
-.chip { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; background: var(--soft); white-space: nowrap; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; background: var(--soft); white-space: nowrap; }
 .chip.g { background: var(--green-bg); color: var(--green); }
 .chip.r { background: var(--red-bg); color: var(--red); }
 .chip.a { background: var(--amber-bg); color: var(--amber); }
@@ -91,7 +95,7 @@ tr.cur td { background: var(--amber-bg); }
 .item:hover { border-color: var(--navy); }
 .grid2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
-dialog { border: 0; border-radius: 14px; padding: 20px; width: min(460px, calc(100vw - 24px)); background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog { border: 0; border-radius: 14px; padding: 20px; width: min(460px, calc(100% - 24px)); background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
 dialog::backdrop { background: rgba(11,23,72,.55); }
 dialog form { display: grid; gap: 12px; }
 
@@ -101,7 +105,7 @@ dialog form { display: grid; gap: 12px; }
 .tile.on { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
 .tile.full { opacity: .7; }
 .gaf { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-.gf { border: 2px dashed var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 2px; justify-items: center; background: #fff; color: #000; }
+.gf { border: 2px dashed var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 2px; justify-items: center; background: var(--blanco); color: #000; }
 .gf b { font-size: 18px; } .gf span { font-size: 12px; color: #555; } .gf svg { width: 100%; max-width: 230px; }
 /* Etiqueta de caja (se imprime en 4 x 6 pulgadas).
    Al imprimir se oculta todo lo demás con display:none (no visibility), para que la página mida una sola etiqueta:
@@ -109,10 +113,10 @@ dialog form { display: grid; gap: 12px; }
 #etiqueta { display: none; }
 @media print {
   @page { size: 4in 6in; margin: 0; }
-  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; height: auto !important; }
+  html, body { margin: 0 !important; padding: 0 !important; background: var(--blanco) !important; height: auto !important; }
   :root { padding: 0 !important; }
   body > *:not(#etiqueta) { display: none !important; }
-  #etiqueta { display: block !important; position: static; width: 4in; height: 5.95in; overflow: hidden; padding: .25in; color: #000; background: #fff;
+  #etiqueta { display: block !important; position: static; width: 4in; height: 5.95in; overflow: hidden; padding: .25in; color: #000; background: var(--blanco);
     font-family: Arial, sans-serif; break-after: avoid; page-break-after: avoid; break-inside: avoid; }
 }
 .et-top { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px solid #000; padding-bottom: 6px; }
@@ -122,11 +126,21 @@ dialog form { display: grid; gap: 12px; }
 .et-l { font-size: 14px; margin: 3px 0; }
 .et-sello { font-size: 22px; font-weight: 900; border: 3px solid #000; padding: 6px 10px; display: inline-block; margin: 10px 0; }
 #etiqueta svg { width: 100%; height: 1.3in; }
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
 </style>
 </head>
 <body>
 <header class="mast pad"><div class="inner">
-  <img src="../checador/logo.png" alt="De Museo" width="800" height="144">
+  <a class="logo-link" href="../cedis/" aria-label="Volver a las herramientas de CEDIS" title="Volver a CEDIS"><img src="../checador/logo.png" alt="De Museo" width="800" height="144"></a>
   <div class="who" id="who" hidden><span id="whoTxt"></span><button type="button" class="ghost sm" id="btnInicio">Inicio</button><button type="button" class="ghost sm" id="btnSalir">Cambiar operador</button></div>
 </div></header>
 
@@ -169,7 +183,7 @@ async function api(accion, datos) {
     throw new Error("No hay conexión con el servidor. Revisa el internet; si sigue, revisa que la implementación tenga acceso para \"Cualquier persona\".");
   }
   let j;
-  try { j = await r.json(); } catch (e) { throw new Error("El servidor respondió algo inesperado. Revisa que la dirección termine en /exec y que el código esté implementado como nueva versión."); }
+  try { j = await r.json(); } catch (e) { throw new Error("El servidor no respondió bien. Avisa a sistemas. Detalle técnico: la dirección debe terminar en /exec y el código debe estar implementado como nueva versión."); }
   if (!j.ok) {
     const m = String(j.error || "Error del servidor");
     if (/^SESION\|/.test(m)) { OP = null; lsDel("despacho-op"); pantallaLogin(m.slice(7)); throw new Error(m.slice(7)); }
@@ -561,7 +575,7 @@ function pintarRecolectar() {
     <div class="bar"><i style="width:${total ? Math.round(rec / total * 100) : 0}%"></i></div>
     <form class="scan" id="fScan" autocomplete="off"><input id="sc" placeholder="Escanea lo que tomas (opcional)" inputmode="none"><button type="submit">+1</button></form>
     ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : ""}
-    <div class="row" style="justify-content:flex-end"><button type="button" class="ok" id="oRepartir">Ya recogí: repartir por tienda →</button></div>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ok" id="oRepartir">Ya recogí: repartir por tienda</button></div>
   </section>
   <section class="card"><div class="tbl" style="max-height:none"><table><thead><tr><th>Ubicación</th><th>Producto</th><th class="n">Tomar</th><th class="n">Escaneado</th><th>Tiendas</th></tr></thead><tbody>
     ${ps.filter(x => x.falta).map(x => { const r = Math.min(x.falta, OLA.rec[x.pid] || 0); return `<tr class="${r >= x.falta ? "done" : r ? "cur" : ""}"><td class="mono small">${esc(x.ubic || "—")}</td>
@@ -796,7 +810,7 @@ function pintarCarga(cs) {
       const tid = +m[1], caja = +m[2];
       if (CARGA.hechas.some(h => h.trasladoId === tid && h.caja === caja)) { sonar("err"); FLASH = { t: "err", h: "Esta caja ya se cargó en este camión" }; return pintarCarga(); }
       const c = CARGA.pend.find(x => x.trasladoId === tid && x.caja === caja);
-      if (c && !CARGA.ruta.includes(c.tienda)) { sonar("err"); FLASH = { t: "err", big: "⛔ " + esc(c.tienda), h: "No va en este camión", s: `La ruta es ${esc(CARGA.ruta.join(", "))}. Aparta la caja.` }; return pintarCarga(); }
+      if (c && !CARGA.ruta.includes(c.tienda)) { sonar("err"); FLASH = { t: "err", big: "" + esc(c.tienda), h: "No va en este camión", s: `La ruta es ${esc(CARGA.ruta.join(", "))}. Aparta la caja.` }; return pintarCarga(); }
       CARGA.actual = c || { trasladoId: tid, caja, tienda: "?", traslado: "Caja " + caja };
       CARGA.paso = "sello"; lsSet("despacho-carga", CARGA); sonar("ok"); FLASH = null; return pintarCarga();
     }
@@ -805,7 +819,7 @@ function pintarCarga(cs) {
       const r = await api("cargarCaja", { trasladoId: act.trasladoId, traslado: act.traslado, caja: act.caja, sello: v, ruta: CARGA.ruta, camion: CARGA.camion });
       CARGA.hechas.push({ trasladoId: act.trasladoId, traslado: r.traslado, caja: r.caja, tienda: r.tienda, unidades: r.unidades });
       sonar("ok"); FLASH = { t: "ok", big: "✓ " + esc(r.tienda), h: ` caja ${r.caja}: súbela al camión`, s: "Etiqueta y sello coinciden." };
-    } catch (er) { sonar("err"); FLASH = { t: "err", big: "⛔ No cargar", h: "", s: esc(er.message) }; }
+    } catch (er) { sonar("err"); FLASH = { t: "err", big: "No cargar", h: "", s: esc(er.message) }; }
     CARGA.paso = "etiqueta"; CARGA.actual = null; lsSet("despacho-carga", CARGA); pintarCarga();
   };
 }
@@ -877,7 +891,7 @@ function pintarEntrega() {
     e.preventDefault(); const v = limpio($("en").value); const m = v.match(/^77(\d{8})(\d{3})$/);
     if (!m) { sonar("err"); FLASH = { t: "err", h: "Esa no es una etiqueta de caja" }; return pintarEntrega(); }
     const c = ENT.cajas.find(x => x.trasladoId === +m[1] && x.caja === +m[2]);
-    if (!c) { sonar("err"); FLASH = { t: "err", h: "⛔ Esta caja no es para " + esc(ENT.tienda), s: "No la entregues aquí. Revisa a qué tienda va." }; return pintarEntrega(); }
+    if (!c) { sonar("err"); FLASH = { t: "err", h: "Esta caja no es para " + esc(ENT.tienda), s: "No la entregues aquí. Revisa a qué tienda va." }; return pintarEntrega(); }
     if (ENT.escaneadas.some(x => x.trasladoId === c.trasladoId && x.caja === c.caja)) { sonar("err"); FLASH = { t: "err", h: "Esa caja ya la escaneaste" }; return pintarEntrega(); }
     ENT.escaneadas.push({ trasladoId: c.trasladoId, caja: c.caja }); sonar("ok"); FLASH = { t: "ok", h: `✓ Caja ${c.caja} de ${esc(c.traslado)}` }; pintarEntrega();
   };
@@ -911,7 +925,7 @@ function manifiestoHTML(m) {
   <h1>De Museo · Manifiesto de carga</h1>
   <div class="head"><div><b>Fecha:</b> ${esc(m.fecha)}</div><div><b>Camión:</b> ${esc(m.camion)}</div><div><b>Piloto:</b> ${esc(m.piloto)} (${esc(m.pilotoCodigo)})</div><div><b>Cargó:</b> ${esc(m.operador)}</div>
   <div><b>Total:</b> ${m.manifiesto.length} cajas · ${uds} unidades</div><div><b>Tiendas:</b> ${Object.keys(por).join(", ")}</div></div>
-  ${m.nota ? `<div class="nota">⚠ ${esc(m.nota)}</div>` : ""}
+  ${m.nota ? `<div class="nota">${esc(m.nota)}</div>` : ""}
   ${Object.keys(por).map(t => `<div class="tienda"><h2>${esc(t)} · ${por[t].length} ${por[t].length === 1 ? "caja" : "cajas"}</h2>
     <table><thead><tr><th>✓</th><th>Pedido</th><th>Caja</th><th>Sello</th><th class="n">Unidades</th></tr></thead><tbody>
     ${por[t].map(c => `<tr><td><span class="b"></span></td><td>${esc(c.traslado)}</td><td><b>${c.caja} de ${c.de}</b></td><td>${esc(c.sello)}</td><td class="n">${c.unidades}</td></tr>`).join("")}</tbody></table>
@@ -970,7 +984,7 @@ function pintarLlegada() {
     e.preventDefault(); const m = limpio($("ll").value).match(/^77(\d{8})(\d{3})$/);
     if (!m) { sonar("err"); FLASH = { t: "err", h: "Esa no es una etiqueta de caja" }; return pintarLlegada(); }
     const c = LLE.cajas.find(x => x.trasladoId === +m[1] && x.caja === +m[2]);
-    if (!c) { sonar("err"); FLASH = { t: "err", h: "⛔ Esta caja no viene en esta carga para tu tienda", s: "No la recibas: devuélvela al piloto y avisa al supervisor." }; return pintarLlegada(); }
+    if (!c) { sonar("err"); FLASH = { t: "err", h: "Esta caja no viene en esta carga para tu tienda", s: "No la recibas: devuélvela al piloto y avisa al supervisor." }; return pintarLlegada(); }
     if (marca(c)) { sonar("err"); FLASH = { t: "err", h: "Esa caja ya la marcaste" }; return pintarLlegada(); }
     LLE.ok.push({ trasladoId: c.trasladoId, caja: c.caja }); sonar("ok"); FLASH = { t: "ok", h: `✓ ${esc(c.traslado)} · caja ${c.caja} de ${c.de}` }; pintarLlegada();
   };
@@ -1030,7 +1044,7 @@ const rcKey = () => "despacho-rec-" + RC.info.trasladoId + "-" + RC.info.caja;
 function pintarRecepcion() {
   const i = RC.info, u = Object.values(RC.items).reduce((s, x) => s + x.qty, 0);
   if (RC.paso === "sello") {
-    app.innerHTML = `<section class="card"><h3>${esc(i.traslado)} · ${esc(i.tienda)}</h3><h1>Caja ${i.caja} de ${i.totalCajas}</h1>
+    app.innerHTML = `<section class="card"><h3>${esc(i.traslado)} · ${esc(i.tienda)}</h3><h1>Caja <span class="nf">${i.caja}</span> de <span class="nf">${i.totalCajas}</span></h1>
       <p class="notice"><b>Antes de abrir la caja:</b> revisa que el sello esté intacto y escanea su número.</p>
       ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : ""}
       <form class="scan" id="fSel" autocomplete="off"><input id="rS" placeholder="Número del sello" inputmode="none"><button type="submit">Siguiente</button></form>
@@ -1047,7 +1061,7 @@ function pintarRecepcion() {
       // Sello equivocado: no se abre ni se sugiere otra caja. Solo un supervisor puede seguir (queda como incidente).
       const o = v.deOtra;
       app.innerHTML = `<section class="card"><h3>${esc(i.traslado)} · caja ${i.caja}</h3>
-        <div class="flash err" style="font-size:20px">⛔ El sello no corresponde a esta caja<small>No abras la caja.</small></div>
+        <div class="flash err" style="font-size:20px">El sello no corresponde a esta caja<small>No abras la caja.</small></div>
         <p>La etiqueta es de la <b>caja ${i.caja}</b> y debía traer otro sello. Se leyó <b class="mono">${esc(s)}</b>.</p>
         <p class="notice bad"><b>Aparta la caja sin abrir y avisa a tu supervisor.</b> Revisa que hayas escaneado el sello de esta misma caja; si te equivocaste, vuelve a escanearlo.</p>
         ${OP.rol === "SUPERVISOR" ? `<p class="small">Para el supervisor: se esperaba el sello <b class="mono">${esc(v.esperado)}</b>.${o ? ` El sello leído pertenece a ${esc(o.traslado)} caja ${o.caja} (${esc(o.tienda)}): las etiquetas están cambiadas.` : " El sello leído no es de ninguna caja registrada."}</p>` : ""}
@@ -1062,7 +1076,7 @@ function pintarRecepcion() {
     return;
   }
   app.innerHTML = `<section class="card">
-    <div class="row between"><div><h3>${esc(i.traslado)} · sello ${esc(RC.sello || "—")}${RC.selloRoto ? " (roto)" : ""}</h3><h1>Caja ${i.caja} de ${i.totalCajas}</h1></div>
+    <div class="row between"><div><h3>${esc(i.traslado)} · sello ${esc(RC.sello || "—")}${RC.selloRoto ? " (roto)" : ""}</h3><h1>Caja <span class="nf">${i.caja}</span> de <span class="nf">${i.totalCajas}</span></h1></div>
       <div class="kpi"><span>Unidades contadas</span><b>${u}</b></div></div>
     <form class="scan" id="fR" autocomplete="off"><input id="rc" placeholder="Escanea cada unidad" inputmode="none"><button type="submit">+1</button></form>
     ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : '<div class="flash info">Escanea todo lo que trae la caja, una unidad a la vez. Al terminar, la app compara con lo que se envió.</div>'}
@@ -1109,7 +1123,7 @@ async function finCaja() {
     lsDel(rcKey());
     const limpioOk = r.selloOk && !r.diferencias.length;
     sonar(limpioOk ? "bien" : "err");
-    app.innerHTML = `<section class="card"><h3>${esc(RC.info.traslado)}</h3><h1>Caja ${RC.info.caja}: ${limpioOk ? "todo correcto ✓" : "con diferencias"}</h1>
+    app.innerHTML = `<section class="card"><h3>${esc(RC.info.traslado)}</h3><h1>Caja <span class="nf">${RC.info.caja}</span>: ${limpioOk ? "todo correcto ✓" : "con diferencias"}</h1>
       <div class="kpis"><div class="kpi"><span>Recibidas</span><b>${r.unidades}</b></div><div class="kpi"><span>Sobrantes</span><b>${r.sobrantes}</b></div><div class="kpi"><span>Faltantes</span><b>${r.faltantes}</b></div></div>
       ${r.selloOk ? '<p class="notice good">El sello coincide. ✓</p>' : `<p class="notice bad">Incidente de sello: ${RC.selloRoto ? "sello roto" : `se leyó ${esc(RC.sello || "nada")}, debía ser ${esc(r.selloEsperado)}`}. Queda registrado.</p>`}
       ${r.diferencias.length ? `<div class="tbl"><table><thead><tr><th>Producto</th><th class="n">Enviado</th><th class="n">Recibido</th><th class="n">Diferencia</th></tr></thead><tbody>${r.diferencias.map(x => `<tr class="${x.diferencia < 0 ? "over" : "cur"}"><td>${esc(x.nombre)}<div class="small mono">${esc(x.codigo)}</div></td><td class="n">${x.enviado}</td><td class="n">${x.recibido}</td><td class="n big">${x.diferencia > 0 ? "+" : ""}${x.diferencia}</td></tr>`).join("")}</tbody></table></div>

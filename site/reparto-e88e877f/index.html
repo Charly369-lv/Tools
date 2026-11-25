@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Cuando llega un pedido de un proveedor, propone cuánto mandar a cada tienda.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
 <title>Reparto de pedidos · De Museo</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
 <style>
 /* Reparto de un pedido de proveedor a las tiendas.
    1) Abrir datos (misma clave que resurtido)  2) Subir el Excel del pedido  3) Ajustar reglas  4) Revisar y editar  5) Descargar el mismo Excel lleno (o crear borradores en el sistema). */
@@ -32,13 +34,13 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(
 header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 14px; }
 .mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
 .mast img { display: block; width: min(180px, 46vw); height: auto; }
-.mast span { color: var(--gold); font-weight: 800; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+.mast span { color: var(--gold); font-weight: 800; font-size: 13px; }
 main { padding-block: 18px 110px; }
 main .inner { display: grid; gap: 16px; }
 main .inner > *, .card > * { min-width: 0; }
 h1 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(24px, 5vw, 32px); line-height: 1.1; }
 h2 { margin: 0; font-size: 18px; font-weight: 800; }
-h3 { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h3 { margin: 0; font-size: 12px; font-weight: 800; color: var(--muted); }
 p { margin: 0; }
 .muted { color: var(--muted); font-size: 14px; }
 .small { font-size: 12px; color: var(--muted); }
@@ -62,7 +64,7 @@ label.drop b { font-size: 17px; }
 label.drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .steps { display: flex; gap: 6px; flex-wrap: wrap; }
 .steps span { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: var(--soft); color: var(--muted); }
-.steps span.on { background: var(--navy); color: #fff; }
+.steps span.on { background: var(--navy); color: var(--blanco); }
 .steps span.ok { background: var(--green-bg); color: var(--green); }
 .cfg { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px 16px; }
 .cfg label { display: grid; gap: 5px; font-size: 13px; font-weight: 800; color: var(--muted); align-content: start; }
@@ -70,10 +72,10 @@ label.drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .cfg .wide { grid-column: 1 / -1; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips button { min-height: 32px; padding: 2px 12px; font-size: 13px; background: transparent; color: var(--ink); border-color: var(--line); }
-.chips button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.chips button.on { background: var(--navy); color: var(--blanco); border-color: var(--navy); }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .kpi { background: var(--soft); border-radius: 10px; padding: 10px 12px; }
-.kpi span { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.kpi span { display: block; font-size: 11px; font-weight: 800; color: var(--muted); }
 .kpi b { font-size: 24px; font-variant-numeric: tabular-nums; }
 .tag { display: inline-block; font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
 .tag.ex { background: var(--green-bg); color: var(--green); }
@@ -83,7 +85,7 @@ label.drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .tbl { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 table { border-collapse: separate; border-spacing: 0; font-size: 13px; min-width: 100%; }
 th, td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; background: var(--surface); }
-th { position: sticky; top: 0; z-index: 2; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); white-space: nowrap; }
+th { position: sticky; top: 0; z-index: 2; font-size: 11px; color: var(--muted); white-space: nowrap; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .c0 { position: sticky; left: 0; z-index: 1; min-width: 270px; max-width: 320px; box-shadow: 1px 0 0 var(--line); }
 th.c0 { z-index: 3; }
@@ -98,32 +100,42 @@ td.bod b { font-size: 15px; }
 td.bod.neg b { color: var(--red); }
 tr.tot td { font-weight: 800; background: var(--soft); position: sticky; bottom: 0; z-index: 1; }
 tr.tot td.c0 { z-index: 2; }
-.bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--navy-deep); color: #fff; padding-block: 10px; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--navy-deep); color: var(--blanco); padding-block: 10px; }
 .bar .inner { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.bar button.ghost { color: #fff; border-color: rgba(255,255,255,.35); }
+.bar button.ghost { color: var(--blanco); border-color: rgba(255,255,255,.35); }
 .bar button.gold { background: var(--gold); border-color: var(--gold); color: var(--navy-deep); }
 details > summary { cursor: pointer; font-weight: 700; }
-dialog { border: 0; border-radius: 14px; padding: 0; max-width: min(560px, calc(100vw - 32px)); width: 100%; background: var(--surface); color: var(--ink); }
+dialog { border: 0; border-radius: 14px; padding: 0; max-width: min(560px, calc(100% - 32px)); width: 100%; background: var(--surface); color: var(--ink); }
 dialog::backdrop { background: rgba(5, 10, 30, .55); }
 dialog form { padding: 18px 20px; display: grid; gap: 12px; }
 .ux { display: inline-flex; gap: 4px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
 .ux button { min-height: 26px; padding: 1px 9px; font-size: 12px; border-radius: 999px; background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
-.ux button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.ux button.on { background: var(--navy); color: var(--blanco); border-color: var(--navy); }
 .ux input { width: 46px; padding: 2px 4px; font-size: 12px; border-width: 1.5px; border-radius: 6px; text-align: center; }
 .alc { font-size: 12px; font-weight: 700; }
 .alc.bad { color: var(--red); } .alc.ok { color: var(--green); }
 td.q input.nm { border-color: var(--red); }
 .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; flex-wrap: wrap; }
 .seg button { border: 0; border-radius: 0; background: transparent; color: var(--ink); min-height: 40px; }
-.seg button.on { background: var(--navy); color: #fff; }
+.seg button.on { background: var(--navy); color: var(--blanco); }
 .chips .c { display: inline-flex; align-items: center; gap: 6px; background: var(--soft); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; font-weight: 700; }
 .chips .c button { min-height: 24px; width: 24px; padding: 0; border-radius: 50%; border: 0; background: var(--line); color: var(--ink); }
 .kpi.bad b { color: var(--red); }
 .leg { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 13px; color: var(--muted); align-items: center; }
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
 </style>
 </head>
 <body>
-<header class="mast pad"><div class="inner"><img src="../checador/logo.png" alt="De Museo"><span>Reparto de pedidos</span></div></header>
+<header class="mast pad"><div class="inner"><a class="logo-link" href="../cedis/" aria-label="Volver a las herramientas de CEDIS" title="Volver a CEDIS"><img src="../checador/logo.png" alt="De Museo"></a><span>Reparto de pedidos</span></div></header>
 <main class="pad"><div class="inner" id="app">
 
   <section class="card" id="claveCard">
@@ -167,8 +179,8 @@ td.q input.nm { border-color: var(--red); }
       <div class="cfg">
         <label>Proveedor del pedido <select id="cProv"></select><span class="small">Para repartir lo nuevo según lo que cada tienda le vende a este proveedor.</span></label>
         <label>Semanas a cubrir (lo que ya existe) <input type="number" id="cSem" min="1" max="26" step="1"><span class="small">Cada tienda recibe lo que vende en ese tiempo, menos lo que ya tiene y lo que va en camino.</span></label>
-        <label>Reserva en bodega · existentes (%) <input type="number" id="cResE" min="0" max="90" step="5"><span class="small">Se queda en BOD para resurtir a quien se le acabe primero.</span></label>
-        <label>Reserva en bodega · nuevos (%) <input type="number" id="cResN" min="0" max="90" step="5"><span class="small">Lo nuevo es una apuesta: guardar una parte y resurtir según cómo arranque.</span></label>
+        <label>Reserva en bodega para existentes (%) <input type="number" id="cResE" min="0" max="90" step="5"><span class="small">Se queda en BOD para resurtir a quien se le acabe primero.</span></label>
+        <label>Reserva en bodega para nuevos (%) <input type="number" id="cResN" min="0" max="90" step="5"><span class="small">Lo nuevo es una apuesta: guardar una parte y resurtir según cómo arranque.</span></label>
         <label>Mínimo por tienda · nuevos <input type="number" id="cMin" min="1" max="50" step="1"><span class="small">Para que se vea en el mostrador. Si no alcanza para todas, primero las que más venden al proveedor.</span></label>
         <label>Redondear a múltiplos de <input type="number" id="cMul" min="1" max="100" step="1"><span class="small">1 = piezas sueltas. Si un producto tiene empaque en el sistema, se respeta.</span></label>
         <label>Base para lo nuevo <select id="cBase"><option value="prov">Venta de la tienda a este proveedor</option><option value="tienda">Venta total de la tienda</option></select></label>
@@ -290,7 +302,7 @@ async function leerTabla(f) {
       }
       if (ws) break;
     }
-    if (!ws) throw new Error("No encontré los encabezados PLU y FACTURA en el archivo.");
+    if (!ws) throw new Error("No se encontraron las columnas PLU y FACTURA en el archivo.");
     const col = n => H.indexOf(n);
     const cols = { plu: col("PLU"), desc: col("DESCRIPCION") > 0 ? col("DESCRIPCION") : col("DESCRIPCIÓN"), precio: col("PRECIO"), fac: col("FACTURA"), bod: col("BOD"), total: col("TOTAL") };
     // Tiendas: columna de existencia + la siguiente (reparto)
@@ -301,7 +313,7 @@ async function leerTabla(f) {
       const sig = H[i + 1] || "";
       if (sig === H[i] + "2" || sig === "D" + H[i] || sig === H[i] + " 2") tiendas.push({ code, hEx: H[i], cEx: i, cRep: i + 1 });
     }
-    if (!tiendas.length) throw new Error("No reconocí las columnas de las tiendas (AME/AME2, PRD/DPRD…).");
+    if (!tiendas.length) throw new Error("No se reconocieron las columnas de las tiendas (AME/AME2, PRD/DPRD…).");
     const filas = [];
     ws.eachRow((row, r) => {
       if (r <= hr) return;
@@ -344,7 +356,7 @@ const pidDe = plu => PORREF.get(norm(plu)) || PORCOD.get(String(plu).replace(/\D
 function pintarReglas() {
   $("reglas").hidden = false;
   const provs = D.pr.map(r => r[0]).filter(i => D.prov[i]);
-  $("cProv").innerHTML = `<option value="-1">— Sin proveedor (usar venta total de la tienda) —</option>` + provs.map(i => `<option value="${i}" ${i === X.prov ? "selected" : ""}>${esc(D.prov[i])}</option>`).join("");
+  $("cProv").innerHTML = `<option value="-1">Sin proveedor (usar la venta total de la tienda)</option>` + provs.map(i => `<option value="${i}" ${i === X.prov ? "selected" : ""}>${esc(D.prov[i])}</option>`).join("");
   if (X.prov >= 0 && !provs.includes(X.prov)) $("cProv").insertAdjacentHTML("beforeend", `<option value="${X.prov}" selected>${esc(D.prov[X.prov])}</option>`);
   $("cSem").value = C.sem; $("cResE").value = C.resE; $("cResN").value = C.resN; $("cMin").value = C.min; $("cMul").value = C.mul; $("cBase").value = C.base; $("cProbar").value = C.probar;
   $("cTiendas").innerHTML = X.tiendas.map(t => `<button type="button" data-t="${t.code}" class="${X.activas.has(t.code) ? "on" : ""}" title="${esc((D.nombres || {})[t.code] || "")}">${t.code}</button>`).join("");
@@ -578,7 +590,7 @@ async function api(accion, datos, op) {
   const body = JSON.stringify(Object.assign({ accion, token: c.token, operador: op, pin: pinEl ? pinEl.value.trim() : "" }, datos || {}));
   let r;
   try { r = await fetch(c.url + (c.url.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(body), { method: "GET", redirect: "follow" }); }
-  catch (e) { throw new Error("No hay conexión con el servidor. Revisa el internet."); }
+  catch (e) { throw new Error("No hay conexión con el servidor. Revisa la conexión a internet y recarga la página."); }
   const j = await r.json();
   if (!j.ok) throw new Error(String(j.error || "Error del servidor").replace(/^(PIN|SESION)\|/, ""));
   return j.datos;

@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Sube las existencias de las tiendas Walmart y ve qué mandar a cada una y desde qué bodega.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
 <meta name="robots" content="noindex,nofollow">
 <title>Mayoreo Walmart</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
 <style>
 /* Surtido: 1 existencias propias (con clave), 2 aprobados, 3 reportes de tiendas, 4 por confirmar, 5 sugerido por tienda */
 :root {
@@ -34,7 +36,7 @@ header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block
 main { padding-block: 22px 56px; }
 main .inner { display: grid; gap: 18px; }
 h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
-h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
 p { margin: 0; }
 .muted { color: var(--muted); font-size: 14px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
@@ -69,18 +71,18 @@ details > summary { cursor: pointer; font-weight: 700; }
 .tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 70vh; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+th { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 td.big { font-weight: 800; font-size: 16px; }
 .mono { font-family: var(--f-mono); font-size: 13px; }
-.chip { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
-.c-rep { background: var(--navy); color: #fff; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.c-rep { background: var(--navy); color: var(--blanco); }
 .c-new { background: var(--green-bg); color: var(--green); }
 .c-sin { background: var(--gray-bg); color: var(--gray); }
-.c-quieto { background: var(--red); color: #fff; }
-.pill-red { display: inline-block; min-width: 28px; text-align: center; font-weight: 800; background: var(--red); color: #fff; border-radius: 999px; padding: 2px 9px; }
+.c-quieto { background: var(--fill-red); color: var(--blanco); }
+.pill-red { display: inline-block; min-width: 28px; text-align: center; font-weight: 800; background: var(--fill-red); color: var(--blanco); border-radius: 999px; padding: 2px 9px; }
 tr.alerta td { background: var(--red-bg); }
-.alerta-box { border-radius: 10px; padding: 12px 14px; background: var(--red-bg); border-left: 6px solid var(--red); display: grid; gap: 2px; }
+.alerta-box { border-radius: 10px; padding: 12px 14px; background: var(--red-bg); border: 1px solid var(--red); display: grid; gap: 2px; }
 .alerta-box b { color: var(--red); font-size: 17px; }
 .tabs button.t-red[aria-pressed="false"] { color: var(--red); border-color: var(--red); }
 .tabs button.t-red[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
@@ -92,7 +94,7 @@ select.rev.hecho { border-color: var(--green); }
 tr.click { cursor: pointer; }
 tr.click:hover td, tr.sel td { background: var(--soft); }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.tabs button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.tabs button[aria-pressed="true"] { background: var(--navy); color: var(--blanco); }
 .tabs button[aria-pressed="false"] { background: transparent; color: var(--ink); border-color: var(--line); }
 .cand { display: grid; gap: 6px; }
 .cand select { max-width: 100%; width: 100%; font-size: 13px; }
@@ -109,11 +111,21 @@ tr.click:hover td, tr.sel td { background: var(--soft); }
 @media (max-width: 640px) { #s4 thead { display: none; } #pcBody td { display: block; border-bottom: 0; } #pcBody tr { display: block; border-bottom: 1px solid var(--line); padding-bottom: 6px; } }
 .show-sm { display: none; }
 @media (max-width: 640px) { .show-sm { display: block; margin-top: 6px; } .hide-sm { display: none; } .step { grid-template-columns: 1fr; } .num { display: none; } }
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
 </style>
 </head>
 <body>
 <header class="mast pad"><div class="inner">
-  <img src="../checador/logo.png" alt="De Museo" width="800" height="144">
+  <a class="logo-link" href="../gerencia/" aria-label="Volver a las herramientas de Gerencia" title="Volver a Gerencia"><img src="../checador/logo.png" alt="De Museo" width="800" height="144"></a>
   <span class="mast-t">Mayoreo Walmart</span>
 </div></header>
 
@@ -343,7 +355,7 @@ bindDrop($("apDrop"), $("apFile"), async files => {
   try {
     const rows = await leerTabla(files[0]);
     const hi = rows.findIndex(r => colIdx(r, "BARRA", "CODIGO DE BARRAS", "ISBN") > -1 && colIdx(r, "DESCRIPCION", "TITULO", "NOMBRE") > -1);
-    if (hi < 0) throw new Error("No encontré las columnas BARRA y DESCRIPCION.");
+    if (hi < 0) throw new Error("No se encontraron las columnas BARRA y DESCRIPCION.");
     const h = rows[hi];
     const c = { b: colIdx(h, "BARRA", "CODIGO DE BARRAS", "ISBN"), p: colIdx(h, "PLU", "REFERENCIA"), d: colIdx(h, "DESCRIPCION", "TITULO", "NOMBRE"),
                 $: colIdx(h, "PRECIO"), a: colIdx(h, "AUTOR"), t: colIdx(h, "TEMA"), e: colIdx(h, "EDITORIAL") };
@@ -664,7 +676,7 @@ function pintarDetalle() {
   }
   const q = t.quieto, qu = q.reduce((s, x) => s + x.r.oh, 0), rev = q.filter(x => REV[t.tienda + "|" + x.r.item]).length;
   $("detAlert").hidden = !q.length;
-  $("detAlert").innerHTML = q.length ? `<b>🔴 ${q.length} ${q.length === 1 ? "título" : "títulos"} (${qu} uds.) con más de ${CF.dias} días sin venta</b>
+  $("detAlert").innerHTML = q.length ? `<b>${q.length} ${q.length === 1 ? "título" : "títulos"} (${qu} uds.) con más de ${CF.dias} días sin venta</b>
     <span>Revisa si están físicamente en el piso o si conviene retirarlos o trasladarlos. Revisados: ${rev} de ${q.length}.</span>
     ${TAB !== "quieto" ? '<span><button type="button" class="small" data-tab="quieto" style="margin-top:6px;background:var(--red);border-color:var(--red)">Ver la lista</button></span>' : ""}` : "";
   $("detHead").innerHTML = head;

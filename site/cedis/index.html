@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CEDIS · Herramientas De Museo</title>
+<meta name="description" content="Herramientas De Museo para CEDIS. Para bodega, despacho y pilotos.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="theme-color" content="#0b1748">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<link rel="stylesheet" href="../estilo/indices.css">
+</head>
+<body>
+<header class="bar"><div class="wrap bar-in">
+  <a class="bar-logo" href="../"><img src="../checador/logo.png" alt="De Museo" width="800" height="143"></a>
+  <a class="bar-back" href="../">Todas las áreas</a>
+</div></header>
+<main class="wrap">
+  <div class="cab">
+    <h1><span class="guide">CEDIS</span></h1>
+    <p>Para bodega, despacho y pilotos. 5 herramientas.</p>
+  </div>
+  <ol class="rows">
+    <li><a class="row" href="../inventario/"><span class="n">01</span><b>Inventario</b><span class="d">Cuenta productos por ubicación y zona, y exporta el archivo para Odoo.</span></a></li>
+    <li><a class="row" href="../despacho/"><span class="n">02</span><b>Despachos</b><span class="d">Empaca cada caja con su sello y la tienda la recibe escaneando, con control por operador.</span></a></li>
+    <li><a class="row" href="../resurtido/"><span class="n">03</span><b>Resurtido de tiendas</b><span class="d">Qué mandar de la Bodega Central a cada tienda según lo que vende. Se calcula cada noche.</span></a></li>
+    <li><a class="row" href="../reparto-e88e877f/"><span class="n">04</span><b>Reparto de pedidos</b><span class="d">Cuando llega un pedido de un proveedor, propone cuánto mandar a cada tienda.</span></a></li>
+    <li><a class="row" href="../piloto/"><span class="n">05</span><b>Pilotos</b><span class="d">Carga el camión escaneando etiqueta y sello de cada caja, y registra cada entrega en tienda.</span></a></li>
+  </ol>
+</main>
+<footer class="wrap"><p class="sync" id="sync"></p></footer>
+<script>
+(function () {
+  function codigoVersion(v, total, bazar) {
+    const d = new Date(String(v).replace(" ", "T") + ":00Z");
+    if (isNaN(d)) return "";
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guatemala", year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).map(x => [x.type, x.value]));
+    return `v${p.year}.${p.month}${p.day}.${p.hour}${p.minute}` + (total != null ? ` · r${total}-b${bazar}` : "");
+  }
+  const n = new Intl.NumberFormat("es-GT");
+  fetch("../ultima-sincronizacion.json", { cache: "no-cache" }).then(r => r.json()).then(d => {
+    const fecha = new Date(String(d.fecha_utc).replace(" ", "T") + ":00Z");
+    const hora = isNaN(fecha) ? "" : new Intl.DateTimeFormat("es-GT", { timeZone: "America/Guatemala", weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }).format(fecha);
+    const horas = isNaN(fecha) ? null : Math.max(0, Math.round((Date.now() - fecha) / 36e5));
+    const val = { productos: n.format(d.productos), bazar: n.format(d.en_bazar), ubicaciones: n.format(d.ubicaciones), hora: hora, hace: horas == null ? "" : (horas < 1 ? "hace menos de una hora" : horas === 1 ? "hace 1 hora" : "hace " + horas + " horas") };
+    document.querySelectorAll("[data-dato]").forEach(el => { el.textContent = val[el.dataset.dato] || ""; });
+    document.querySelectorAll("[data-sync]").forEach(el => { el.hidden = false; });
+    const s = document.getElementById("sync"); if (s) s.textContent = codigoVersion(d.fecha_utc, d.productos, d.en_bazar);
+  }).catch(() => {});
+})();
+</script>
+</body>
+</html>

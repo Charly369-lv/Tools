@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Escanea un libro y ve su precio normal y su precio de bazar.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 /* Números (precios, porcentajes, contadores) en Archivo: el 4 de Bodoni se confunde con 1 */
 :root { --f-num: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -12,13 +15,14 @@
 .ribbon-t b { font-size: .95em; }
 .web-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; min-height: 44px; padding: 8px 16px; border-radius: 10px; border: 2px solid currentColor; font-weight: 700; text-decoration: none; color: inherit; }
 .web-btn:hover { opacity: .85; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pick.reg .pr b, :root:not([data-theme="light"]) .pick .pe { color: var(--ink); } }
+:root[data-theme="dark"] .pick.reg .pr b, :root[data-theme="dark"] .pick .pe { color: var(--ink); }
 </style>
 </head>
 <body>
 <title>Checador De Museo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
 <style>
 /* Layout: banda azul De Museo con logo arriba, campo de búsqueda, ficha de producto tipo cartel de museo, historial al pie */
 :root {
@@ -44,14 +48,14 @@
   :root:not([data-theme="light"]) {
     --navy: #1a2f85; --navy-deep: #0b1748; --on-navy: #ffffff;
     --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e;
-    --gold: #f2bd3c; --gold-ink: #0b1748; --sale-bg: #e3392a; --on-sale: #ffffff; --sale: #ff7a6b; --soft: #18224c;
+    --gold: #f2bd3c; --gold-ink: #0b1748; --sale-bg: #d62818; --on-sale: #ffffff; --sale: #ff7a6b; --soft: #18224c;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --navy: #1a2f85; --navy-deep: #0b1748; --on-navy: #ffffff;
   --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e;
-  --gold: #f2bd3c; --gold-ink: #0b1748; --sale-bg: #e3392a; --on-sale: #ffffff; --sale: #ff7a6b; --soft: #18224c;
+  --gold: #f2bd3c; --gold-ink: #0b1748; --sale-bg: #d62818; --on-sale: #ffffff; --sale: #ff7a6b; --soft: #18224c;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -69,17 +73,17 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); fon
   background: var(--sale-bg); color: var(--on-sale); border-radius: 6px; box-shadow: 0 6px 18px rgba(11,23,72,.28); }
 .ribbon-t { font-family: var(--f-display); font-weight: 900; font-size: clamp(20px, 4.6vw, 28px); line-height: 1.05; letter-spacing: .01em; }
 .ribbon-t b { color: var(--gold); }
-.ribbon-s { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.ribbon-s { font-size: 13px; font-weight: 600; }
 
 main.pad { padding-block: 44px 48px; }
 main .inner { display: grid; gap: 22px; }
 
 form.scan { display: grid; gap: 8px; }
 .scan-head { display: flex; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; align-items: baseline; }
-label[for="codigo"] { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+label[for="codigo"] { font-size: 13px; font-weight: 700; color: var(--muted); }
 .count { font-size: 12px; color: var(--muted); font-family: var(--f-mono); letter-spacing: .02em; opacity: .75; font-variant-numeric: tabular-nums; }
 .scan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-button.snd { padding: 3px 10px; font-size: 12px; font-weight: 700; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; }
+button.snd { min-height: 32px; padding: 4px 12px; font-size: 13px; font-weight: 700; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; }
 button.snd[aria-pressed="true"] { color: var(--navy); border-color: var(--navy); }
 :root:not([data-theme="light"]) button.snd[aria-pressed="true"] { color: var(--ink); }
 :root[data-theme="light"] button.snd[aria-pressed="true"] { color: var(--navy); }
@@ -90,7 +94,7 @@ button.snd[aria-pressed="true"] { color: var(--navy); border-color: var(--navy);
 button { font: 700 16px var(--f-body); border-radius: 6px; cursor: pointer; padding: 0 20px; background: var(--navy); color: var(--on-navy); border: 2px solid var(--navy); }
 button:hover { filter: brightness(1.15); }
 button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-.hint { font-size: 13px; color: var(--muted); margin: 0; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; padding-inline: 2px; }
 
 .result { border-radius: 10px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
 .result.flash { animation: pop .28s ease-out; }
@@ -99,7 +103,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .idle, .loading { padding: 22px 20px; color: var(--muted); font-size: 15px; display: grid; gap: 8px; }
 .idle code { font-family: var(--f-mono); background: var(--soft); padding: 1px 6px; border-radius: 4px; color: var(--ink); cursor: pointer; }
 .bar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden; }
-.bar i { display: block; height: 100%; width: 0; background: var(--navy); transition: width .2s; }
+.bar i { display: block; height: 100%; width: 0; background: var(--navy); }
 
 /* Ficha común */
 .band { display: flex; justify-content: space-between; align-items: center; gap: 6px 12px; flex-wrap: wrap; padding: 10px 20px; }
@@ -115,7 +119,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .hero { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 20px 22px; background: var(--gold); color: var(--gold-ink); overflow: hidden; }
 .hero::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, transparent 0 22px, rgba(255,255,255,.2) 22px 44px); pointer-events: none; }
 .now { position: relative; display: grid; gap: 6px; min-width: 0; }
-.now-l { font-size: 14px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.now-l { font-size: 14px; font-weight: 800; }
 .now-a { font-family: var(--f-display); font-weight: 900; font-size: clamp(76px, 19vw, 128px); line-height: .85; font-variant-numeric: lining-nums; }
 .now-a small { font-size: .42em; vertical-align: .95em; margin-right: 4px; }
 .was { font-size: 17px; font-weight: 600; }
@@ -124,16 +128,16 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
   display: grid; place-content: center; gap: 2px; text-align: center; background: var(--sale-bg); color: var(--on-sale); transform: rotate(12deg);
   clip-path: polygon(50.0% 0.0%, 59.3% 9.1%, 71.7% 5.0%, 76.2% 17.2%, 89.1% 18.8%, 87.8% 31.8%, 98.7% 38.9%, 92.0% 50.0%, 98.7% 61.1%, 87.8% 68.2%, 89.1% 81.2%, 76.2% 82.8%, 71.7% 95.0%, 59.3% 90.9%, 50.0% 100.0%, 40.7% 90.9%, 28.3% 95.0%, 23.8% 82.8%, 10.9% 81.2%, 12.2% 68.2%, 1.3% 61.1%, 8.0% 50.0%, 1.3% 38.9%, 12.2% 31.8%, 10.9% 18.8%, 23.8% 17.2%, 28.3% 5.0%, 40.7% 9.1%); }
 .burst b { font-family: var(--f-body); font-weight: 800; font-size: clamp(26px, 6.6vw, 36px); line-height: .9; }
-.burst span { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.burst span { font-size: 10px; font-weight: 700; }
 .savebar { padding: 14px 20px; text-align: center; font-size: 18px; font-weight: 600; background: var(--navy-deep); color: var(--on-navy); }
 .savebar strong { font-family: var(--f-display); font-weight: 900; font-size: 1.45em; color: var(--gold); }
-.savebar .legal { display: block; margin-top: 4px; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
-.advice .legal-s { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.savebar .legal { display: block; margin-top: 4px; font-size: 12px; font-weight: 700; opacity: .8; }
+.advice .legal-s { font-size: 12px; font-weight: 700; }
 
 /* Precio normal */
 .band.reg { background: var(--navy); color: var(--on-navy); }
 .reg-price { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; padding: 4px 20px 20px; }
-.reg-price .lbl { font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
+.reg-price .lbl { font-size: 13px; font-weight: 800; color: var(--muted); display: block; margin-bottom: 6px; }
 .reg-price .amt { font-family: var(--f-display); font-weight: 900; font-size: clamp(60px, 15vw, 96px); line-height: .85; color: var(--navy); }
 .reg-price .amt small { font-size: .42em; vertical-align: .95em; margin-right: 4px; }
 .reg-note { font-size: 15px; font-weight: 600; color: var(--muted); max-width: 30ch; }
@@ -146,7 +150,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
   border-radius: 8px; padding: 12px; cursor: pointer; position: relative; }
 .pick:hover { border-color: var(--navy); }
 .pick:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-.pick .pp { font-size: 11px; font-weight: 800; letter-spacing: .06em; justify-self: start; background: var(--sale-bg); color: var(--on-sale); padding: 2px 7px; border-radius: 3px; }
+.pick .pp { font-size: 11px; font-weight: 800; justify-self: start; background: var(--sale-bg); color: var(--on-sale); padding: 2px 7px; border-radius: 3px; }
 .pick .pt { font-size: 14px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .pick .pr { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .pick .pr b { font-family: var(--f-display); font-weight: 900; font-size: 26px; line-height: 1; background: var(--gold); color: var(--gold-ink); padding: 2px 7px; border-radius: 4px; }
@@ -160,21 +164,21 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
 /* Promoción (discreta) */
 .reg-price .amt-wrap { display: grid; gap: 6px; }
-.promo-chip { justify-self: start; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; background: var(--navy); color: var(--on-navy); padding: 3px 8px; border-radius: 3px; }
+.promo-chip { justify-self: start; font-size: 12px; font-weight: 800; background: var(--navy); color: var(--on-navy); padding: 3px 8px; border-radius: 3px; }
 .reg-price .before { font-size: 15px; font-weight: 600; color: var(--muted); }
 .reg-price .before s { text-decoration-color: var(--sale-bg); }
 .pick .pr .pc { font-size: 11px; font-weight: 800; color: var(--navy); }
-.matches .mp .pc { font-size: 11px; font-weight: 800; color: var(--navy); letter-spacing: .04em; text-transform: uppercase; }
+.matches .mp .pc { font-size: 11px; font-weight: 800; color: var(--navy); }
 
 /* Sin precio / no encontrado */
 .miss { padding: 26px 22px; background: var(--soft); display: grid; gap: 10px; }
-.miss .chip { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.miss .chip { font-size: 12px; font-weight: 700; color: var(--muted); }
 .miss h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(22px, 4.8vw, 30px); line-height: 1.15; text-wrap: balance; }
 .miss p { margin: 0; font-size: 15px; }
 
 /* Lista de resultados */
 .list-top { display: flex; justify-content: space-between; gap: 6px 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-.list-top b { font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.list-top b { font-weight: 700; }
 .matches { list-style: none; margin: 0; padding: 0; max-height: 62vh; overflow-y: auto; }
 .matches li { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .matches li:last-child { border-bottom: 0; }
@@ -187,11 +191,11 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .matches .mp b { font-family: var(--f-display); font-weight: 900; font-size: 24px; line-height: 1; padding: 3px 8px; border-radius: 4px; }
 .matches .sale .mp b { background: var(--gold); color: var(--gold-ink); }
 .matches .mp s { font-size: 13px; color: var(--muted); text-decoration-color: var(--sale-bg); }
-.matches .mp .n { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.matches .mp .n { font-size: 11px; color: var(--muted); font-weight: 600; }
 mark { background: var(--gold); color: var(--gold-ink); padding: 0 1px; border-radius: 2px; }
 
 /* Historial */
-.history h3 { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.history h3 { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
 .history ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 .history li { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; cursor: pointer; }
 .history li:hover .t { text-decoration: underline; }
@@ -227,7 +231,7 @@ mark { background: var(--gold); color: var(--gold-ink); padding: 0 1px; border-r
 .stock { padding: 14px 20px 16px; border-top: 1px solid var(--line); display: grid; gap: 10px; background: var(--surface); }
 .stock-top { display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: baseline; }
 .stock-k { display: grid; gap: 2px; }
-.stock-k span { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.stock-k span { font-size: 12px; font-weight: 800; color: var(--muted); }
 .stock-k b { font-family: var(--f-num); font-weight: 800; font-size: 40px; line-height: .95; color: var(--navy); font-variant-numeric: tabular-nums; }
 :root:not([data-theme="light"]) .stock-k b { color: var(--ink); }
 .stock-k.cero b { color: var(--sale) !important; }
@@ -240,7 +244,7 @@ mark { background: var(--gold); color: var(--gold-ink); padding: 0 1px; border-r
 .logo { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .mast-top { user-select: none; -webkit-user-select: none; }
 body.priv .mast { box-shadow: inset 0 4px 0 var(--gold); }
-.priv-pill { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--gold-ink, #3a2a00); background: var(--gold); border-radius: 999px; padding: 2px 8px; }
+.priv-pill { font-size: 11px; font-weight: 800; color: var(--gold-ink, #3a2a00); background: var(--gold); border-radius: 999px; padding: 2px 8px; }
 .shelf { font-size: 14px; font-weight: 700; color: var(--ink); }
 .shelf code { font-family: var(--f-mono); font-size: 14px; background: var(--soft); padding: 2px 7px; border-radius: 5px; }
 .pedir { font-size: 14px; font-weight: 700; color: var(--sale); }
@@ -250,6 +254,16 @@ body.priv .pick.reg .pe { margin-top: 2px; }
 .ex-hide { margin-left: auto; align-self: center; padding: 3px 12px !important; min-height: 0 !important; font-size: 12px !important; font-weight: 700; background: transparent !important; color: var(--muted) !important; border: 1px solid var(--line) !important; border-radius: 999px; }
 .matches .mp .ex { font-size: 12px; font-weight: 700; color: var(--muted); font-family: var(--f-mono); }
 .history .x { font-size: 12px; color: var(--muted); font-family: var(--f-mono); }
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
 </style>
 
 <header class="mast pad">
@@ -270,7 +284,7 @@ body.priv .pick.reg .pe { margin-top: 2px; }
     <form class="scan" id="scanForm" autocomplete="off">
       <div class="scan-head">
         <label for="codigo">Código de barras, referencia interna o nombre</label>
-        <span class="scan-tools"><label class="mine-l" id="mineWrap" hidden>Mi tienda <select id="mine"></select></label><span class="priv-pill" id="privPill" hidden title="Modo privado: oculta antes de dejar la pantalla a un cliente">🔒 Privado</span><span class="count" id="count"></span><button type="button" class="snd" id="snd" aria-pressed="true">🔊 Sonido</button></span>
+        <span class="scan-tools"><label class="mine-l" id="mineWrap" hidden>Mi tienda <select id="mine"></select></label><span class="priv-pill" id="privPill" hidden title="Modo privado: oculta antes de dejar la pantalla a un cliente">Privado</span><span class="count" id="count"></span><button type="button" class="snd" id="snd" aria-pressed="true">Sonido</button></span>
       </div>
       <div class="field">
         <input id="codigo" name="codigo" placeholder="Escanea o escribe aquí" autofocus spellcheck="false">
@@ -494,10 +508,10 @@ function stockBlock(p) {
       <button type="button" class="ex-hide" id="exHide">Ocultar</button>
     </div>
     ${l.length ? `<ul class="locs">${l.map(([u, n]) => `<li class="${u === MINE ? "me" : ""}">${esc(u)}<b>${n}</b></li>`).join("")}</ul>` : `<p class="stock-note"><b>Sin existencia en ninguna bodega.</b></p>`}
-    ${(() => { const e = entradaDe(p); return e && e[2] ? `<div class="shelf">📍 Estante <code>${esc(e[2])}</code></div>` : ""; })()}
+    ${(() => { const e = entradaDe(p); return e && e[2] ? `<div class="shelf">Estante <code>${esc(e[2])}</code></div>` : ""; })()}
     ${MINE && !miDe(l) && pedirA(l) ? `<div class="pedir">Aquí no hay: pídelo a ${esc(pedirA(l)[0])} (tiene ${pedirA(l)[1]})</div>` : ""}
     <p class="stock-note">Disponible (sin lo apartado) al ${fechaLocal(STOCK.v)} (no incluye lo vendido después)</p>
-    <a class="web-btn" target="_blank" rel="noopener noreferrer" href="https://www.google.com/search?q=${encodeURIComponent([p[2], p[0]].filter(Boolean).join(" "))}">🔎 Buscar más información en internet</a>
+    <a class="web-btn" target="_blank" rel="noopener noreferrer" href="https://www.google.com/search?q=${encodeURIComponent([p[2], p[0]].filter(Boolean).join(" "))}">Buscar en internet</a>
   </div>`;
 }
 const exTxt = p => { const l = stockDe(p), t = totalDe(l); return MINE ? `${esc(MINE)} ${miDe(l)} · total ${t}` : `exist. ${t}`; };
@@ -801,7 +815,7 @@ try { soundOn = localStorage.getItem("dm-sonido") !== "off"; } catch (e) {}
 const SND = { bazar: new Audio("sonido-bazar.wav"), normal: new Audio("sonido-normal.wav") };
 for (const a of Object.values(SND)) { a.preload = "auto"; a.volume = 1; }
 const sndBtn = $("snd");
-function paintSnd() { sndBtn.setAttribute("aria-pressed", soundOn); sndBtn.textContent = soundOn ? "🔊 Sonido" : "🔇 Sin sonido"; }
+function paintSnd() { sndBtn.setAttribute("aria-pressed", soundOn); sndBtn.textContent = soundOn ? "Sonido" : "Sin sonido"; }
 paintSnd();
 // El navegador solo deja sonar después de que alguien toca o teclea en la página: se "desbloquea" en el primer gesto
 function unlockAudio() {

@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Cuenta productos por ubicación y zona, y exporta el archivo para Odoo.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 /* Números (precios, porcentajes, contadores) en Archivo: el 4 de Bodoni se confunde con 1 */
 :root { --f-num: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -13,8 +16,7 @@
 <body>
 <title>Inventario De Museo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
 <style>
 /* Layout: banda azul De Museo con la sesión de conteo fija; abajo una sola columna operable con una mano: campo de escaneo, tarjeta de último escaneo, contadores y acciones */
 :root {
@@ -73,19 +75,19 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 main.pad { padding-block: 20px 56px; }
 main .inner { display: grid; gap: 18px; }
 h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(24px, 5vw, 30px); line-height: 1.1; }
-h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
 p { margin: 0; }
 .muted { color: var(--muted); font-size: 14px; }
 
 /* Controles */
 button, .btn { font: 700 16px var(--f-body); border-radius: 8px; cursor: pointer; padding: 12px 18px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 48px; }
 button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
-button.light { background: #ffffff; color: #0b1748; border-color: #ffffff; }
-button.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+button.light { background: var(--blanco); color: #0b1748; border-color: var(--blanco); }
+button.danger { background: var(--fill-red); border-color: var(--fill-red); color: var(--blanco); }
 button.small { min-height: 36px; padding: 6px 12px; font-size: 14px; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-label.f { display: grid; gap: 6px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+label.f { display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
 input[type="text"], select { font: 500 18px var(--f-body); padding: 12px 14px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); width: 100%; min-height: 52px; }
 input[type="text"]:focus, select:focus { border-color: var(--navy); }
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -106,7 +108,7 @@ input[type="text"]:focus, select:focus { border-color: var(--navy); }
 .last.bad { border-color: var(--bad); background: var(--bad-bg); }
 .last.flash { animation: flash .35s ease-out; }
 @keyframes flash { from { transform: scale(.97); } to { transform: scale(1); } }
-.last .st { font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.last .st { font-size: 13px; font-weight: 800; }
 .last.ok .st { color: var(--ok); }
 .last.bad .st { color: var(--bad); }
 .last .nm { font-size: clamp(18px, 4.4vw, 22px); font-weight: 700; line-height: 1.2; }
@@ -121,7 +123,7 @@ input[type="text"]:focus, select:focus { border-color: var(--navy); }
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 2px; }
 .stat b { font-family: var(--f-display); font-weight: 900; font-size: 30px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
-.stat span { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.stat span { font-size: 12px; font-weight: 700; color: var(--muted); }
 .stat.bad b { color: var(--bad); }
 
 .recent ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
@@ -138,7 +140,7 @@ input[type="text"]:focus, select:focus { border-color: var(--navy); }
 .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-th { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--soft); position: sticky; top: 0; }
+th { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--soft); position: sticky; top: 0; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.mono { font-family: var(--f-mono); font-size: 13px; white-space: nowrap; }
 td .qin { width: 76px; min-height: 38px; padding: 4px 8px; font: 700 16px var(--f-body); text-align: right; border: 2px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
@@ -164,11 +166,21 @@ button.danger-outline { background: transparent; color: var(--bad); border-color
 @media (prefers-reduced-motion: reduce) { .last.flash { animation: none; } .last { transition: none; } }
 @media (max-width: 560px) { .hide-sm { display: none; } td .qin { width: 64px; } }
 @media (max-width: 420px) { .stat b { font-size: 24px; } .card { padding: 16px; } }
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
 </style>
 
 <header class="mast pad">
   <div class="inner">
-    <img class="logo" src="logo.png" alt="De Museo" width="800" height="144">
+    <a class="logo-link" href="../cedis/" aria-label="Volver a las herramientas de CEDIS" title="Volver a CEDIS"><img class="logo" src="logo.png" alt="De Museo" width="800" height="144"></a>
     <span class="mast-t">Inventario</span>
   </div>
 </header>
@@ -204,7 +216,7 @@ button.danger-outline { background: transparent; color: var(--bad); border-color
       <label class="f" for="fOp">Nombre del operador
         <input type="text" id="fOp" placeholder="Ej. Ana López" autocomplete="off">
       </label>
-      <div class="f" style="display:grid;gap:6px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Número de conteo
+      <div class="f" style="display:grid;gap:6px;font-size:13px;font-weight:700;color:var(--muted)">Número de conteo
         <div class="seg" id="fConteo">
           <button type="button" data-c="1" aria-pressed="true">Conteo 1</button>
           <button type="button" data-c="2" aria-pressed="false">Conteo 2</button>
@@ -250,7 +262,7 @@ button.danger-outline { background: transparent; color: var(--bad); border-color
         <button type="button" class="ghost small danger-outline" id="btnReset">Reiniciar conteo</button>
         <div class="confirm" id="resetConfirm" hidden>
           <b id="resetTxt"></b>
-          <p class="notice bad" id="resetWarn" hidden>⚠ Todavía no exportaste los últimos escaneos. Si borras ahora, se pierden.</p>
+          <p class="notice bad" id="resetWarn" hidden>Todavía no exportaste los últimos escaneos. Si borras ahora, se pierden.</p>
           <div class="row">
             <button type="button" id="btnResetExport">Exportar CSV primero</button>
             <button type="button" class="danger" id="btnResetYes">Sí, borrar todo y empezar de nuevo</button>
@@ -337,7 +349,7 @@ button.danger-outline { background: transparent; color: var(--bad); border-color
             <button type="button" class="danger" id="btnClear">Borrar conteo y empezar de nuevo</button>
             <div class="confirm" id="clearConfirm" hidden>
               <b>¿Seguro? Se borrarán <span id="clearN"></span> escaneos, la localidad, la zona y el operador de este equipo. Esto no se puede deshacer.</b>
-              <p class="notice bad" id="clearWarn" hidden>⚠ Todavía no exportaste los últimos escaneos. Si borras ahora, se pierden.</p>
+              <p class="notice bad" id="clearWarn" hidden>Todavía no exportaste los últimos escaneos. Si borras ahora, se pierden.</p>
               <div class="row"><button type="button" class="danger" id="btnClearYes">Sí, borrar todo</button><button type="button" class="ghost" id="btnClearNo">Cancelar</button></div>
             </div>
           </div>

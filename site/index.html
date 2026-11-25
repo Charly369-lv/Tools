@@ -4,52 +4,88 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Herramientas De Museo</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;600;700&display=swap">
-<style>
-:root { --navy: #112369; --navy-deep: #0b1748; --gold: #f2bd3c; --red: #d62818; --bg: #f3f4f9; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --surface: #fff; }
-@media (prefers-color-scheme: dark) { :root { --bg: #080e26; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --surface: #111a3d; color-scheme: dark; } }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 "Archivo", system-ui, sans-serif; }
-.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.inner { max-width: 720px; margin: 0 auto; }
-header { background: var(--navy-deep); color: #fff; padding-block: 28px; }
-header img { width: min(300px, 70vw); display: block; }
-header p { margin: 10px 0 0; font-family: "Bodoni Moda", Didot, serif; font-style: italic; opacity: .85; }
-main { padding-block: 28px 48px; display: grid; gap: 14px; }
-a.tool { display: grid; gap: 4px; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
-a.tool:hover { border-color: var(--navy); }
-a.tool:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-a.tool b { font-family: "Bodoni Moda", Didot, serif; font-weight: 900; font-size: 26px; }
-a.tool span { color: var(--muted); }
-a.tool .tag { justify-self: start; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; color: #fff; }
-.sync { font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, Consolas, monospace; opacity: .75; }
-</style>
+<meta name="description" content="Herramientas internas De Museo para tienda, CEDIS y gerencia.">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icono-180.png">
+<meta name="theme-color" content="#0b1748">
+<link rel="stylesheet" href="fuentes/fuentes.css">
+<link rel="stylesheet" href="estilo/indices.css">
 </head>
 <body>
-<header class="pad"><div class="inner"><img src="checador/logo.png" alt="De Museo"><p>Herramientas para tiendas</p></div></header>
-<main class="pad"><div class="inner" style="display:grid;gap:14px">
-  <a class="tool" href="checador/"><span class="tag" style="background:var(--red)">Bazar de Descuentos</span><b>Checador de precios</b><span>Escanea un libro y mira su precio y su precio de bazar.</span></a>
-  <a class="tool" href="inventario/"><span class="tag" style="background:var(--navy)">Operaciones</span><b>Inventario</b><span>Cuenta productos por localidad y zona, y exporta el archivo para el sistema.</span></a>
-  <a class="tool" href="pedidos/"><span class="tag" style="background:#9a6700">Compras</span><b>Revisor de pedidos</b><span>Sube un pedido y detecta los libros que ya están en bazar antes de volver a pedirlos.</span></a>
-  <a class="tool" href="mayoreo/"><span class="tag" style="background:#157a3d">Walmart</span><b>Mayoreo Walmart</b><span>Sube las existencias de las tiendas Walmart y mira qué mandar a cada una y de qué bodega.</span></a>
-  <a class="tool" href="boletin/"><span class="tag" style="background:#c9a13b;color:#1d2340">Clientes</span><b>Boletín de novedades</b><span>Elige los 10 libros de la semana y genera el correo para clientes.</span></a>
-  <a class="tool" href="despacho/"><span class="tag" style="background:#112369">CEDIS</span><b>Despachos</b><span>Empaca por caja con sello y recibe en tienda escaneando, con control por operador.</span></a>
-  <a class="tool" href="rotacion/"><span class="tag" style="background:#157a3d">TIENDAS</span><b>Rotación entre tiendas</b><span>Lo que no se vende en una tienda, directo a otra donde sí se vende. Se aprueba cada mes.</span></a>
-  <a class="tool" href="resurtido/"><span class="tag" style="background:#c42318">CEDIS</span><b>Resurtido de tiendas</b><span>Qué mandar de la bodega a cada tienda según lo que vende, calculado cada noche.</span></a>
-  <p class="sync" id="sync"></p>
-</div></main>
+<header class="bar"><div class="wrap bar-in">
+  <a class="bar-logo" href=""><img src="checador/logo.png" alt="De Museo" width="800" height="143"></a>
+  <span class="bar-note">Herramientas internas</span>
+</div></header>
+<main class="wrap">
+  <div class="intro">
+    <h1>Herramientas</h1>
+    <p>Elige tu área, o entra directo a la herramienta.</p>
+  </div>
+  <ol class="dir">
+    <li class="dir-row">
+      <h2 class="dir-name"><a href="tienda/"><span class="guide">Tienda</span></a></h2>
+      <div class="dir-side">
+        <p class="dir-lead">Para el equipo de cada tienda. <a class="dir-open" href="tienda/">Ver Tienda</a></p>
+        <ul class="dir-tools">
+        <li><a href="checador/"><span class="n">01</span><span class="t">Checador de precios</span></a></li>
+        </ul>
+      </div>
+    </li>
+    <li class="dir-row">
+      <h2 class="dir-name"><a href="cedis/"><span class="guide">CEDIS</span></a></h2>
+      <div class="dir-side">
+        <p class="dir-lead">Para bodega, despacho y pilotos. <a class="dir-open" href="cedis/">Ver CEDIS</a></p>
+        <ul class="dir-tools">
+        <li><a href="inventario/"><span class="n">01</span><span class="t">Inventario</span></a></li>
+        <li><a href="despacho/"><span class="n">02</span><span class="t">Despachos</span></a></li>
+        <li><a href="resurtido/"><span class="n">03</span><span class="t">Resurtido de tiendas</span></a></li>
+        <li><a href="reparto-e88e877f/"><span class="n">04</span><span class="t">Reparto de pedidos</span></a></li>
+        <li><a href="piloto/"><span class="n">05</span><span class="t">Pilotos</span></a></li>
+        </ul>
+      </div>
+    </li>
+    <li class="dir-row">
+      <h2 class="dir-name"><a href="gerencia/"><span class="guide">Gerencia</span></a></h2>
+      <div class="dir-side">
+        <p class="dir-lead">Compras, clientes, mayoreo y rotación. <a class="dir-open" href="gerencia/">Ver Gerencia</a></p>
+        <ul class="dir-tools">
+        <li><a href="pedidos/"><span class="n">01</span><span class="t">Revisor de pedidos</span></a></li>
+        <li><a href="mayoreo/"><span class="n">02</span><span class="t">Mayoreo Walmart</span></a></li>
+        <li><a href="boletin/"><span class="n">03</span><span class="t">Boletín de novedades</span></a></li>
+        <li><a href="rotacion/"><span class="n">04</span><span class="t">Rotación entre tiendas</span></a></li>
+        </ul>
+      </div>
+    </li>
+  </ol>
+  <section class="cifras" data-sync hidden aria-label="Datos del catálogo">
+    <dl>
+      <div><dt>Productos en el catálogo</dt><dd class="num" data-dato="productos"></dd></div>
+      <div><dt>En Bazar de Descuentos</dt><dd class="num" data-dato="bazar"></dd></div>
+      <div><dt>Tiendas y bodegas</dt><dd class="num" data-dato="ubicaciones"></dd></div>
+    </dl>
+    <p>Datos sincronizados con Odoo el <span data-dato="hora"></span>, <span data-dato="hace"></span>.</p>
+  </section>
+</main>
+<footer class="wrap"><p class="sync" id="sync"></p></footer>
 <script>
-// Código de versión camuflado: vAA.MMDD.HHMM · r<productos>-b<en bazar> (hora de Guatemala)
-function codigoVersion(v, total, bazar) {
-  const d = new Date(String(v).replace(" ", "T") + ":00Z");
-  if (isNaN(d)) return "";
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guatemala", year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).map(x => [x.type, x.value]));
-  return `v${p.year}.${p.month}${p.day}.${p.hour}${p.minute}` + (total != null ? ` · r${total}-b${bazar}` : "");
-}
-fetch("ultima-sincronizacion.json", { cache: "no-cache" }).then(r => r.json()).then(d => {
-  document.getElementById("sync").textContent = codigoVersion(d.fecha_utc, d.productos, d.en_bazar);
-}).catch(() => {});
+(function () {
+  function codigoVersion(v, total, bazar) {
+    const d = new Date(String(v).replace(" ", "T") + ":00Z");
+    if (isNaN(d)) return "";
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guatemala", year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).map(x => [x.type, x.value]));
+    return `v${p.year}.${p.month}${p.day}.${p.hour}${p.minute}` + (total != null ? ` · r${total}-b${bazar}` : "");
+  }
+  const n = new Intl.NumberFormat("es-GT");
+  fetch("ultima-sincronizacion.json", { cache: "no-cache" }).then(r => r.json()).then(d => {
+    const fecha = new Date(String(d.fecha_utc).replace(" ", "T") + ":00Z");
+    const hora = isNaN(fecha) ? "" : new Intl.DateTimeFormat("es-GT", { timeZone: "America/Guatemala", weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }).format(fecha);
+    const horas = isNaN(fecha) ? null : Math.max(0, Math.round((Date.now() - fecha) / 36e5));
+    const val = { productos: n.format(d.productos), bazar: n.format(d.en_bazar), ubicaciones: n.format(d.ubicaciones), hora: hora, hace: horas == null ? "" : (horas < 1 ? "hace menos de una hora" : horas === 1 ? "hace 1 hora" : "hace " + horas + " horas") };
+    document.querySelectorAll("[data-dato]").forEach(el => { el.textContent = val[el.dataset.dato] || ""; });
+    document.querySelectorAll("[data-sync]").forEach(el => { el.hidden = false; });
+    const s = document.getElementById("sync"); if (s) s.textContent = codigoVersion(d.fecha_utc, d.productos, d.en_bazar);
+  }).catch(() => {});
+})();
 </script>
 </body>
 </html>
