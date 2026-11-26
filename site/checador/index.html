@@ -17,6 +17,7 @@
 .web-btn:hover { opacity: .85; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pick.reg .pr b, :root:not([data-theme="light"]) .pick .pe { color: var(--ink); } }
 :root[data-theme="dark"] .pick.reg .pr b, :root[data-theme="dark"] .pick .pe { color: var(--ink); }
+#count.offline::after { content: " · sin internet"; color: #c0392b; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -517,6 +518,10 @@ function stockBlock(p) {
 const exTxt = p => { const l = stockDe(p), t = totalDe(l); return MINE ? `${esc(MINE)} ${miDe(l)} · total ${t}` : `exist. ${t}`; };
 
 const bazarReady = Promise.all([loadBazar(), promoReady]);
+// Sin internet: sw.js guarda la página y la última copia de los datos para que el checador siga funcionando
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+function avisoRed() { const c = $("count"); if (!c) return; const off = !navigator.onLine; c.classList.toggle("offline", off); c.title = off ? "Sin internet: precios de la última sincronización" : ""; }
+window.addEventListener("online", avisoRed); window.addEventListener("offline", avisoRed); bazarReady.then(avisoRed, avisoRed);
 bazarReady.catch(() => { result.innerHTML = `<div class="loading">No se pudo cargar. Revisa la conexión a internet y recarga la página.</div>`; });
 // El catálogo completo se pide después de que la página ya está lista
 bazarReady.then(() => setTimeout(() => loadCatalog().catch(() => {}), 400)).catch(() => {});
