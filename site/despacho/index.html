@@ -86,6 +86,8 @@ td.big { font-size: 18px; font-weight: 900; }
 tr.done td { color: var(--muted); }
 tr.over td { background: var(--red-bg); }
 tr.cur td { background: var(--amber-bg); }
+.btnfoto { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 14px; border: 2px dashed var(--navy); border-radius: 10px; font-weight: 700; cursor: pointer; }
+.btnfoto.hecho { border-style: solid; border-color: var(--green); color: var(--green); }
 .chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; background: var(--soft); white-space: nowrap; }
 .chip.g { background: var(--green-bg); color: var(--green); }
 .chip.r { background: var(--red-bg); color: var(--red); }
@@ -276,10 +278,11 @@ const OPCIONES = {
   lle: ["Llegada del piloto (checklist de cajas)", () => llegadaPiloto()],
   man: ["Reimprimir el último manifiesto de carga", () => { const m = lsGet("despacho-ultimo-manifiesto", null); m ? pantallaManifiesto(m) : (FLASH = { t: "err", h: "No hay manifiesto guardado en este equipo" }, menu()); }],
   gaf: ["Imprimir gafetes de operadores", () => gafetes()],
+  aud: ["Auditar cajas (revisión al azar antes de cargar)", () => listaAuditar()],
 };
 function menu() {
   if (OP.rol === "PILOTO") return misEntregas();
-  const ks = OP.rol === "TIENDA" ? ["lle", "rec", "empT", "sp"] : OP.rol === "SUPERVISOR" ? ["ola", "emp", "car", "man", "lle", "rec", "sp", "apr", "ind", "gaf"] : ["ola", "emp", "car", "man", "dev", "sp"];
+  const ks = OP.rol === "TIENDA" ? ["lle", "rec", "empT", "sp"] : OP.rol === "SUPERVISOR" ? ["ola", "emp", "aud", "car", "man", "lle", "rec", "sp", "apr", "ind", "gaf"] : ["ola", "emp", "aud", "car", "man", "dev", "sp"];
   const sp = lsGet("despacho-sp-actual", null);
   const olaG = OP.rol !== "TIENDA" ? lsGet("despacho-ola", null) : null;
   app.innerHTML = `<section class="card"><h1>¿Qué vas a hacer?</h1>
@@ -446,7 +449,7 @@ function cerrarCaja() {
       BOX = { items: {}, inicio: null, hist: [] };
       if (T.sinPedido) { lsSet("despacho-sp-actual", T); lsDel("despacho-sp-caja"); } else lsDel(boxKey());
       d.close(); sonar("bien");
-      FLASH = { t: "ok", h: `Caja ${r.caja} cerrada con sello ${sello}`, s: "Pega la etiqueta en la caja." };
+      FLASH = { t: "ok", h: `Caja ${r.caja} cerrada con sello ${sello}`, s: "Pega la etiqueta en la caja." + avisoAud(r) };
       (T.sinPedido ? pintarSP : pintarEmpaque)(); imprimirEtiqueta(r.caja, sello, OP.codigo, r.unidades);
     } catch (er) { sonar("err"); $("sErr").textContent = er.message; $("sErr").hidden = false; bt.disabled = false; bt.textContent = "Guardar e imprimir etiqueta"; }
   };
@@ -704,7 +707,7 @@ function olaCerrar(id) {
       p.cajas.push({ caja: r.caja, sello, unidades: r.unidades, armo: OP.codigo, contenido: items });
       OLA.boxes[id] = { items: {}, inicio: null }; OLA.hist = OLA.hist.filter(h => h.id !== id); olaGuardar();
       d.close(); sonar("bien");
-      FLASH = { t: "ok", h: `${esc(p.tienda)}: caja ${r.caja} cerrada con sello ${esc(sello)}`, s: "Pega la etiqueta y abre una caja nueva para esa tienda si hace falta." };
+      FLASH = { t: "ok", h: `${esc(p.tienda)}: caja ${r.caja} cerrada con sello ${esc(sello)}`, s: "Pega la etiqueta y abre una caja nueva para esa tienda si hace falta." + avisoAud(r) };
       pintarRepartir();
       const prev = T; T = p; imprimirEtiqueta(r.caja, sello, OP.codigo, r.unidades); T = prev;
     } catch (er) { sonar("err"); $("sErr").textContent = er.message; $("sErr").hidden = false; bt.disabled = false; bt.textContent = "Guardar e imprimir etiqueta"; }
@@ -1026,6 +1029,87 @@ async function listaRecibir() {
     };
   } catch (e) { error(e, listaRecibir); }
 }
+// ---------------------------------------------------------------- CEDIS: auditoría al azar
+// Algunas cajas salen elegidas al cerrarlas. Otra persona (no quien la armó) la abre, cuenta todo y compara.
+const avisoAud = r => !r || !r.auditar ? "" : r.modoAuditoria === "SI" ? " ⚑ Esta caja salió elegida para AUDITORÍA: no se carga hasta que otra persona la revise." : " ⚑ Esta caja salió elegida para auditoría (práctica): pídele a otra persona que la revise en 'Auditar cajas'.";
+let AU = null, AIDX = new Map(), ACJ = new Map();
+async function listaAuditar() {
+  cargando("Buscando cajas por auditar…");
+  try {
+    const l = await api("porAuditar");
+    const modo = l[0] ? l[0].modo : "";
+    app.innerHTML = `<section class="card"><div class="row between"><h1>Auditar cajas</h1><button type="button" class="ghost" id="aVol">Volver</button></div>
+      <p class="muted">Cajas elegidas al azar al cerrarlas. Ábrela, cuenta todo escaneando y compara con lo que se empacó. No puedes auditar cajas que armaste tú.${modo === "PRACTICA" ? " <b>Modo práctica:</b> no frena la carga; sirve para acostumbrarse." : ""}</p>
+      ${l.length ? `<div class="list">${l.map((c, k) => `<button type="button" class="item" data-k="${k}"><span><b>${esc(c.tienda)}</b> · ${esc(c.traslado)} caja ${c.caja}<span class="small" style="display:block">${c.unidades} uds. · armó ${esc(c.armoNombre || c.armo)} · sello ${esc(c.sello)}${c.cargada ? " · ya cargada" : ""}</span></span><span>→</span></button>`).join("")}</div>` : '<p class="notice good">No hay cajas pendientes de auditoría. ✓</p>'}</section>`;
+    $("aVol").onclick = menu;
+    app.querySelectorAll("[data-k]").forEach(b => b.onclick = () => abrirAuditoria(l[+b.dataset.k]));
+  } catch (e) { error(e, menu); }
+}
+function abrirAuditoria(c) {
+  if (c.armo.toUpperCase() === OP.codigo) { FLASH = null; sonar("err"); alert("No puedes auditar una caja que armaste tú. Pídele a otra persona."); return; }
+  AU = lsGet("despacho-aud-" + c.trasladoId + "-" + c.caja, null) || { items: {}, hist: [] };
+  AU.c = c; AIDX = indice(c.productos); ACJ = indiceCajas(c.productos); FLASH = null; pintarAuditoria();
+}
+const auKey = () => "despacho-aud-" + AU.c.trasladoId + "-" + AU.c.caja;
+function auSumar(k, base, qty) { const x = AU.items[k] || (AU.items[k] = Object.assign({ qty: 0 }, base)); x.qty += qty; AU.hist.push({ k, qty }); lsSet(auKey(), AU); }
+function pintarAuditoria() {
+  const c = AU.c, u = Object.values(AU.items).reduce((s, x) => s + x.qty, 0);
+  app.innerHTML = `<section class="card"><div class="row between"><div><h3>Auditoría · ${esc(c.tienda)} · ${esc(c.traslado)}</h3><h1>Caja <span class="nf">${c.caja}</span></h1></div>
+      <div class="kpi"><span>Contadas</span><b>${u}</b></div></div>
+    <p class="notice">Rompe el sello <b class="mono">${esc(c.sello)}</b>, saca todo y escanea cada unidad. La app no te dice cuántas debe haber.</p>
+    <form class="scan" id="fA" autocomplete="off"><input id="ac" placeholder="Escanea cada unidad" inputmode="none"><button type="submit">+1</button></form>
+    ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : ""}
+    <div class="row"><button type="button" class="ok" id="aFin" ${u ? "" : "disabled"}>Comparar</button><button type="button" class="ghost" id="aUndo" ${AU.hist.length ? "" : "disabled"}>Quitar el último</button><button type="button" class="ghost" id="aOmit">No se puede auditar ahora</button><button type="button" class="ghost" id="aVol">Volver</button></div></section>
+    <section class="card"><h2>Contado</h2>${u ? `<div class="tbl"><table><tbody>${Object.values(AU.items).map(x => `<tr><td>${esc(x.nombre)}${x.extra ? ' <span class="chip r">no viene en la caja</span>' : ""}</td><td class="n big">${x.qty}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Todavía nada.</p>'}</section>`;
+  const ac = $("ac"); ac.focus();
+  $("fA").onsubmit = e => { e.preventDefault(); const v = limpio(ac.value); ac.value = ""; if (!v) return;
+    const cj = ACJ.get(v);
+    if (cj) { auSumar(cj.l.pid || "x:" + cj.l.codigo, { pid: cj.l.pid, codigo: cj.l.codigo, nombre: cj.l.nombre }, cj.qty); sonar("ok"); FLASH = { t: "ok", h: `+${cj.qty} ${cj.l.nombre} (caja cerrada)` }; }
+    else { const p = AIDX.get(v);
+      if (p) { auSumar(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, 1); sonar("ok"); FLASH = { t: "ok", h: "+1 " + p.nombre }; }
+      else { auSumar("x:" + v, { pid: null, codigo: v, nombre: "Código " + v, extra: true }, 1); sonar("err"); FLASH = { t: "err", h: "Este producto no viene en la caja", s: "Se cuenta como sobrante." }; } }
+    pintarAuditoria(); };
+  $("aUndo").onclick = () => { const h = AU.hist.pop(); if (!h) return; const x = AU.items[h.k]; x.qty -= h.qty; if (x.qty <= 0) delete AU.items[h.k]; lsSet(auKey(), AU); FLASH = null; pintarAuditoria(); };
+  $("aVol").onclick = listaAuditar;
+  $("aOmit").onclick = async () => { const m = prompt("¿Por qué no se puede auditar? (ej. ya salió el camión)"); if (m == null) return;
+    try { await api("auditar", { trasladoId: c.trasladoId, traslado: c.traslado, caja: c.caja, omitir: true, motivo: m }); lsDel(auKey()); listaAuditar(); } catch (er) { sonar("err"); FLASH = { t: "err", h: esc(er.message) }; pintarAuditoria(); } };
+  $("aFin").onclick = compararAuditoria;
+}
+function selloNuevo(c, base) {
+  $("sn").focus();
+  $("fSN").onsubmit = async e => {
+    e.preventDefault(); const sn = limpio($("sn").value); if (!sn) return;
+    try {
+      const g = await api("auditar", Object.assign({ guardar: true, selloNuevo: sn }, base)); lsDel(auKey()); sonar("bien");
+      const prev = T; T = { id: c.trasladoId, tienda: c.tienda, nombre: c.traslado }; imprimirEtiqueta(c.caja, g.sello, c.armo, g.unidades); T = prev;
+      app.innerHTML = `<section class="card"><h1>Auditoría registrada</h1><p>${esc(g.resultado)}. Queda en el score de quien armó la caja.</p><div class="row"><button type="button" id="aOtra">Auditar otra caja</button></div></section>`;
+      $("aOtra").onclick = listaAuditar;
+    } catch (er) { sonar("err"); $("aErr").textContent = er.message; $("aErr").hidden = false; }
+  };
+}
+async function compararAuditoria() {
+  const c = AU.c, b = $("aFin"); b.disabled = true; b.textContent = "Comparando…";
+  const items = Object.values(AU.items).map(({ pid, codigo, nombre, qty }) => ({ pid, codigo, nombre, qty }));
+  const base = { trasladoId: c.trasladoId, traslado: c.traslado, caja: c.caja, items };
+  try {
+    const r = await api("auditar", base);
+    if (!r.diferencias.length) { sonar("bien");
+      app.innerHTML = `<section class="card"><h1>Caja ${c.caja}: correcta ✓</h1><p>Todo coincide con lo empacado. Vuelve a cerrar la caja con un <b>sello nuevo</b> y escanéalo; se imprime una etiqueta nueva.</p>
+        <form class="scan" id="fSN" autocomplete="off"><input id="sn" placeholder="Sello nuevo" inputmode="none"><button type="submit">Registrar</button></form><p class="notice bad" id="aErr" hidden></p></section>`;
+      return selloNuevo(c, base); }
+    sonar("err");
+    app.innerHTML = `<section class="card"><h1>Caja ${c.caja}: con diferencias</h1>
+      <div class="tbl"><table><thead><tr><th>Producto</th><th class="n">Empacado</th><th class="n">Contado</th></tr></thead><tbody>${r.diferencias.map(x => `<tr><td>${esc(x.nombre)}<div class="small mono">${esc(x.codigo)}</div></td><td class="n">${x.empacado}</td><td class="n big">${x.contado}</td></tr>`).join("")}</tbody></table></div>
+      ${r.puedeCorregir ? `<p class="notice">El envío sigue en empaque: la caja <b>se queda con lo que contaste</b>. Deja en la caja exactamente lo contado, ciérrala con un <b>sello nuevo</b> y escanéalo. Se imprime una etiqueta nueva.</p>`
+        : `<p class="notice bad">El envío ya se terminó: la caja no se puede corregir. Vuelve a cerrarla tal como estaba, con un sello nuevo; la diferencia queda registrada y se avisa al encargado.</p>`}
+      <form class="scan" id="fSN" autocomplete="off"><input id="sn" placeholder="Sello nuevo" inputmode="none"><button type="submit">${r.puedeCorregir ? "Corregir caja" : "Registrar diferencias"}</button></form>
+      <p class="notice bad" id="aErr" hidden></p>
+      <div class="row"><button type="button" class="ghost" id="aSeg">Seguir contando</button></div></section>`;
+    $("aSeg").onclick = () => { FLASH = null; pintarAuditoria(); };
+    selloNuevo(c, base);
+  } catch (er) { sonar("err"); FLASH = { t: "err", h: esc(er.message) }; pintarAuditoria(); }
+}
+
 let RC = null;   // caja en recepción { info, sello, selloRoto, items, inicio, hist }
 let RIDX = new Map();
 async function abrirCaja(tid, caja) {
@@ -1078,9 +1162,10 @@ function pintarRecepcion() {
   app.innerHTML = `<section class="card">
     <div class="row between"><div><h3>${esc(i.traslado)} · sello ${esc(RC.sello || "—")}${RC.selloRoto ? " (roto)" : ""}</h3><h1>Caja <span class="nf">${i.caja}</span> de <span class="nf">${i.totalCajas}</span></h1></div>
       <div class="kpi"><span>Unidades contadas</span><b>${u}</b></div></div>
+    <div class="row foto"><label class="btnfoto ${RC.foto || i.foto ? "hecho" : ""}">${RC.foto || i.foto ? "Foto del sello guardada ✓ (tomar otra)" : "Foto del sello" + (i.fotoObligatoria ? " (obligatoria)" : " (opcional)")}<input type="file" id="rFoto" accept="image/*" capture="environment" hidden></label><span class="small" id="rFotoTxt">${RC.selloRoto ? "Sello roto: la foto ayuda al encargado a decidir." : ""}</span></div>
     <form class="scan" id="fR" autocomplete="off"><input id="rc" placeholder="Escanea cada unidad" inputmode="none"><button type="submit">+1</button></form>
     ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : '<div class="flash info">Escanea todo lo que trae la caja, una unidad a la vez. Al terminar, la app compara con lo que se envió.</div>'}
-    <div class="row"><button type="button" class="ok" id="bFin" ${u ? "" : "disabled"}>Terminar caja</button><button type="button" class="ghost" id="bUndo" ${RC.hist.length ? "" : "disabled"}>Quitar el último</button><button type="button" class="ghost" id="bMan">Ingresar a mano</button><button type="button" class="ghost" id="bVol">Dejar para después</button></div>
+    <div class="row"><button type="button" class="ok" id="bFin" ${u && (!i.fotoObligatoria || RC.foto || i.foto) ? "" : "disabled"}>Terminar caja</button><button type="button" class="ghost" id="bUndo" ${RC.hist.length ? "" : "disabled"}>Quitar el último</button><button type="button" class="ghost" id="bMan">Ingresar a mano</button><button type="button" class="ghost" id="bVol">Dejar para después</button></div>
   </section>
   <section class="card"><h2>Contado en esta caja</h2>${u ? `<div class="tbl"><table><tbody>${Object.values(RC.items).map(x => `<tr><td>${esc(x.nombre)}${x.manual ? ' <span class="chip a">a mano</span>' : ""}${x.extra ? ' <span class="chip r">no viene en la lista</span>' : ""}</td><td class="n big">${x.qty}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Todavía nada.</p>'}</section>`;
   const rc = $("rc"); rc.focus();
@@ -1088,6 +1173,7 @@ function pintarRecepcion() {
   $("bUndo").onclick = () => { const h = RC.hist.pop(); if (!h) return; const x = RC.items[h.k]; x.qty -= h.qty; if (x.qty <= 0) delete RC.items[h.k]; lsSet(rcKey(), RC); FLASH = { t: "info", h: "Quitado: " + x.nombre }; pintarRecepcion(); };
   $("bMan").onclick = recManual;
   $("bFin").onclick = finCaja;
+  $("rFoto").onchange = e => subirFoto(e.target.files && e.target.files[0]);
   $("bVol").onclick = listaRecibir;
 }
 function sumarRec(k, base, qty, manual) {
@@ -1114,6 +1200,26 @@ function recManual() {
   $("dlgForm").onsubmit = e => { e.preventDefault(); const c = limpio($("mC").value); const q = Math.max(1, Math.round(+$("mQ").value || 1)); if (!c) return; d.close();
     const p = RIDX.get(c); if (p) sumarRec(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, q, true); else sumarRec("x:" + c, { pid: null, codigo: c, nombre: "Código " + c, extra: true }, q, true);
     FLASH = { t: p ? "ok" : "err", h: `+${q} ${p ? p.nombre : "Código " + c}`, s: p ? "Ingreso manual" : "No viene en la lista de la caja" }; sonar(p ? "ok" : "err"); pintarRecepcion(); };
+}
+// Foto del sello: se reduce en el equipo (máx. 1280 px, JPEG) y se guarda en Drive
+function reducirFoto(file) {
+  return new Promise((ok, mal) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 1280 / Math.max(img.width, img.height)); const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", 0.72)); };
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error("No se pudo leer la foto.")); };
+    img.src = url;
+  });
+}
+async function subirFoto(file) {
+  if (!file) return;
+  const t = $("rFotoTxt"); t.textContent = "Guardando foto…";
+  try {
+    const foto = await reducirFoto(file);
+    await api("fotoSello", { trasladoId: RC.info.trasladoId, traslado: RC.info.traslado, caja: RC.info.caja, foto });
+    RC.foto = true; lsSet(rcKey(), RC); sonar("ok"); FLASH = { t: "ok", h: "Foto del sello guardada ✓" }; pintarRecepcion();
+  } catch (er) { sonar("err"); t.textContent = "No se guardó la foto: " + er.message; }
 }
 async function finCaja() {
   const b = $("bFin"); b.disabled = true; b.textContent = "Comparando…";

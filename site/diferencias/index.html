@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Faltantes y sobrantes de los traslados a tiendas: el encargado revisa cada caso antes de ajustar el sistema.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="robots" content="noindex,nofollow">
+<title>Diferencias de traslados · De Museo</title>
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<script>
+window.excelListo = new Promise(function (ok) {
+  function cargar() { var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = ok; document.head.appendChild(s); }
+  if (document.readyState === "complete") cargar(); else window.addEventListener("load", cargar);
+});
+</script>
+<style>
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --blanco: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8; --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", Georgia, serif; --f-body: "Archivo", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1200px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--blanco); padding-block: 12px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 8px 14px; flex-wrap: wrap; }
+.mast img { display: block; width: min(170px, 44vw); height: auto; }
+.who { display: flex; gap: 10px; align-items: center; font-size: 14px; flex-wrap: wrap; }
+.who b { color: var(--gold); }
+main { padding-block: 18px 40px; display: grid; gap: 16px; }
+h1 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(24px, 5vw, 32px); line-height: 1.1; }
+h2 { margin: 0; font-size: 18px; font-weight: 800; }
+.nf, .kpi b, td.n { font-family: var(--f-body); font-weight: 700; font-variant-numeric: lining-nums tabular-nums; }
+.muted { color: var(--muted); font-size: 14px; }
+.small { font-size: 12px; color: var(--muted); }
+.mono { font-family: var(--f-mono); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 12px; min-width: 0; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+button { font: 700 16px var(--f-body); border-radius: 10px; cursor: pointer; padding: 10px 16px; border: 2px solid var(--navy); background: var(--navy); color: var(--blanco); min-height: 44px; }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.ok { background: var(--green); border-color: var(--green); }
+button.sm { min-height: 34px; padding: 4px 10px; font-size: 13px; }
+.mast button.ghost { color: var(--blanco); border-color: rgba(255,255,255,.35); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, tr:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+input, select, textarea { font: 16px var(--f-body); padding: 9px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); min-width: 0; }
+label.f { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.good { background: var(--green-bg); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.kpi { background: var(--soft); border-radius: 10px; padding: 10px 12px; }
+.kpi span { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.kpi b { font-size: 30px; }
+.kpi.alerta { background: var(--red-bg); } .kpi.alerta b { color: var(--red); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { background: transparent; color: var(--ink); border-color: var(--line); }
+.tabs button[aria-selected="true"] { background: var(--navy); color: var(--blanco); border-color: var(--navy); }
+.tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; max-height: 65vh; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11px; font-weight: 800; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+tbody tr.clic { cursor: pointer; } tbody tr.clic:hover { background: var(--soft); }
+tr.tarde td:first-child { box-shadow: inset 4px 0 0 var(--red); }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; background: var(--soft); white-space: nowrap; }
+.chip.g { background: var(--green-bg); color: var(--green); }
+.chip.r { background: var(--red-bg); color: var(--red); }
+.chip.a { background: var(--amber-bg); color: var(--amber); }
+dialog { border: 0; border-radius: 14px; padding: 20px; width: min(560px, calc(100% - 24px)); background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog::backdrop { background: rgba(11,23,72,.55); }
+dialog form { display: grid; gap: 12px; }
+.opc { display: grid; gap: 8px; }
+.opc label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; cursor: pointer; font-weight: 600; }
+.opc label:has(input:checked) { border-color: var(--navy); background: var(--soft); }
+.opc small { display: block; font-weight: 400; color: var(--muted); }
+dl.det { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 14px; }
+dl.det dt { color: var(--muted); font-weight: 700; }
+dl.det dd { margin: 0; }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner">
+  <a href="../gerencia/"><img src="../checador/logo.png" alt="De Museo · volver a Gerencia" width="800" height="143"></a>
+  <div class="who" id="who" hidden><span id="whoTxt"></span><button type="button" class="ghost sm" id="btnSalir">Salir</button></div>
+</div></header>
+<main class="pad"><div class="inner" id="app" style="display:grid;gap:16px"></div></main>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const app = $("app");
+const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+const Q = n => "Q" + Number(n || 0).toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fecha = s => s ? new Date(s).toLocaleString("es-GT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+const PLAZO = 2;   // días hábiles
+
+// ---------------------------------------------------------------- servidor (mismo servidor y configuración que Despachos)
+let CFG = lsGet("despacho-cfg", null);
+let OP = lsGet("diferencias-op", null);
+async function api(accion, datos) {
+  const body = JSON.stringify(Object.assign({ accion, token: CFG.token, operador: OP && OP.codigo, sesion: OP && OP.sesion }, datos || {}));
+  let r;
+  try {
+    r = body.length < 6000
+      ? await fetch(CFG.url + (CFG.url.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(body), { method: "GET", redirect: "follow" })
+      : await fetch(CFG.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body, redirect: "follow" });
+  } catch (e) { throw new Error("No hay conexión con el servidor. Revisa el internet."); }
+  let j;
+  try { j = await r.json(); } catch (e) { throw new Error("El servidor no respondió bien. Revisa que esté implementada la versión 3."); }
+  if (!j.ok) {
+    const m = String(j.error || "Error del servidor");
+    if (/^SESION\|/.test(m)) { OP = null; lsDel("diferencias-op"); pantallaLogin(m.slice(7)); throw new Error(m.slice(7)); }
+    throw new Error(m.replace(/^PIN\|/, ""));
+  }
+  return j.datos;
+}
+function cargando(t) { app.innerHTML = `<section class="card"><p class="muted">${esc(t || "Cargando…")}</p></section>`; }
+
+function pantallaConfig() {
+  $("who").hidden = true;
+  app.innerHTML = `<section class="card"><h1>Configurar este equipo</h1>
+    <p class="muted">Usa la misma dirección del servidor y la misma clave que la app Despachos. Si este equipo ya usa Despachos, no hace falta.</p>
+    <form id="fCfg" style="display:grid;gap:12px" autocomplete="off">
+      <label class="f">Dirección del servidor<input id="cUrl" placeholder="https://script.google.com/macros/s/…/exec" required></label>
+      <label class="f">Clave de la app<input id="cTok" type="password" required></label>
+      <p class="notice bad" id="cErr" hidden></p><button type="submit">Guardar y probar</button></form></section>`;
+  $("fCfg").onsubmit = async e => {
+    e.preventDefault();
+    CFG = { url: $("cUrl").value.trim(), token: $("cTok").value.trim() };
+    try { await api("ping"); lsSet("despacho-cfg", CFG); pantallaLogin(); }
+    catch (er) { $("cErr").textContent = "No se pudo conectar: " + er.message; $("cErr").hidden = false; }
+  };
+}
+function pantallaLogin(aviso) {
+  $("who").hidden = true;
+  app.innerHTML = `<section class="card" style="max-width:460px"><h1>Diferencias de traslados</h1>
+    <p class="muted">Para el encargado de faltantes y sobrantes y los supervisores. Entra con tu código y PIN de Despachos.</p>
+    <form id="fLog" autocomplete="off" style="display:grid;gap:10px">
+      <input id="lCod" placeholder="Código de operador" autofocus>
+      <input id="lPin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN" style="font:600 20px var(--f-mono);letter-spacing:.3em">
+      <button type="submit">Entrar</button></form>
+    <p class="notice bad" id="lErr" ${aviso ? "" : "hidden"}>${esc(aviso || "")}</p>
+    <p class="small"><a href="#" id="lCfg">Configurar este equipo</a></p></section>`;
+  $("lCfg").onclick = e => { e.preventDefault(); pantallaConfig(); };
+  $("fLog").onsubmit = async e => {
+    e.preventDefault();
+    const c = $("lCod").value.trim().toUpperCase(), pin = $("lPin").value.trim();
+    if (!c || !pin) return;
+    try {
+      const op = await api("login", { codigo: c, pin });
+      if (op.rol !== "SUPERVISOR") throw new Error("Esta app es solo para el encargado y los supervisores.");
+      OP = op; lsSet("diferencias-op", OP); inicio();
+    } catch (er) { $("lErr").textContent = er.message; $("lErr").hidden = false; $("lPin").value = ""; }
+  };
+}
+$("btnSalir").onclick = () => { OP = null; lsDel("diferencias-op"); pantallaLogin(); };
+
+// ---------------------------------------------------------------- datos
+let DATOS = [], VISTA = lsGet("diferencias-vista", "pend"), FIL = { tienda: "", tipo: "", texto: "" }, BIT = null;
+async function inicio() {
+  if (!CFG) return pantallaConfig();
+  if (!OP) return pantallaLogin();
+  $("who").hidden = false; $("whoTxt").innerHTML = `<b>${esc(OP.nombre)}</b> · ${esc(OP.codigo)}`;
+  cargando("Cargando diferencias…");
+  try { DATOS = await api("diferencias", { desde: new Date(Date.now() - 62 * 864e5).toISOString() }); pintar(); }
+  catch (e) { app.innerHTML = `<section class="card"><p class="notice bad">${esc(e.message)}</p><div class="row"><button type="button" id="re">Intentar de nuevo</button></div></section>`; $("re").onclick = inicio; }
+}
+const pendientes = () => DATOS.filter(d => d.estado === "pendiente");
+function filtrar(l) {
+  const t = FIL.texto.toLowerCase();
+  return l.filter(d => (!FIL.tienda || d.tienda === FIL.tienda) && (!FIL.tipo || d.tipo === FIL.tipo) &&
+    (!t || (d.producto + " " + d.codigo + " " + d.traslado + " " + d.armo + " " + d.recibio).toLowerCase().includes(t)));
+}
+
+function pintar() {
+  const p = pendientes(), tarde = p.filter(d => d.dias > PLAZO);
+  const fal = p.filter(d => d.tipo === "FALTANTE"), sob = p.filter(d => d.tipo === "SOBRANTE");
+  const sello = p.filter(d => !d.selloOk).length;
+  const tiendas = [...new Map(DATOS.map(d => [d.tienda, d.tiendaNombre])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  app.innerHTML = `
+  <section class="card">
+    <div class="row between"><h1>Diferencias de traslados</h1><div class="row"><button type="button" class="ghost sm" id="bRec">Actualizar</button><button type="button" class="ghost sm" id="bXls">Descargar Excel</button></div></div>
+    <p class="muted">Nada se ajusta en Odoo hasta que lo resuelvas aquí. Plazo: ${PLAZO} días hábiles.</p>
+    <div class="kpis">
+      <div class="kpi"><span>Casos por resolver</span><b>${p.length}</b></div>
+      <div class="kpi ${tarde.length ? "alerta" : ""}"><span>Fuera de plazo</span><b>${tarde.length}</b></div>
+      <div class="kpi"><span>Faltantes</span><b>${fal.reduce((s, d) => s + d.unidades, 0)}</b><div class="small">${Q(fal.reduce((s, d) => s + d.valor, 0))}</div></div>
+      <div class="kpi"><span>Sobrantes</span><b>${sob.reduce((s, d) => s + d.unidades, 0)}</b><div class="small">${Q(sob.reduce((s, d) => s + d.valor, 0))}</div></div>
+      <div class="kpi ${sello ? "alerta" : ""}"><span>Con incidente de sello</span><b>${sello}</b></div>
+    </div>
+  </section>
+  <div class="tabs" role="tablist">
+    ${[["pend", "Por resolver (" + p.length + ")"], ["res", "Resueltos"], ["bit", "Bitácora y score"]].map(([k, t]) => `<button type="button" role="tab" data-v="${k}" aria-selected="${VISTA === k}">${t}</button>`).join("")}
+  </div>
+  <section class="card" id="vista"></section>`;
+  $("bRec").onclick = inicio;
+  $("bXls").onclick = excel;
+  app.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { VISTA = b.dataset.v; lsSet("diferencias-vista", VISTA); pintar(); });
+  if (VISTA === "bit") return pintarBitacora();
+  const v = $("vista");
+  v.innerHTML = `<div class="row">
+      <select id="fT"><option value="">Todas las tiendas</option>${tiendas.map(([c, n]) => `<option value="${esc(c)}" ${FIL.tienda === c ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>
+      <select id="fK"><option value="">Faltantes y sobrantes</option><option value="FALTANTE" ${FIL.tipo === "FALTANTE" ? "selected" : ""}>Solo faltantes</option><option value="SOBRANTE" ${FIL.tipo === "SOBRANTE" ? "selected" : ""}>Solo sobrantes</option></select>
+      <input id="fX" placeholder="Buscar producto, envío o persona" value="${esc(FIL.texto)}" style="flex:1;min-width:200px"></div>
+    <div id="tabla"></div>`;
+  $("fT").onchange = e => { FIL.tienda = e.target.value; tabla(); };
+  $("fK").onchange = e => { FIL.tipo = e.target.value; tabla(); };
+  $("fX").oninput = e => { FIL.texto = e.target.value; tabla(); };
+  tabla();
+}
+function tabla() {
+  const res = VISTA === "res";
+  const l = filtrar(DATOS.filter(d => res ? d.estado !== "pendiente" : d.estado === "pendiente"))
+    .sort((a, b) => res ? b.fechaResol.localeCompare(a.fechaResol) : b.dias - a.dias || a.fecha.localeCompare(b.fecha));
+  if (!l.length) { $("tabla").innerHTML = `<p class="notice good">${res ? "No hay casos resueltos en los últimos 2 meses con estos filtros." : "No hay diferencias por resolver. ✓"}</p>`; return; }
+  $("tabla").innerHTML = `<div class="tbl"><table><thead><tr><th>Tienda</th><th>Envío · caja</th><th>Producto</th><th>Tipo</th><th class="n">Env.</th><th class="n">Rec.</th><th class="n">Valor</th><th>Armó / recibió</th><th>${res ? "Resolución" : "Antigüedad"}</th></tr></thead><tbody>
+    ${l.map(d => `<tr class="clic ${!res && d.dias > PLAZO ? "tarde" : ""}" tabindex="0" data-id="${esc(d.id)}">
+      <td>${esc(d.tiendaNombre)}</td>
+      <td class="mono small">${esc(d.traslado)}<br>caja ${d.caja} · ${fecha(d.fecha)}</td>
+      <td>${esc(d.producto)}<div class="small mono">${esc(d.codigo)}</div></td>
+      <td><span class="chip ${d.tipo === "FALTANTE" ? "r" : "a"}">${d.tipo === "FALTANTE" ? "Faltan " : "Sobran "}${d.unidades}</span>${d.selloOk ? "" : ' <span class="chip r">Sello</span>'}</td>
+      <td class="n">${d.enviado}</td><td class="n">${d.recibido}</td><td class="n">${Q(d.valor)}</td>
+      <td class="small">${esc(d.armoNombre || d.armo)}<br>${esc(d.recibioNombre || d.recibio)}</td>
+      <td class="small">${res ? esc(d.resolucion) + "<br>" + esc(d.resolvio) + " · " + fecha(d.fechaResol) : `<b class="nf" style="color:${d.dias > PLAZO ? "var(--red)" : "inherit"}">${d.dias}</b> día(s) hábil(es)`}</td></tr>`).join("")}
+  </tbody></table></div>`;
+  $("tabla").querySelectorAll("tr[data-id]").forEach(tr => { const f = () => abrir(tr.dataset.id); tr.onclick = f; tr.onkeydown = e => { if (e.key === "Enter") f(); }; });
+}
+
+// ---------------------------------------------------------------- resolver un caso
+const OPCIONES = {
+  FALTANTE: [
+    ["perdida", "Faltante confirmado", "Se da de baja desde el tránsito de la tienda y cuenta en el score del responsable."],
+    ["cedis", "Apareció en el CEDIS", "Nunca salió: regresa al inventario de la Bodega Central."],
+    ["tienda", "La tienda lo encontró", "Sí llegó: entra al inventario de la tienda (error de conteo de la tienda)."],
+  ],
+  SOBRANTE: [
+    ["queda", "Se queda en la tienda", "Sale de la Bodega Central y entra a la tienda."],
+    ["catalogo", "No existe en el sistema", "Sin ajuste; hay que darlo de alta o corregir su código en Odoo."],
+    ["error", "No era sobrante", "Error de conteo de la tienda; sin ajuste."],
+  ],
+};
+function abrir(id) {
+  const d = DATOS.find(x => x.id === id); if (!d) return;
+  const pend = d.estado === "pendiente";
+  const resp = [];
+  if (d.armo) resp.push([d.armo, "Armó la caja: " + (d.armoNombre || d.armo)]);
+  if (d.piloto) resp.push([d.piloto, "Piloto: " + (d.pilotoNombre || d.piloto)]);
+  if (d.recibio) resp.push([d.recibio, "Tienda, recibió: " + (d.recibioNombre || d.recibio)]);
+  resp.push(["NINGUNO", "No se pudo determinar"]);
+  const dlg = document.createElement("dialog");
+  dlg.innerHTML = `<form method="dialog">
+    <div class="row between"><h2>${d.tipo === "FALTANTE" ? "Faltan" : "Sobran"} <span class="nf">${d.unidades}</span> · ${esc(d.tiendaNombre)}</h2>${d.selloOk ? '<span class="chip g">Sello OK</span>' : '<span class="chip r">Incidente de sello</span>'}</div>
+    <dl class="det">
+      <dt>Producto</dt><dd>${esc(d.producto)} <span class="mono small">${esc(d.codigo)}</span></dd>
+      <dt>Envío</dt><dd class="mono">${esc(d.traslado)} · caja ${d.caja}</dd>
+      <dt>Enviado / recibido</dt><dd class="nf">${d.enviado} / ${d.recibido} · ${Q(d.valor)}</dd>
+      <dt>Armó</dt><dd>${esc(d.armoNombre || d.armo)}</dd>
+      <dt>Recibió</dt><dd>${esc(d.recibioNombre || d.recibio)} · ${fecha(d.fecha)}</dd>
+      ${d.piloto ? `<dt>Piloto</dt><dd>${esc(d.pilotoNombre || d.piloto)}</dd>` : ""}
+      ${d.nota ? `<dt>Nota</dt><dd>${esc(d.nota)}</dd>` : ""}
+      ${d.foto ? `<dt>Foto del sello</dt><dd><a href="${esc(d.foto)}" target="_blank" rel="noopener">Ver foto</a></dd>` : ""}
+      <dt>Odoo</dt><dd class="small">${esc(d.sistema || d.llegada || "—")}</dd>
+    </dl>
+    ${pend ? `
+    ${d.tipo === "FALTANTE" && !/^OK/.test(d.llegada) ? `<p class="notice bad">La llegada de este envío todavía no está registrada en Odoo (${esc(d.llegada || "sin registrar")}). Los ajustes del faltante esperan a que se registre.</p>` : ""}
+    <div class="opc">${OPCIONES[d.tipo].map(([k, t, s], i) => `<label><input type="radio" name="dec" value="${k}" ${i === 0 ? "checked" : ""}><span>${t}<small>${s}</small></span></label>`).join("")}</div>
+    <label class="f" id="wResp">¿A quién se le carga?<select id="dResp">${resp.map(([c, t], i) => `<option value="${esc(c)}" ${(d.selloOk ? i === 0 : c === d.piloto) ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
+      <span class="small">${d.selloOk ? "Sello intacto: lo normal es quien armó la caja." : "Sello roto o distinto: decide según lo que encuentres (armó, piloto o tienda)."}</span></label>
+    <label class="f">Nota (opcional)<input id="dNota" maxlength="200" placeholder="Qué encontraste al revisar"></label>
+    <label class="f">Tu PIN para aplicar<input id="dPin" type="password" inputmode="numeric" maxlength="6" style="font:600 20px var(--f-mono);letter-spacing:.3em"></label>
+    <p class="notice bad" id="dErr" hidden></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="dNo">Cancelar</button><button type="submit" class="ok" id="dSi">Aplicar</button></div>`
+    : `<p class="notice good">${esc(d.resolucion)}${d.responsable ? " · responsable " + esc(d.responsable) : ""}<br><span class="small">${esc(d.resolvio)} · ${fecha(d.fechaResol)}</span></p>
+       <div class="row" style="justify-content:flex-end"><button type="button" id="dNo">Cerrar</button></div>`}
+  </form>`;
+  document.body.appendChild(dlg);
+  const cerrar = () => { try { dlg.close(); } catch (e) {} dlg.remove(); };
+  dlg.querySelector("#dNo").onclick = cerrar; dlg.oncancel = cerrar;
+  dlg.showModal();
+  if (!pend) return;
+  const verResp = () => { const v = dlg.querySelector("[name=dec]:checked").value; $("wResp").hidden = v !== "perdida"; };
+  dlg.querySelectorAll("[name=dec]").forEach(r => r.onchange = verResp); verResp();
+  dlg.querySelector("form").onsubmit = async e => {
+    e.preventDefault();
+    const dec = dlg.querySelector("[name=dec]:checked").value, pin = $("dPin").value.trim();
+    if (!pin) { $("dPin").focus(); return; }
+    const b = $("dSi"); b.disabled = true; b.textContent = "Aplicando en Odoo…";
+    try {
+      const r = await api("resolver", { id: d.id, decision: dec, responsable: dec === "perdida" ? $("dResp").value : "", nota: $("dNota").value.trim(), pin });
+      Object.assign(d, { estado: "resuelto", resolucion: r.resolucion, sistema: r.sistema, resolvio: OP.codigo, fechaResol: new Date().toISOString(), responsable: dec === "perdida" ? $("dResp").value : "" });
+      cerrar(); pintar();
+    } catch (er) { $("dErr").textContent = er.message; $("dErr").hidden = false; b.disabled = false; b.textContent = "Aplicar"; $("dPin").value = ""; }
+  };
+}
+
+// ---------------------------------------------------------------- bitácora y score
+async function pintarBitacora() {
+  const v = $("vista"), hoy = new Date();
+  const ini = BIT ? BIT.desdeIn : new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10);
+  const fin = BIT ? BIT.hastaIn : hoy.toISOString().slice(0, 10);
+  v.innerHTML = `<div class="row"><label class="f">Desde<input type="date" id="bD" value="${ini}"></label><label class="f">Hasta<input type="date" id="bH" value="${fin}"></label><button type="button" id="bVer" style="align-self:end">Ver</button></div><div id="bOut"><p class="muted">Cargando…</p></div>`;
+  $("bVer").onclick = () => { BIT = null; cargarBit($("bD").value, $("bH").value); };
+  if (BIT) dibujarBit(); else cargarBit(ini, fin);
+}
+async function cargarBit(d, h) {
+  try {
+    const r = await api("bitacora", { desde: new Date(d + "T00:00:00").toISOString(), hasta: new Date(h + "T23:59:59").toISOString() });
+    BIT = Object.assign(r, { desdeIn: d, hastaIn: h }); dibujarBit();
+  } catch (e) { $("bOut").innerHTML = `<p class="notice bad">${esc(e.message)}</p>`; }
+}
+function dibujarBit() {
+  const b = BIT, pct = x => x == null ? "—" : x + " %";
+  const nom = p => p.codigo === "NINGUNO" ? "Sin responsable" : esc(p.nombre || p.codigo);
+  $("bOut").innerHTML = `
+    <h2>Por persona</h2><p class="small">Exactitud = cajas recibidas sin diferencias ÷ cajas recibidas. Faltantes y sobrantes cuentan cuando se resuelven con un responsable. Auditoría: cajas revisadas al azar en el CEDIS antes de salir.</p>
+    <div class="tbl"><table><thead><tr><th>Persona</th><th class="n">Cajas armadas</th><th class="n">Exactitud</th><th class="n">Faltantes confirmados</th><th class="n">Valor</th><th class="n">Sobrantes</th><th class="n">Auditadas / con error</th><th class="n">Auditorías hechas</th></tr></thead><tbody>
+    ${b.personas.map(p => `<tr><td>${nom(p)} <span class="small mono">${esc(p.codigo)}</span></td><td class="n">${p.cajas}</td><td class="n">${pct(p.exactitud)}</td><td class="n">${p.faltantesConf}</td><td class="n">${Q(p.valorConf)}</td><td class="n">${p.sobrantes}</td><td class="n">${p.auditadas || 0} / ${p.erroresAud || 0}</td><td class="n">${p.auditorias || 0}</td></tr>`).join("") || '<tr><td colspan="8" class="muted">Sin datos.</td></tr>'}</tbody></table></div>
+    <h2>Por tienda</h2>
+    <div class="tbl"><table><thead><tr><th>Tienda</th><th class="n">Cajas recibidas</th><th class="n">Días hábiles prom.</th><th class="n">Fuera de plazo</th><th class="n">Diferencias</th><th class="n">Errores de conteo</th><th class="n">Pendientes</th></tr></thead><tbody>
+    ${b.tiendas.map(t => `<tr><td>${esc(t.nombre)}</td><td class="n">${t.cajas}</td><td class="n">${t.diasProm == null ? "—" : t.diasProm}</td><td class="n">${t.tarde}</td><td class="n">${t.difs}</td><td class="n">${t.errores}</td><td class="n">${t.pendientes}</td></tr>`).join("") || '<tr><td colspan="7" class="muted">Sin datos.</td></tr>'}</tbody></table></div>
+    ${b.pilotos.length ? `<h2>Pilotos</h2><div class="tbl"><table><thead><tr><th>Piloto</th><th class="n">Cajas</th><th class="n">Incidentes de sello</th><th class="n">Casos cargados</th></tr></thead><tbody>
+    ${b.pilotos.map(p => `<tr><td>${esc(p.nombre || p.codigo)}</td><td class="n">${p.cajas}</td><td class="n">${p.incidentes}</td><td class="n">${p.cargados}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+}
+
+// ---------------------------------------------------------------- Excel
+async function excel() {
+  await window.excelListo;
+  if (!window.XLSX) { alert("No se pudo cargar el generador de Excel. Revisa el internet."); return; }
+  const filas = DATOS.map(d => ({ Fecha: fecha(d.fecha), Tienda: d.tiendaNombre, Envío: d.traslado, Caja: d.caja, Tipo: d.tipo, Código: d.codigo, Producto: d.producto,
+    Enviado: d.enviado, Recibido: d.recibido, Unidades: d.unidades, Valor: d.valor, "Sello OK": d.selloOk ? "Sí" : "No", Armó: d.armoNombre || d.armo, Recibió: d.recibioNombre || d.recibio,
+    Piloto: d.pilotoNombre || d.piloto, Estado: d.estado, "Días hábiles": d.dias, Resolución: d.resolucion, Responsable: d.responsable, Resolvió: d.resolvio, Nota: d.nota, Odoo: d.sistema }));
+  const wb = XLSX.utils.book_new(), ws = XLSX.utils.json_to_sheet(filas);
+  ws["!cols"] = [14, 22, 16, 6, 10, 16, 40, 8, 8, 8, 10, 8, 20, 20, 18, 10, 10, 34, 12, 10, 30, 40].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws, "Diferencias");
+  if (BIT) {
+    const p = XLSX.utils.json_to_sheet(BIT.personas.map(x => ({ Persona: x.nombre || x.codigo, Código: x.codigo, "Cajas armadas": x.cajas, "Exactitud %": x.exactitud, "Faltantes confirmados": x.faltantesConf, Valor: x.valorConf, Sobrantes: x.sobrantes, Auditadas: x.auditadas || 0, "Error en auditoría": x.erroresAud || 0, "Auditorías hechas": x.auditorias || 0 })));
+    p["!cols"] = [26, 10, 14, 12, 20, 12, 10].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, p, "Score por persona");
+    const t = XLSX.utils.json_to_sheet(BIT.tiendas.map(x => ({ Tienda: x.nombre, "Cajas recibidas": x.cajas, "Días hábiles prom.": x.diasProm, "Fuera de plazo": x.tarde, Diferencias: x.difs, "Errores de conteo": x.errores })));
+    t["!cols"] = [26, 14, 18, 14, 12, 16].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, t, "Por tienda");
+  }
+  XLSX.writeFile(wb, "diferencias-traslados-" + new Date().toISOString().slice(0, 10) + ".xlsx");
+}
+
+inicio();
+</script>
+</body>
+</html>
