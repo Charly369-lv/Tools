@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Soporte de informática · Herramientas De Museo</title>
+<meta name="description" content="Reportar fallas y pedir ayuda de informática. Los tickets se atienden en la Mesa de ayuda de Odoo.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="theme-color" content="#0b1748">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<link rel="stylesheet" href="../estilo/indices.css">
+<style>
+.row .ext { font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-muted); white-space: nowrap; }
+.prio { width: 100%; margin-top: var(--space-md); border-collapse: collapse; border-top: var(--rule-hair) solid var(--color-rule-2); }
+.prio th, .prio td { text-align: left; vertical-align: baseline; padding: var(--space-sm) var(--space-md) var(--space-sm) 0; border-bottom: var(--rule-hair) solid var(--color-rule); }
+.prio th { font-weight: 600; font-size: var(--text-sm); color: var(--color-muted); }
+.prio td:first-child { font-weight: 600; white-space: nowrap; }
+.prio td.num { font-family: var(--font-num); font-weight: 700; white-space: nowrap; }
+.consejos { margin: var(--space-md) 0 0; padding-left: 1.2em; max-width: 65ch; }
+.consejos li + li { margin-top: var(--space-2xs); }
+.mas a { color: var(--color-accent); font-weight: 600; }
+@media (max-width: 40rem) { .prio th:nth-child(3), .prio td:nth-child(3) { display: none; } }
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap bar-in">
+  <a class="bar-logo" href="../"><img src="../checador/logo.png" alt="De Museo, volver a Herramientas" width="800" height="143"></a>
+  <a class="bar-back" href="../">Todas las áreas</a>
+</div></header>
+<main class="wrap">
+  <div class="cab">
+    <h1><span class="guide">Soporte</span></h1>
+    <p>¿Algo de computadoras, caja, impresoras, internet u Odoo no funciona? Repórtelo aquí. Entre con su usuario de Odoo.</p>
+  </div>
+  <ol class="rows">
+    <li><a class="row" id="ir-formulario" href="https://demuseo.odoo.com/helpdesk/informatica-1"><span class="n">01</span><b>Levantar un ticket</b><span class="d">Cuente qué pasa y desde cuándo. Informática lo recibe al momento y le responde por correo. <span class="ext">Abre Odoo</span></span></a></li>
+    <li><a class="row" id="ir-mis-tickets" href="https://demuseo.odoo.com/my/tickets"><span class="n">02</span><b>Mis tickets</b><span class="d">Vea en qué va cada ticket de su tienda y conteste lo que le pregunten. <span class="ext">Abre Odoo</span></span></a></li>
+  </ol>
+
+  <section class="mas" aria-labelledby="t-urgencia">
+    <h2 id="t-urgencia">¿Qué tan urgente es?</h2>
+    <p>En el formulario elija lo que le pasa. Informática confirma la prioridad al abrir el ticket.</p>
+    <table class="prio">
+      <thead><tr><th scope="col">Si…</th><th scope="col">Le responden en</th><th scope="col">Ejemplo</th></tr></thead>
+      <tbody>
+        <tr><td>No pueden vender ni cobrar</td><td class="num">1 hora</td><td>La caja no abre, no pasa ninguna tarjeta</td></tr>
+        <tr><td>Venden, pero con dificultad</td><td class="num">4 horas</td><td>Una de dos cajas no imprime</td></tr>
+        <tr><td>Molesta, pero hay otra forma</td><td class="num">1 día hábil</td><td>El lector falla a veces, se teclea el código</td></tr>
+        <tr><td>Es algo nuevo que necesitan</td><td class="num">3 días hábiles</td><td>Un usuario nuevo, instalar un programa</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="mas" aria-labelledby="t-consejos">
+    <h2 id="t-consejos">Para que se resuelva más rápido</h2>
+    <ul class="consejos">
+      <li>Un ticket por problema. Si son dos cosas, levante dos tickets.</li>
+      <li>Diga qué ya intentaron (reiniciar, cambiar el cable…) y deje un teléfono de contacto.</li>
+      <li>Si Informática les pregunta algo, contesten en el mismo ticket o respondiendo el correo.</li>
+      <li>Sin acceso a Tools: escriban a <a href="mailto:soporte@demuseo.com">soporte@demuseo.com</a> y el ticket se crea solo.</li>
+    </ul>
+  </section>
+</main>
+<footer class="wrap"><p class="sync" id="sync"></p></footer>
+<script>
+// Direcciones de la Mesa de ayuda en Odoo. Si cambia el formulario, cambie solo esta línea.
+const FORMULARIO = "https://demuseo.odoo.com/helpdesk/informatica-1";
+const MIS_TICKETS = "https://demuseo.odoo.com/my/tickets";
+document.getElementById("ir-formulario").href = FORMULARIO;
+document.getElementById("ir-mis-tickets").href = MIS_TICKETS;
+</script>
+</body>
+</html>
