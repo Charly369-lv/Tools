@@ -1,108 +1,73 @@
-# Salones de eventos
+# Salones y eventos
 
 La página está en `site/salones/index.html` y se abre en https://charly369-lv.github.io/Tools/salones/. Aparece en el índice de Tienda y en el directorio principal.
 
-Las 12 tiendas y los dos cafés entran con su usuario y ven los eventos de los cinco salones, con la hora, el cliente, el teléfono y las observaciones. Gerencia (Claribel e Ingrid) puede crear, cambiar y eliminar eventos en los cinco salones. De las tiendas, solo cuatro pueden hacerlo, y cada una únicamente en sus propios salones:
+Muestra lo que está programado en las 12 tiendas De Museo, agrupado por tienda. Cada tienda tiene su área de actividades. Tres tiendas tienen además salón (Majadas ONCE tiene dos), y Majadas ONCE y Vidēre tienen café. En total son 19 espacios.
 
-| Tienda | Salones que edita |
+Todos los usuarios ven todas las actividades, con su tipo, horario, cliente, teléfono y observaciones. Para crear y cambiar:
+
+| Usuario | Puede crear y editar en |
 |---|---|
-| Centro Histórico | Salón Zona 1 |
-| Majadas ONCE | Salón 1 y salón 2 |
-| La Antigua Guatemala | Salón Antigua |
-| Parque Las Américas | Salón Las Américas |
+| Ligia García (gestión cultural), Francisco (distribuidora), Claribel e Ingrid (gerencia) | Los 19 espacios |
+| Majadas ONCE | Su área de actividades, salón 1 y salón 2 |
+| Parque Las Américas, Centro Histórico y La Antigua | Su área de actividades y su salón |
+| Las otras 8 tiendas | Su área de actividades |
+| Café Majadas ONCE y Café Vidēre | Su café |
 
-La página no deja guardar un evento que se cruce con otro en el mismo salón. Cada evento muestra qué tienda lo registró y quién hizo el último cambio.
+La página no deja guardar dos actividades a la misma hora en el mismo espacio. En espacios distintos de la misma tienda sí se puede, por ejemplo un taller en el área de actividades mientras el salón está rentado. Cada evento muestra quién lo registró y quién hizo el último cambio.
 
-Los eventos y los usuarios se guardan en Firebase, el servicio de Google, porque GitHub Pages no puede guardar datos. Los permisos se revisan en el servidor de Firebase con el archivo `salones/firestore.rules`, así que una tienda no puede editar el salón de otra aunque lo intente desde el navegador. Para este volumen, Firebase es gratis.
+Cada evento lleva un tipo de actividad: presentación de libro, firma de libros, taller, cuentacuentos, club de lectura, charla o conversatorio, lanzamiento o activación de marca, evento privado (renta) u otro. Arriba del calendario hay filtros por tienda, por clase de espacio y por tipo de actividad.
 
-Mientras la página no tenga los datos de Firebase, abre en modo de prueba: usted elige qué tienda simular y nada se guarda. Sirve para enseñársela a las tiendas antes de configurar.
+Los eventos y los usuarios se guardan en Firebase (proyecto `salones-demuseo`). Los permisos se revisan en el servidor de Firebase con `salones/firestore.rules`, así que nadie puede editar un espacio ajeno aunque lo intente desde el navegador.
 
-## Configuración, una sola vez
+## Actualizar a esta versión
 
-Toma unos 30 minutos.
+1. En Firebase, Authentication, Usuarios, cree los usuarios de Ligia (`alasyplumasediciones@gmail.com`) y de Francisco (`olydistribuciones@demuseo.com`).
+2. En Firestore Database, pestaña Reglas, borre todo, pegue el contenido nuevo de `salones/firestore.rules` y haga clic en Publicar.
+3. Suba a GitHub `site/salones/index.html`, `site/tienda/index.html`, `site/index.html`, `salones/firestore.rules` y `salones/LEEME.md`.
+4. Pruebe: entre como `miraflores@demuseo.com` y cree una actividad en su área de actividades. Luego entre como `alasyplumasediciones@gmail.com` (Ligia) y compruebe que puede cambiarla.
 
-### 1. Crear el proyecto en Firebase
+Haga los pasos 2 y 3 seguidos. Si la página nueva queda publicada con las reglas viejas, las tiendas sin salón no podrán guardar, y si las reglas nuevas quedan con la página vieja, nadie podrá guardar eventos.
 
-1. Entre a https://console.firebase.google.com con la cuenta de Google de la empresa.
-2. Cree un proyecto llamado `salones-demuseo`. Google Analytics no hace falta.
-3. Dentro del proyecto, haga clic en el ícono `</>` para registrar una app web y póngale de nombre `salones`. No marque Firebase Hosting.
-4. Firebase muestra un bloque que empieza con `const firebaseConfig = {`. Abra `site/salones/index.html`, busque `FIREBASE_CONFIG` al inicio del script y cambie cada `PEGAR_AQUI` por el valor que le corresponde.
+## Usuarios
 
-Esos valores no son secretos. Firebase los pone en la página a propósito. Lo que protege los datos son las contraseñas y las reglas.
-
-### 2. Crear los usuarios
-
-1. En el menú de la izquierda, entre a Authentication y haga clic en Comenzar.
-2. En Método de acceso, active Correo electrónico/contraseña.
-3. En Usuarios, agregue estos 16 usuarios en minúsculas, cada uno con su propia contraseña de al menos 10 caracteres. Son las 12 tiendas, los dos cafés y gerencia:
+Estos 18 usuarios deben existir en Firebase, en minúsculas:
 
 ```
-centrohistorico@demuseo.com
-majadasonce@demuseo.com
-antigua@demuseo.com
-lasamericas@demuseo.com
-videre@demuseo.com
-miraflores@demuseo.com
-pradera@demuseo.com
-concepcion@demuseo.com
-portales@demuseo.com
-sankrismall@demuseo.com
-plazamagdalena@demuseo.com
-interplazaxela@demuseo.com
-cafemajadasonce@demuseo.com
-cafevidere@demuseo.com
-claribel.morales@demuseo.com
-ingrid@demuseo.com
+majadasonce@demuseo.com          centrohistorico@demuseo.com
+videre@demuseo.com               plazamagdalena@demuseo.com
+lasamericas@demuseo.com          antigua@demuseo.com
+miraflores@demuseo.com           interplazaxela@demuseo.com
+pradera@demuseo.com              cafemajadasonce@demuseo.com
+concepcion@demuseo.com           cafevidere@demuseo.com
+portales@demuseo.com             alasyplumasediciones@gmail.com
+sankrismall@demuseo.com          olydistribuciones@demuseo.com
+claribel.morales@demuseo.com     ingrid@demuseo.com
 ```
 
-   No tienen que ser correos reales, solo funcionan como usuario. Si prefiere otros, cámbielos en la lista `TIENDAS` de `site/salones/index.html` y en `salones/firestore.rules`, con la misma escritura en los dos archivos.
-
-4. En Configuración, Acciones del usuario, desmarque "Habilitar creación (registro)". Así nadie puede crearse una cuenta por su cuenta.
-5. En Configuración, Dominios autorizados, agregue `charly369-lv.github.io`. Sin este paso no se puede entrar desde la página.
-
-### 3. Crear la base de datos y pegar las reglas
-
-1. Entre a Firestore Database y haga clic en Crear base de datos. Elija `nam5 (United States)` y el modo de producción.
-2. En la pestaña Reglas, borre lo que aparece, pegue todo el contenido de `salones/firestore.rules` y haga clic en Publicar.
-
-### 4. Subir los archivos a GitHub
-
-Suba los archivos del .zip con las mismas rutas:
-
-- `site/salones/index.html`, ya con los datos de Firebase
-- `site/tienda/index.html` y `site/index.html`, que agregan el enlace
-- `salones/firestore.rules` y `salones/LEEME.md`, que quedan en el repo como respaldo y no se publican
-
-GitHub Pages publica los cambios en uno o dos minutos.
-
-### 5. Probar los permisos
-
-1. Entre como `antigua@demuseo.com` y cree un evento en el Salón Antigua.
-2. Intente crear otro que se cruce con ese horario. La página debe avisar del choque.
-3. Salga y entre como `videre@demuseo.com`. Debe ver el evento con todos sus datos, pero sin el botón Nuevo evento y sin poder cambiarlo.
-4. Entre como `majadasonce@demuseo.com`. Puede ver el evento de Antigua, pero no cambiarlo, y solo puede crear eventos en sus dos salones.
-
-Si los cuatro pasos salen así, ya puede mandar a cada tienda la dirección, su usuario y su contraseña. Conviene mandar la contraseña por otro medio, por ejemplo en una llamada.
+En Authentication, Configuración, "Habilitar creación (registro)" debe estar desmarcado y `charly369-lv.github.io` debe estar en los dominios autorizados.
 
 ## Mantenimiento
 
-Para cambiar la contraseña de una tienda, entre a Authentication, Usuarios, elimine ese usuario y vuelva a crearlo con el mismo correo y la contraseña nueva. Los eventos no se pierden. Hágalo también cuando alguien deje de trabajar en una tienda, porque el usuario es compartido.
+Para cambiar una contraseña, elimine el usuario en Authentication y vuelva a crearlo con el mismo correo. Los eventos no se pierden. Hágalo también cuando alguien deje de trabajar en una tienda, porque el usuario de cada tienda es compartido.
 
-Para agregar un salón:
+Para dar a alguien permiso de editar todo, agregue su correo en `TIENDAS` con `todos: true` y en `todos()` de las reglas.
 
-1. Agréguelo en `SALONES` dentro de `site/salones/index.html`, con un `id` nuevo, y ponga ese `id` en la lista `salones` de su tienda dentro de `TIENDAS`.
-2. Agregue el mismo `id` a esa tienda en `permisos()` de `salones/firestore.rules` y publique las reglas otra vez en Firebase.
+Para agregar un espacio:
 
-Para agregar o quitar una tienda, cree o elimine su usuario en Authentication y cámbiela en `TIENDAS` y en `tiendas()` de las reglas. Si tiene salón, cámbiela también en `permisos()`.
+1. Agréguelo en `ESPACIOS` de `site/salones/index.html` con un `id` nuevo, y ponga ese `id` en la lista `espacios` de la tienda que lo va a usar.
+2. En las reglas, agregue el `id` en `espacios()` y en `permisos()` de esa tienda. Publique las reglas.
 
-Los eventos se pueden revisar o corregir a mano en Firestore Database, colección `eventos`.
+Para agregar un tipo de actividad, agréguelo en `TIPOS` de la página y su `id` en `tipos()` de las reglas.
+
+Los `id` de espacios y tipos no se deben cambiar cuando ya hay eventos guardados con ellos. El nombre que se ve en pantalla sí se puede cambiar.
+
+Los eventos se pueden revisar o corregir a mano en Firestore Database, colección `eventos`. El campo `salon` guarda el espacio, con ese nombre desde la primera versión.
 
 ## Límites
 
-El plan gratuito de Firebase permite 50,000 lecturas al día. Cada vez que alguien abre la página se leen los eventos del último año en adelante, y con 16 usuarios eso queda muy por debajo del límite.
+El plan gratuito de Firebase permite 50,000 lecturas al día. Cada vez que alguien abre la página se leen los eventos del último año en adelante, y con 18 usuarios eso queda muy por debajo del límite.
 
-La revisión de choques de horario la hace la página antes de guardar. Como cada salón lo edita una sola tienda, dos tiendas no pueden apartar el mismo salón al mismo tiempo.
+La revisión de choques la hace la página antes de guardar. Si dos personas con permiso sobre el mismo espacio guardan a la misma hora en el mismo segundo, podrían quedar dos eventos encimados; con tan pocos usuarios por espacio es muy poco probable, y se vería de inmediato en el calendario.
 
-Un evento puede terminar como tarde al día siguiente. Para eso está la casilla "Termina después de medianoche".
-
-Si se va el internet con la página abierta, los cambios se envían cuando vuelve la conexión.
+Una actividad puede terminar como tarde al día siguiente. Para eso está la casilla "Termina después de medianoche".

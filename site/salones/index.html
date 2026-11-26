@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Salones de eventos · Herramientas De Museo</title>
-<meta name="description" content="Qué salón de De Museo está ocupado, qué día y a qué hora.">
+<title>Salones y eventos · Herramientas De Museo</title>
+<meta name="description" content="Las actividades de las tiendas De Museo: salones, áreas de actividades y cafés.">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="../favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="../icono-180.png">
@@ -15,9 +15,9 @@
 <style>
 /* Hallmark · shape: app screen · genre: editorial · theme: specimen + brand (De Museo, from site/estilo/tokens.css) · redesign: full
  * paper: oklch(96.5% 0.016 82) · accent: #112369 · display: Bodoni Moda 400 · body: Archivo
- * nav: the site's navy band with the logo back to Tienda, the store's name and Salir · signature: the week by salon, five salons down and seven days across, each booking ruled into its cell · states: loading (a skeleton of the board), empty week, load error, read-only store, delete confirm
+ * nav: the site's navy band with the logo back to Tienda, the store's name and Salir · signature: the week by store, each store's spaces grouped under its name and seven days across, each activity ruled into its cell · states: loading (a skeleton of the board), empty week, empty filter, load error, read-only user, delete confirm
  * axes: light/high-contrast-serif/cool · posture: restrained · contrast: pass · v2.0.0 */
-/* Hallmark · pre-emit critique: P4 H5 E4 S5 R5 V3 · weakest: V, the board borrows the site's directory rules on purpose so the tool reads as one of the family; earned the difference by making the salon-by-day table the first thing on screen instead of a generic month grid */
+/* Hallmark · pre-emit critique: P4 H5 E4 S5 R5 V3 · weakest: V, the board borrows the site's directory rules on purpose so the tool reads as one of the family; earned the difference by making the space-by-day table, grouped by store, the first thing on screen instead of a generic month grid */
 
 :root {
   --color-danger: oklch(46% 0.17 28);
@@ -114,9 +114,9 @@ textarea { resize: vertical; line-height: 1.5; }
 
 .barra { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); padding-block: var(--space-sm); border-top: var(--rule-hair) solid var(--color-rule-2); border-bottom: var(--rule-hair) solid var(--color-rule); }
 .barra-fechas { display: flex; gap: var(--space-2xs); }
-.barra-filtro { display: flex; align-items: center; gap: var(--space-xs); }
-.barra-filtro label { margin: 0; white-space: nowrap; }
-.barra-filtro select { width: auto; min-width: 12rem; }
+.filtros { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-sm) var(--space-md); padding-block: var(--space-sm); border-bottom: var(--rule-hair) solid var(--color-rule); }
+.filtros > div { min-width: 0; flex: 0 1 15rem; }
+.filtros .enlace { min-height: var(--control-h); }
 .barra .btn-nuevo { margin-left: auto; }
 .nota { margin-top: var(--space-md); color: var(--color-muted); font-size: var(--text-sm); max-width: 70ch; }
 .estado { margin-top: var(--space-lg); }
@@ -128,14 +128,15 @@ textarea { resize: vertical; line-height: 1.5; }
 .tablero-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
 .tablero-scroll:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; }
 .tablero { width: 100%; min-width: 880px; border-collapse: collapse; table-layout: fixed; }
-.tablero col.c-salon { width: 15rem; }
+.tablero col.c-salon { width: 13rem; }
 .tablero thead th { padding: var(--space-xs) var(--space-sm) var(--space-sm); border-bottom: 3px double var(--color-rule-2); text-align: left; font-weight: 500; font-size: var(--text-sm); color: var(--color-muted); vertical-align: bottom; }
 .tablero thead th .dia-n { display: block; font-family: var(--font-num); font-weight: 700; font-size: var(--text-xl); line-height: 1.1; color: var(--color-ink); font-variant-numeric: lining-nums tabular-nums; }
 .tablero thead th.es-hoy { background: var(--color-today); }
 .tablero thead th.es-hoy .dia-n { color: var(--color-accent); }
 .tablero tbody th { position: sticky; left: 0; z-index: 2; background: var(--color-paper); padding: var(--space-md) var(--space-md) var(--space-md) 0; text-align: left; vertical-align: top; border-bottom: var(--rule-hair) solid var(--color-rule); font-weight: 400; }
 .salon-n { display: block; font-weight: 600; font-size: var(--text-md); line-height: 1.25; color: var(--color-ink); }
-.salon-t { display: block; font-size: var(--text-sm); color: var(--color-muted); margin-top: var(--space-3xs); }
+.tablero tr.grupo th { position: static; padding: var(--space-lg) 0 var(--space-xs); border-bottom: var(--rule-hair) solid var(--color-rule-2); background: var(--color-paper); }
+.grupo-n { position: sticky; left: 0; display: inline-block; font-family: var(--font-display); font-weight: 400; font-size: var(--text-xl); font-variation-settings: "opsz" 48; line-height: 1.15; color: var(--color-ink); }
 .salon-suyo { display: inline-block; margin-top: var(--space-xs); font-size: var(--text-xs); color: var(--color-accent); border: var(--rule-hair) solid currentColor; padding: 0 var(--space-2xs); }
 .tablero td { vertical-align: top; padding: var(--space-xs); border-bottom: var(--rule-hair) solid var(--color-rule); border-left: var(--rule-hair) solid var(--color-rule); height: 6.5rem; }
 .tablero td.es-hoy { background: var(--color-today); }
@@ -196,6 +197,7 @@ td:hover .agregar, .agregar:focus-visible { opacity: 1; }
 .fila-t { font-weight: 500; overflow-wrap: anywhere; }
 .fila-c { display: block; font-weight: 400; font-size: var(--text-sm); color: var(--color-muted); }
 .fila-s { font-size: var(--text-sm); color: var(--color-ink-2); }
+.fila-sede { display: block; font-weight: 500; color: var(--color-ink); }
 .agenda-vacia { padding-block: var(--space-xl); border-top: 3px double var(--color-rule-2); }
 .agenda-vacia p { color: var(--color-ink-2); }
 .agenda-vacia .btn { margin-top: var(--space-md); }
@@ -240,11 +242,11 @@ dialog[open] { animation: aparecer var(--dur-short) var(--ease-out); }
 
 @media (max-width: 48rem) {
   .barra .btn-nuevo { margin-left: 0; width: 100%; order: -1; }
-  .barra-filtro { width: 100%; }
-  .barra-filtro select { flex: 1; min-width: 0; }
+  .filtros > div { flex: 1 1 calc(50% - var(--space-md)); }
+  .filtros > div:first-child { flex-basis: 100%; }
   .cab h1 { font-size: var(--text-2xl); }
   .tablero col.c-salon { width: 9.5rem; }
-  .salon-t { display: none; }
+  .grupo-n { font-size: var(--text-lg); }
   .mes td { height: 5rem; padding: var(--space-2xs); }
   .mes .ev { display: none; }
   .mes .mas { min-height: 28px; min-width: 28px; padding: 0 var(--space-2xs); justify-self: start; display: grid; place-items: center; background: var(--color-accent); color: var(--color-accent-ink); font-family: var(--font-num); font-weight: 700; font-size: var(--text-xs); text-decoration: none; }
@@ -266,17 +268,17 @@ dialog[open] { animation: aparecer var(--dur-short) var(--ease-out); }
 <!-- Ingreso -->
 <main class="wrap ingreso" id="pantalla-ingreso" hidden>
   <div class="ingreso-texto">
-    <h1>Salones de eventos</h1>
-    <p>Los cinco salones de De Museo en una sola semana. Entre con el usuario de su tienda.</p>
+    <h1>Salones y eventos</h1>
+    <p>Lo que está programado en cada tienda De Museo, semana por semana. Entre con su usuario.</p>
   </div>
   <form class="form-ingreso" id="form-ingreso" novalidate>
     <div id="campo-prueba" hidden>
-      <label for="tienda-prueba">Tienda que quiere probar</label>
+      <label for="tienda-prueba">Usuario que quiere probar</label>
       <select id="tienda-prueba" name="tienda"></select>
     </div>
     <div id="campos-reales">
       <div>
-        <label for="correo">Usuario de la tienda</label>
+        <label for="correo">Usuario</label>
         <input id="correo" name="correo" type="email" autocomplete="username" inputmode="email" required>
       </div>
       <div class="campo-sig">
@@ -293,7 +295,7 @@ dialog[open] { animation: aparecer var(--dur-short) var(--ease-out); }
 <!-- Calendario -->
 <main class="wrap" id="pantalla-app" hidden>
   <div class="cab">
-    <h1>Salones</h1>
+    <h1>Salones y eventos</h1>
     <p class="cab-rango" id="rango"></p>
   </div>
   <div class="barra">
@@ -308,13 +310,15 @@ dialog[open] { animation: aparecer var(--dur-short) var(--ease-out); }
       <input type="radio" name="vista" id="v-mes" value="mes"><label for="v-mes">Mes</label>
       <input type="radio" name="vista" id="v-agenda" value="agenda"><label for="v-agenda">Agenda</label>
     </fieldset>
-    <div class="barra-filtro">
-      <label for="filtro">Salón</label>
-      <select id="filtro" name="salon"><option value="">Los cinco</option></select>
-    </div>
     <button class="btn btn-nuevo" type="button" id="nuevo" hidden>Nuevo evento</button>
   </div>
-  <p class="nota" id="nota-lectura" hidden>Su tienda ve todos los eventos. Crearlos y cambiarlos les toca a las tiendas que tienen salón.</p>
+  <div class="filtros">
+    <div><label for="f-sede">Tienda</label><select id="f-sede" name="sede"></select></div>
+    <div><label for="f-clase">Espacios</label><select id="f-clase" name="espacios"></select></div>
+    <div><label for="f-actividad">Actividad</label><select id="f-actividad" name="actividad"></select></div>
+    <button class="enlace" type="button" id="quitar-filtros" hidden>Quitar filtros</button>
+  </div>
+  <p class="nota" id="nota-lectura" hidden>Su usuario puede ver todas las actividades, pero no crearlas ni cambiarlas.</p>
   <div class="estado" id="estado" role="status" aria-live="polite"></div>
   <section class="vista" id="vista" aria-labelledby="rango"></section>
 </main>
@@ -331,6 +335,7 @@ dialog[open] { animation: aparecer var(--dur-short) var(--ease-out); }
       <p class="det-salon" id="det-salon"></p>
     </div>
     <dl class="det-datos">
+      <div><dt>Tipo</dt><dd id="det-tipo"></dd></div>
       <div><dt>Cliente</dt><dd id="det-cliente"></dd></div>
       <div><dt>Teléfono</dt><dd id="det-telefono"></dd></div>
       <div><dt>Observaciones</dt><dd id="det-obs" class="det-obs"></dd></div>
@@ -358,12 +363,16 @@ dialog[open] { animation: aparecer var(--dur-short) var(--ease-out); }
       <button class="cerrar" type="button" data-cerrar aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div>
-      <label for="f-salon">Salón</label>
+      <label for="f-salon">Espacio</label>
       <select id="f-salon" name="salon" required></select>
     </div>
     <div>
       <label for="f-titulo">Evento</label>
-      <input id="f-titulo" name="titulo" maxlength="120" autocomplete="off" required placeholder="Cumpleaños de Sofía">
+      <input id="f-titulo" name="titulo" maxlength="120" autocomplete="off" required placeholder="Presentación de la novela de Ana Ruiz">
+    </div>
+    <div>
+      <label for="f-tipo">Tipo de actividad</label>
+      <select id="f-tipo" name="tipo" required><option value="">Elija uno</option></select>
     </div>
     <div class="par trio">
       <div><label for="f-fecha">Fecha</label><input id="f-fecha" name="fecha" type="date" required></div>
@@ -393,7 +402,7 @@ dialog[open] { animation: aparecer var(--dur-short) var(--ease-out); }
 // =====================================================================
 //  Configuración. Pegue aquí los datos de su proyecto de Firebase.
 //  Mientras apiKey diga "PEGAR_AQUI", la página funciona en modo de prueba.
-//  Si cambia TIENDAS o SALONES, cambie también salones/firestore.rules.
+//  Si cambia TIENDAS, ESPACIOS o TIPOS, cambie también salones/firestore.rules.
 // =====================================================================
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBerwBINTAuzW8E1kfKNN0F6PPmGi7UPuk",
@@ -404,39 +413,88 @@ const FIREBASE_CONFIG = {
   appId: "1:619374966609:web:ce204457c5e61b15744570",
 };
 
-// id interno (no cambiarlo cuando ya haya eventos), nombre completo, nombre corto y tienda
-const SALONES = [
-  { id: "zona1",    nombre: "Salón Zona 1",        corto: "Zona 1",       tienda: "Centro Histórico" },
-  { id: "majadas1", nombre: "Majadas ONCE, salón 1", corto: "Majadas 1",  tienda: "Majadas ONCE" },
-  { id: "majadas2", nombre: "Majadas ONCE, salón 2", corto: "Majadas 2",  tienda: "Majadas ONCE" },
-  { id: "antigua",  nombre: "Salón Antigua",       corto: "Antigua",      tienda: "La Antigua Guatemala" },
-  { id: "americas", nombre: "Salón Las Américas",  corto: "Las Américas", tienda: "Parque Las Américas" },
+// Sedes, en el orden en que aparecen en la semana
+const SEDES = [
+  { id: "majadas",    nombre: "De Museo Majadas ONCE",          corto: "Majadas ONCE" },
+  { id: "videre",     nombre: "De Museo Vidēre",                corto: "Vidēre" },
+  { id: "americas",   nombre: "De Museo Parque Las Américas",   corto: "Las Américas" },
+  { id: "miraflores", nombre: "De Museo Miraflores",            corto: "Miraflores" },
+  { id: "pradera",    nombre: "De Museo Galerías La Pradera",   corto: "La Pradera" },
+  { id: "concepcion", nombre: "De Museo Pradera Concepción",    corto: "Concepción" },
+  { id: "portales",   nombre: "De Museo Portales",              corto: "Portales" },
+  { id: "sankris",    nombre: "De Museo SanKris Mall",          corto: "SanKris" },
+  { id: "centro",     nombre: "De Museo Centro Histórico",      corto: "Centro Histórico" },
+  { id: "coban",      nombre: "De Museo Plaza Magdalena Cobán", corto: "Cobán" },
+  { id: "antigua",    nombre: "De Museo La Antigua Guatemala",  corto: "Antigua" },
+  { id: "xela",       nombre: "De Museo Interplaza Xela",       corto: "Xela" },
 ];
 
-// Usuario de cada tienda (igual que en Firebase, en minúsculas) y los salones que puede editar
+// Espacios. "id" es interno: no lo cambie cuando ya haya eventos.
+// tipo: "actividades" (área de actividades de la tienda), "salon" o "cafe"
+const ESPACIOS = [
+  { id: "act-majadas",    sede: "majadas",    tipo: "actividades", nombre: "Área de actividades", corto: "Majadas ONCE" },
+  { id: "majadas1",       sede: "majadas",    tipo: "salon",       nombre: "Salón 1",             corto: "Majadas, salón 1" },
+  { id: "majadas2",       sede: "majadas",    tipo: "salon",       nombre: "Salón 2",             corto: "Majadas, salón 2" },
+  { id: "cafe-majadas",   sede: "majadas",    tipo: "cafe",        nombre: "Café",                corto: "Café Majadas" },
+  { id: "act-videre",     sede: "videre",     tipo: "actividades", nombre: "Área de actividades", corto: "Vidēre" },
+  { id: "cafe-videre",    sede: "videre",     tipo: "cafe",        nombre: "Café",                corto: "Café Vidēre" },
+  { id: "act-americas",   sede: "americas",   tipo: "actividades", nombre: "Área de actividades", corto: "Las Américas" },
+  { id: "americas",       sede: "americas",   tipo: "salon",       nombre: "Salón",               corto: "Salón Las Américas" },
+  { id: "act-miraflores", sede: "miraflores", tipo: "actividades", nombre: "Área de actividades", corto: "Miraflores" },
+  { id: "act-pradera",    sede: "pradera",    tipo: "actividades", nombre: "Área de actividades", corto: "La Pradera" },
+  { id: "act-concepcion", sede: "concepcion", tipo: "actividades", nombre: "Área de actividades", corto: "Concepción" },
+  { id: "act-portales",   sede: "portales",   tipo: "actividades", nombre: "Área de actividades", corto: "Portales" },
+  { id: "act-sankris",    sede: "sankris",    tipo: "actividades", nombre: "Área de actividades", corto: "SanKris" },
+  { id: "act-centro",     sede: "centro",     tipo: "actividades", nombre: "Área de actividades", corto: "Centro Histórico" },
+  { id: "zona1",          sede: "centro",     tipo: "salon",       nombre: "Salón",               corto: "Salón Zona 1" },
+  { id: "act-coban",      sede: "coban",      tipo: "actividades", nombre: "Área de actividades", corto: "Cobán" },
+  { id: "act-antigua",    sede: "antigua",    tipo: "actividades", nombre: "Área de actividades", corto: "Antigua" },
+  { id: "antigua",        sede: "antigua",    tipo: "salon",       nombre: "Salón",               corto: "Salón Antigua" },
+  { id: "act-xela",       sede: "xela",       tipo: "actividades", nombre: "Área de actividades", corto: "Xela" },
+];
+
+// Tipos de actividad. Si agrega uno, agréguelo también en salones/firestore.rules.
+const TIPOS = [
+  { id: "presentacion", nombre: "Presentación de libro" },
+  { id: "firma",        nombre: "Firma de libros" },
+  { id: "taller",       nombre: "Taller" },
+  { id: "cuentacuentos", nombre: "Cuentacuentos" },
+  { id: "club",         nombre: "Club de lectura" },
+  { id: "charla",       nombre: "Charla o conversatorio" },
+  { id: "marca",        nombre: "Lanzamiento o activación de marca" },
+  { id: "privado",      nombre: "Evento privado (renta)" },
+  { id: "otro",         nombre: "Otro" },
+];
+
+// Usuarios (igual que en Firebase, en minúsculas) y los espacios que pueden editar.
+// todos: true = crea y edita en todos los espacios.
 const TIENDAS = {
-  "centrohistorico@demuseo.com": { nombre: "Centro Histórico",      salones: ["zona1"] },
-  "majadasonce@demuseo.com":     { nombre: "Majadas ONCE",          salones: ["majadas1", "majadas2"] },
-  "antigua@demuseo.com":         { nombre: "La Antigua Guatemala",  salones: ["antigua"] },
-  "lasamericas@demuseo.com":     { nombre: "Parque Las Américas",   salones: ["americas"] },
-  "videre@demuseo.com":          { nombre: "Vidēre",                salones: [] },
-  "miraflores@demuseo.com":      { nombre: "Miraflores",            salones: [] },
-  "pradera@demuseo.com":         { nombre: "Galerías La Pradera",   salones: [] },
-  "concepcion@demuseo.com":      { nombre: "Pradera Concepción",    salones: [] },
-  "portales@demuseo.com":        { nombre: "Portales",              salones: [] },
-  "sankrismall@demuseo.com":     { nombre: "SanKris Mall",          salones: [] },
-  "plazamagdalena@demuseo.com":  { nombre: "Plaza Magdalena Cobán", salones: [] },
-  "interplazaxela@demuseo.com":  { nombre: "Interplaza Xela",       salones: [] },
-  "cafemajadasonce@demuseo.com": { nombre: "De Museo Café Majadas ONCE", salones: [] },
-  "cafevidere@demuseo.com":      { nombre: "De Museo Café Vidēre",       salones: [] },
-  // Gerencia: crea y edita en los cinco salones
-  "claribel.morales@demuseo.com": { nombre: "Gerencia, Claribel", salones: ["zona1", "majadas1", "majadas2", "antigua", "americas"], gerencia: true },
-  "ingrid@demuseo.com":           { nombre: "Gerencia, Ingrid",   salones: ["zona1", "majadas1", "majadas2", "antigua", "americas"], gerencia: true },
+  "majadasonce@demuseo.com":      { nombre: "Majadas ONCE",          espacios: ["act-majadas", "majadas1", "majadas2"] },
+  "videre@demuseo.com":           { nombre: "Vidēre",                espacios: ["act-videre"] },
+  "lasamericas@demuseo.com":      { nombre: "Parque Las Américas",   espacios: ["act-americas", "americas"] },
+  "miraflores@demuseo.com":       { nombre: "Miraflores",            espacios: ["act-miraflores"] },
+  "pradera@demuseo.com":          { nombre: "Galerías La Pradera",   espacios: ["act-pradera"] },
+  "concepcion@demuseo.com":       { nombre: "Pradera Concepción",    espacios: ["act-concepcion"] },
+  "portales@demuseo.com":         { nombre: "Portales",              espacios: ["act-portales"] },
+  "sankrismall@demuseo.com":      { nombre: "SanKris Mall",          espacios: ["act-sankris"] },
+  "centrohistorico@demuseo.com":  { nombre: "Centro Histórico",      espacios: ["act-centro", "zona1"] },
+  "plazamagdalena@demuseo.com":   { nombre: "Plaza Magdalena Cobán", espacios: ["act-coban"] },
+  "antigua@demuseo.com":          { nombre: "La Antigua Guatemala",  espacios: ["act-antigua", "antigua"] },
+  "interplazaxela@demuseo.com":   { nombre: "Interplaza Xela",       espacios: ["act-xela"] },
+  "cafemajadasonce@demuseo.com":  { nombre: "Café Majadas ONCE",     espacios: ["cafe-majadas"] },
+  "cafevidere@demuseo.com":       { nombre: "Café Vidēre",           espacios: ["cafe-videre"] },
+  "alasyplumasediciones@gmail.com": { nombre: "Gestión cultural, Ligia", todos: true },
+  "olydistribuciones@demuseo.com":  { nombre: "Distribuidora, Francisco", todos: true },
+  "claribel.morales@demuseo.com": { nombre: "Gerencia, Claribel",      todos: true },
+  "ingrid@demuseo.com":           { nombre: "Gerencia, Ingrid",        todos: true },
 };
 
 // =====================================================================
 const PRUEBA = new URLSearchParams(location.search).has("prueba") || String(FIREBASE_CONFIG.apiKey).startsWith("PEGAR");
-const SALON = Object.fromEntries(SALONES.map((s) => [s.id, s]));
+const SEDE = Object.fromEntries(SEDES.map((x) => [x.id, x]));
+const ESPACIO = Object.fromEntries(ESPACIOS.map((x) => [x.id, { ...x, completo: `${x.nombre}, ${SEDE[x.sede].nombre}` }]));
+const TIPO = Object.fromEntries(TIPOS.map((x) => [x.id, x]));
+const CLASES = { "": "Todos los espacios", salon: "Solo salones", actividades: "Solo áreas de actividades", cafe: "Solo cafés" };
 const $ = (id) => document.getElementById(id);
 const DIA = 864e5;
 
@@ -458,8 +516,8 @@ const fmtRegistro = new Intl.DateTimeFormat("es-GT", { day: "numeric", month: "l
 
 const tiendaDe = (c) => TIENDAS[(c || "").toLowerCase()];
 const nombreTienda = (c) => tiendaDe(c)?.nombre || c || "otra tienda";
-const misSalones = () => tiendaDe(usuario)?.salones || [];
-const puedeEditar = (id) => misSalones().includes(id);
+const misEspacios = () => { const t = tiendaDe(usuario); return t?.todos ? ESPACIOS.map((x) => x.id) : t?.espacios || []; };
+const puedeEditar = (id) => misEspacios().includes(id);
 const esMovil = () => matchMedia("(max-width: 48rem)").matches;
 
 // ---------- Fechas ----------
@@ -479,14 +537,20 @@ const horario = (e) => `${hora(e.inicio)} a ${hora(e.fin)}`;
 const estado = (() => {
   const q = new URLSearchParams(location.search);
   const vista = ["semana", "mes", "agenda"].includes(q.get("vista")) ? q.get("vista") : (esMovil() ? "agenda" : "semana");
-  const salon = SALON[q.get("salon")] ? q.get("salon") : "";
-  return { vista, fecha: deISO(q.get("fecha")) || inicioDia(new Date()), salon };
+  return {
+    vista,
+    fecha: deISO(q.get("fecha")) || inicioDia(new Date()),
+    sede: SEDE[q.get("sede")] ? q.get("sede") : "",
+    clase: CLASES[q.get("espacios")] && q.get("espacios") ? q.get("espacios") : "",
+    tipo: TIPO[q.get("actividad")] ? q.get("actividad") : "",
+  };
 })();
 function guardarEstado() {
   const q = new URLSearchParams(location.search);
   q.set("vista", estado.vista);
   q.set("fecha", aISO(estado.fecha));
-  estado.salon ? q.set("salon", estado.salon) : q.delete("salon");
+  q.delete("salon");
+  for (const [k, v] of [["sede", estado.sede], ["espacios", estado.clase], ["actividad", estado.tipo]]) v ? q.set(k, v) : q.delete(k);
   history.replaceState(null, "", `${location.pathname}?${q}`);
 }
 
@@ -501,7 +565,7 @@ async function backendFirebase() {
   const db = fs.getFirestore(app);
   const col = fs.collection(db, "eventos");
   const aDoc = (d) => ({
-    salon: d.salon, titulo: d.titulo,
+    salon: d.salon, titulo: d.titulo, tipo: d.tipo,
     inicio: fs.Timestamp.fromDate(d.inicio), fin: fs.Timestamp.fromDate(d.fin),
     cliente: d.cliente, telefono: d.telefono, observaciones: d.observaciones,
   });
@@ -530,22 +594,24 @@ function backendPrueba() {
   let sesionCb = () => {}, datosCb = () => {}, n = 0;
   const datos = [];
   const hoy = inicioDia(new Date());
-  const ej = (salon, titulo, dia, hi, hf, cliente, telefono, obs) => {
-    const c = Object.keys(TIENDAS).find((k) => TIENDAS[k].salones.includes(salon));
+  const ej = (salon, tipo, titulo, dia, hi, hf, cliente, telefono, obs) => {
+    const c = Object.keys(TIENDAS).find((k) => (TIENDAS[k].espacios || []).includes(salon)) || "alasyplumasediciones@gmail.com";
     const i = sumarDias(hoy, dia); i.setHours(hi, (hi % 1) * 60);
     const f = sumarDias(hoy, dia); f.setHours(hf, (hf % 1) * 60);
     const t = sumarDias(new Date(), -3);
-    datos.push({ id: "p" + ++n, salon, titulo, inicio: i, fin: f, cliente, telefono, observaciones: obs, creadoPor: c, creadoEn: t, modificadoPor: c, modificadoEn: t });
+    datos.push({ id: "p" + ++n, salon, tipo, titulo, inicio: i, fin: f, cliente, telefono, observaciones: obs, creadoPor: c, creadoEn: t, modificadoPor: c, modificadoEn: t });
   };
-  ej("zona1", "Cumpleaños infantil", 1, 15, 18, "Familia Morales", "5512 3344", "30 niños. Piñata en el patio. El pastel lo trae el cliente.");
-  ej("majadas1", "Reunión de directorio", 2, 8, 11, "Cooperativa El Sembrador", "2345 6789", "Mesa en U para 16 personas, proyector y café toda la mañana.");
-  ej("majadas2", "Taller de lectura", 2, 16, 18, "Club de lectura Majadas", "", "");
-  ej("antigua", "Recepción de boda civil", 4, 12, 17, "Ana López y Diego Ruiz", "4455 6677", "80 invitados. Flores blancas. Anticipo recibido.");
-  ej("americas", "Baby shower", 5, 10, 13, "Gabriela Pérez", "3030 1212", "Mesa de postres. Los globos los trae el cliente.");
-  ej("zona1", "Presentación de libro", 8, 18, 20, "Editorial de ejemplo", "2222 0000", "Sillas en fila para 50 personas.");
-  ej("majadas1", "Capacitación de ventas", 9, 9, 13, "Distribuidora de ejemplo", "", "");
-  ej("antigua", "Cena de fin de año", 12, 19, 23, "Hotel de ejemplo", "7832 0000", "Menú de tres tiempos. Música en vivo hasta las 10:30 p. m.");
-  ej("americas", "Clase de acuarela", -2, 9, 11.5, "Taller Colores", "", "");
+  ej("zona1", "privado", "Cumpleaños infantil", 1, 15, 18, "Familia Morales", "5512 3344", "30 niños. Piñata en el patio. El pastel lo trae el cliente.");
+  ej("majadas1", "privado", "Reunión de directorio", 2, 8, 11, "Cooperativa El Sembrador", "2345 6789", "Mesa en U para 16 personas, proyector y café toda la mañana.");
+  ej("act-majadas", "club", "Club de lectura juvenil", 2, 16, 18, "", "", "Mesa junto a la sección juvenil.");
+  ej("antigua", "privado", "Recepción de boda civil", 4, 12, 17, "Ana López y Diego Ruiz", "4455 6677", "80 invitados. Flores blancas. Anticipo recibido.");
+  ej("act-miraflores", "cuentacuentos", "Cuentacuentos", 4, 10, 11, "", "", "Alfombras y cojines en el área infantil.");
+  ej("act-pradera", "firma", "Firma de libros", 3, 17, 19, "Autor invitado", "", "Mesa a la entrada. Coordina Ligia.");
+  ej("act-portales", "marca", "Activación de agendas 2027", 1, 11, 15, "Proveedor de papelería", "", "Mesa de muestra junto a cajas.");
+  ej("americas", "taller", "Taller de acuarela", 5, 10, 12, "Taller Colores", "3030 1212", "12 personas. Mesas largas.");
+  ej("cafe-videre", "charla", "Café con autora", 3, 18, 19.5, "", "", "");
+  ej("act-centro", "presentacion", "Presentación de novela", 8, 18, 20, "Editorial de ejemplo", "2222 0000", "Sillas en fila para 40 personas.");
+  ej("act-xela", "taller", "Taller de caligrafía", -2, 9, 11.5, "", "", "");
   const emitir = () => setTimeout(() => datosCb(datos.map((d) => ({ ...d }))), 120);
   return {
     alCambiarSesion(cb) { sesionCb = cb; cb(null); },
@@ -596,7 +662,7 @@ function prepararIngreso() {
     for (const [c, t] of Object.entries(TIENDAS)) {
       const o = document.createElement("option");
       o.value = c;
-      o.textContent = t.salones.length ? `${t.nombre} (tiene salón)` : t.nombre;
+      o.textContent = t.todos ? `${t.nombre} (edita todo)` : t.nombre;
       $("tienda-prueba").append(o);
     }
   }
@@ -654,7 +720,7 @@ function abrirApp() {
   $("pantalla-app").hidden = false;
   $("salir").hidden = false;
   $("bar-tienda").textContent = tiendaDe(usuario).nombre;
-  const editor = misSalones().length > 0;
+  const editor = misEspacios().length > 0;
   $("nuevo").hidden = !editor;
   $("nota-lectura").hidden = editor;
 
@@ -665,7 +731,7 @@ function abrirApp() {
     (lista) => {
       clearTimeout(lento);
       cargado = true;
-      eventos = lista.filter((e) => e.inicio && e.fin && SALON[e.salon]).sort((a, b) => a.inicio - b.inicio);
+      eventos = lista.filter((e) => e.inicio && e.fin && ESPACIO[e.salon]).sort((a, b) => a.inicio - b.inicio);
       pintar();
       if (detalleId && $("dlg-detalle").open) {
         eventos.some((e) => e.id === detalleId) ? abrirDetalle(detalleId) : $("dlg-detalle").close();
@@ -679,7 +745,7 @@ function abrirApp() {
       box.textContent = "";
       const p = document.createElement("p");
       p.textContent = err?.code === "permission-denied"
-        ? "Su usuario no tiene permiso para ver los salones. Pida acceso al administrador."
+        ? "Su usuario no tiene permiso para ver el calendario. Pida acceso al administrador."
         : "No se pudieron cargar los eventos.";
       const b = document.createElement("button");
       b.className = "btn btn--quiet"; b.type = "button"; b.textContent = "Volver a cargar";
@@ -693,12 +759,19 @@ function prepararBarra() {
   document.querySelectorAll('input[name="vista"]').forEach((r) => {
     r.addEventListener("change", () => { estado.vista = r.value; pintar(); });
   });
-  for (const s of SALONES) {
-    const o = document.createElement("option");
-    o.value = s.id; o.textContent = s.nombre;
-    $("filtro").append(o);
-  }
-  $("filtro").addEventListener("change", () => { estado.salon = $("filtro").value; pintar(); });
+  const llenar = (sel, primera, pares) => {
+    sel.append(el("option", null, primera));
+    sel.lastChild.value = "";
+    for (const [v, t] of pares) { const o = el("option", null, t); o.value = v; sel.append(o); }
+  };
+  llenar($("f-sede"), "Todas las tiendas", SEDES.map((x) => [x.id, x.corto]));
+  llenar($("f-clase"), CLASES[""], Object.entries(CLASES).filter(([k]) => k));
+  llenar($("f-actividad"), "Todas las actividades", TIPOS.map((x) => [x.id, x.nombre]));
+  $("f-sede").addEventListener("change", () => { estado.sede = $("f-sede").value; pintar(); });
+  $("f-clase").addEventListener("change", () => { estado.clase = $("f-clase").value; pintar(); });
+  $("f-actividad").addEventListener("change", () => { estado.tipo = $("f-actividad").value; pintar(); });
+  $("quitar-filtros").addEventListener("click", () => { estado.sede = ""; estado.clase = ""; estado.tipo = ""; pintar(); $("f-sede").focus(); });
+  for (const t of TIPOS) { const o = el("option", null, t.nombre); o.value = t.id; $("f-tipo").append(o); }
   $("anterior").addEventListener("click", () => mover(-1));
   $("siguiente").addEventListener("click", () => mover(1));
   $("hoy").addEventListener("click", () => { estado.fecha = inicioDia(new Date()); pintar(); });
@@ -712,13 +785,18 @@ function mover(paso) {
   pintar();
 }
 
-const salonesVisibles = () => SALONES.filter((s) => !estado.salon || s.id === estado.salon);
-const eventosEntre = (desde, hasta) => eventos.filter((e) => e.inicio < hasta && e.fin > desde && (!estado.salon || e.salon === estado.salon));
+const espacioVisible = (x) => (!estado.sede || x.sede === estado.sede) && (!estado.clase || x.tipo === estado.clase);
+const espaciosVisibles = () => ESPACIOS.filter(espacioVisible);
+const hayFiltro = () => estado.sede || estado.clase || estado.tipo;
+const eventosEntre = (desde, hasta) => eventos.filter((e) => e.inicio < hasta && e.fin > desde && espacioVisible(ESPACIO[e.salon]) && (!estado.tipo || e.tipo === estado.tipo));
 
 function pintar() {
   guardarEstado();
   $(`v-${estado.vista}`).checked = true;
-  $("filtro").value = estado.salon;
+  $("f-sede").value = estado.sede;
+  $("f-clase").value = estado.clase;
+  $("f-actividad").value = estado.tipo;
+  $("quitar-filtros").hidden = !hayFiltro();
   const etiqueta = estado.vista === "semana" ? ["Semana anterior", "Semana siguiente"] : ["Mes anterior", "Mes siguiente"];
   $("anterior").setAttribute("aria-label", etiqueta[0]);
   $("siguiente").setAttribute("aria-label", etiqueta[1]);
@@ -759,15 +837,15 @@ function pintarSemana() {
 
   const scroll = el("div", "tablero-scroll");
   scroll.tabIndex = 0;
-  scroll.setAttribute("aria-label", "Semana por salón. Deslice para ver todos los días.");
+  scroll.setAttribute("aria-label", "Semana por tienda y espacio. Deslice para ver todos los días.");
   const tabla = el("table", "tablero");
   const cg = el("colgroup");
-  cg.append(Object.assign(el("col", "c-salon")));
+  cg.append(el("col", "c-salon"));
   dias.forEach(() => cg.append(el("col")));
   tabla.append(cg);
 
   const trh = el("tr");
-  const th0 = el("th"); th0.scope = "col"; th0.textContent = "Salón";
+  const th0 = el("th"); th0.scope = "col"; th0.textContent = "Espacio";
   trh.append(th0);
   for (const d of dias) {
     const th = el("th"); th.scope = "col";
@@ -781,35 +859,45 @@ function pintarSemana() {
   tabla.append(el("thead", null, trh));
 
   const tb = el("tbody");
-  for (const s of salonesVisibles()) {
-    const tr = el("tr");
-    const th = el("th"); th.scope = "row";
-    th.append(el("span", "salon-n", s.nombre), el("span", "salon-t", s.tienda));
-    if (puedeEditar(s.id) && !tiendaDe(usuario).gerencia) th.append(el("span", "salon-suyo", "Su salón"));
-    tr.append(th);
-    for (const d of dias) {
-      const td = el("td");
-      if (mismoDia(d, hoy)) td.classList.add("es-hoy");
-      else if (d < hoy) td.classList.add("es-pasado");
-      const celda = el("div", "celda");
-      const delDia = enSemana.filter((e) => e.salon === s.id && e.inicio < sumarDias(d, 1) && e.fin > d);
-      for (const e of delDia) celda.append(botonEvento(e, true));
-      if (puedeEditar(s.id) && d >= hoy) {
-        const a = el("button", "agregar", "Agregar");
-        a.type = "button";
-        a.setAttribute("aria-label", `Agregar evento en ${s.nombre}, ${fmtDiaAgenda.format(d)}`);
-        a.addEventListener("click", () => abrirFormulario(null, { fecha: d, salon: s.id }));
-        celda.append(a);
+  const visibles = espaciosVisibles();
+  for (const sede of SEDES) {
+    const suyos = visibles.filter((x) => x.sede === sede.id);
+    if (!suyos.length) continue;
+    const trg = el("tr", "grupo");
+    const thg = el("th"); thg.colSpan = 8; thg.scope = "colgroup";
+    thg.append(el("span", "grupo-n", sede.nombre));
+    trg.append(thg);
+    tb.append(trg);
+    for (const s of suyos) {
+      const tr = el("tr");
+      const th = el("th"); th.scope = "row";
+      th.append(el("span", "salon-n", s.nombre));
+      if (puedeEditar(s.id) && !tiendaDe(usuario).todos) th.append(el("span", "salon-suyo", "Su espacio"));
+      tr.append(th);
+      for (const d of dias) {
+        const td = el("td");
+        if (mismoDia(d, hoy)) td.classList.add("es-hoy");
+        else if (d < hoy) td.classList.add("es-pasado");
+        const celda = el("div", "celda");
+        const delDia = enSemana.filter((e) => e.salon === s.id && e.inicio < sumarDias(d, 1) && e.fin > d);
+        for (const e of delDia) celda.append(botonEvento(e, true));
+        if (puedeEditar(s.id) && d >= hoy) {
+          const a = el("button", "agregar", "Agregar");
+          a.type = "button";
+          a.setAttribute("aria-label", `Agregar en ${ESPACIO[s.id].completo}, ${fmtDiaAgenda.format(d)}`);
+          a.addEventListener("click", () => abrirFormulario(null, { fecha: d, salon: s.id }));
+          celda.append(a);
+        }
+        td.append(celda);
+        tr.append(td);
       }
-      td.append(celda);
-      tr.append(td);
+      tb.append(tr);
     }
-    tb.append(tr);
   }
   tabla.append(tb);
   scroll.append(tabla);
   const nodos = [scroll];
-  if (!enSemana.length) nodos.push(el("p", "vacio-semana", estado.salon ? "Este salón no tiene eventos esta semana." : "Ningún salón tiene eventos esta semana."));
+  if (!enSemana.length) nodos.push(el("p", "vacio-semana", hayFiltro() ? "No hay actividades con estos filtros esta semana." : "No hay actividades programadas esta semana."));
   $("vista").replaceChildren(...nodos);
 }
 
@@ -818,8 +906,8 @@ function botonEvento(e, conHora) {
   b.type = "button";
   if (conHora) b.append(el("span", "ev-h", horario(e)));
   else b.append(el("span", "ev-h", hora(e.inicio)));
-  b.append(el("span", "ev-t", estado.vista === "mes" ? `${SALON[e.salon].corto}: ${e.titulo}` : e.titulo));
-  b.setAttribute("aria-label", `${e.titulo}, ${SALON[e.salon].nombre}, ${fmtDiaAgenda.format(e.inicio)}, ${horario(e)}`);
+  b.append(el("span", "ev-t", estado.vista === "mes" ? `${ESPACIO[e.salon].corto}: ${e.titulo}` : e.titulo));
+  b.setAttribute("aria-label", `${e.titulo}, ${ESPACIO[e.salon].completo}, ${fmtDiaAgenda.format(e.inicio)}, ${horario(e)}`);
   b.addEventListener("click", () => abrirDetalle(e.id));
   return b;
 }
@@ -875,8 +963,8 @@ function pintarAgenda() {
   const hoy = inicioDia(new Date());
   if (!lista.length) {
     const v = el("div", "agenda-vacia");
-    v.append(el("p", null, estado.salon ? `${SALON[estado.salon].nombre} no tiene eventos en ${fmtMesCorto.format(primero)}.` : `No hay eventos en ${fmtMesCorto.format(primero)}.`));
-    if (misSalones().length) {
+    v.append(el("p", null, hayFiltro() ? `No hay actividades con estos filtros en ${fmtMesCorto.format(primero)}.` : `No hay actividades programadas en ${fmtMesCorto.format(primero)}.`));
+    if (misEspacios().length) {
       const b = el("button", "btn", "Nuevo evento"); b.type = "button";
       b.addEventListener("click", () => abrirFormulario(null, { fecha: primero < hoy && sig > hoy ? hoy : primero }));
       v.append(b);
@@ -901,8 +989,11 @@ function pintarAgenda() {
       const b = el("button", "fila"); b.type = "button";
       b.append(el("span", "fila-h", horario(e)));
       const t = el("span", "fila-t", e.titulo);
+      if (TIPO[e.tipo]) t.append(el("span", "fila-c", TIPO[e.tipo].nombre));
       if (e.cliente) t.append(el("span", "fila-c", e.cliente));
-      b.append(t, el("span", "fila-s", SALON[e.salon].nombre));
+      const lugar = el("span", "fila-s");
+      lugar.append(el("span", "fila-sede", SEDE[ESPACIO[e.salon].sede].corto), el("span", "fila-c", ESPACIO[e.salon].nombre));
+      b.append(t, lugar);
       b.addEventListener("click", () => abrirDetalle(e.id));
       ul.append(el("li", null, b));
     }
@@ -928,13 +1019,14 @@ function abrirDetalle(id) {
   const e = eventos.find((x) => x.id === id);
   if (!e) return;
   detalleId = id;
-  const s = SALON[e.salon];
+  const s = ESPACIO[e.salon];
   $("det-titulo").textContent = e.titulo;
   const cuando = mismoDia(e.inicio, e.fin)
     ? `${fmtDiaLargo.format(e.inicio)}, de ${hora(e.inicio)} a ${hora(e.fin)}`
     : `${fmtDiaLargo.format(e.inicio)}, de ${hora(e.inicio)} a ${hora(e.fin)} del día siguiente`;
   $("det-cuando").textContent = cuando;
-  $("det-salon").textContent = `${s.nombre}, tienda ${s.tienda}`;
+  $("det-salon").textContent = s.completo;
+  dato($("det-tipo"), TIPO[e.tipo]?.nombre || "");
   dato($("det-cliente"), e.cliente);
   dato($("det-telefono"), e.telefono, true);
   dato($("det-obs"), e.observaciones);
@@ -980,8 +1072,14 @@ function abrirFormulario(id, pre = {}) {
   $("form-ev").querySelectorAll("[aria-invalid]").forEach((x) => x.removeAttribute("aria-invalid"));
   const sel = $("f-salon");
   sel.textContent = "";
-  for (const sid of misSalones()) {
-    const o = el("option", null, SALON[sid].nombre); o.value = sid; sel.append(o);
+  const mios = misEspacios();
+  const variasSedes = new Set(mios.map((x) => ESPACIO[x].sede)).size > 1;
+  for (const sede of SEDES) {
+    const suyos = ESPACIOS.filter((x) => x.sede === sede.id && mios.includes(x.id));
+    if (!suyos.length) continue;
+    const g = el("optgroup"); g.label = sede.nombre;
+    for (const x of suyos) { const o = el("option", null, variasSedes ? `${x.nombre}, ${sede.corto}` : x.nombre); o.value = x.id; g.append(o); }
+    sel.append(g);
   }
   if (id) {
     const e = eventos.find((x) => x.id === id);
@@ -990,6 +1088,7 @@ function abrirFormulario(id, pre = {}) {
     $("btn-guardar").textContent = "Guardar cambios";
     sel.value = e.salon;
     $("f-titulo").value = e.titulo || "";
+    $("f-tipo").value = TIPO[e.tipo] ? e.tipo : "";
     $("f-fecha").value = aISO(e.inicio);
     $("f-inicio").value = aHora(e.inicio);
     $("f-fin").value = aHora(e.fin);
@@ -1000,7 +1099,8 @@ function abrirFormulario(id, pre = {}) {
   } else {
     $("form-titulo").textContent = "Nuevo evento";
     $("btn-guardar").textContent = "Guardar evento";
-    const preferido = pre.salon || (estado.salon && puedeEditar(estado.salon) ? estado.salon : misSalones()[0]);
+    const preferido = pre.salon || mios.find((x) => espacioVisible(ESPACIO[x])) || mios[0];
+    if (estado.tipo) $("f-tipo").value = estado.tipo;
     if (preferido) sel.value = preferido;
     $("f-fecha").value = aISO(pre.fecha || new Date());
   }
@@ -1014,11 +1114,13 @@ $("form-ev").addEventListener("submit", async (ev) => {
   $("form-ev").querySelectorAll("[aria-invalid]").forEach((x) => x.removeAttribute("aria-invalid"));
   const salon = $("f-salon").value;
   const titulo = $("f-titulo").value.trim();
+  const tipo = $("f-tipo").value;
   const fecha = $("f-fecha").value, hi = $("f-inicio").value, hf = $("f-fin").value;
   const falla = (campo, msg) => { if (campo) { campo.setAttribute("aria-invalid", "true"); campo.focus(); } mostrarError("error-form", msg); };
 
-  if (!puedeEditar(salon)) return falla($("f-salon"), "Ese salón no es de su tienda.");
+  if (!puedeEditar(salon)) return falla($("f-salon"), "Ese espacio no es de su tienda.");
   if (!titulo) return falla($("f-titulo"), "Escriba el nombre del evento.");
+  if (!TIPO[tipo]) return falla($("f-tipo"), "Elija el tipo de actividad.");
   if (!fecha) return falla($("f-fecha"), "Elija la fecha.");
   if (!hi) return falla($("f-inicio"), "Escriba la hora en que empieza.");
   if (!hf) return falla($("f-fin"), "Escriba la hora en que termina.");
@@ -1030,9 +1132,9 @@ $("form-ev").addEventListener("submit", async (ev) => {
   if (fin <= inicio) return falla($("f-fin"), "La hora de fin tiene que ser después de la de inicio. Si el evento pasa de medianoche, marque la casilla de abajo.");
 
   const choque = eventos.find((e) => e.salon === salon && e.id !== editandoId && e.inicio < fin && e.fin > inicio);
-  if (choque) return falla($("f-inicio"), `Ese horario choca con "${choque.titulo}" (${SALON[salon].nombre}, de ${hora(choque.inicio)} a ${hora(choque.fin)}). Elija otra hora u otro salón.`);
+  if (choque) return falla($("f-inicio"), `Ese horario choca con "${choque.titulo}" (${ESPACIO[salon].completo}, de ${hora(choque.inicio)} a ${hora(choque.fin)}). Elija otra hora u otro espacio.`);
 
-  const datos = { salon, titulo, inicio, fin, cliente: $("f-cliente").value.trim(), telefono: $("f-telefono").value.trim(), observaciones: $("f-obs").value.trim() };
+  const datos = { salon, tipo, titulo, inicio, fin, cliente: $("f-cliente").value.trim(), telefono: $("f-telefono").value.trim(), observaciones: $("f-obs").value.trim() };
   const b = $("btn-guardar");
   b.disabled = true; b.setAttribute("aria-busy", "true");
   try {
