@@ -202,6 +202,7 @@ td .acc { display: flex; gap: 4px; flex-wrap: wrap; }
       </div>
     </div>
     <div class="tot" id="tot"></div>
+    <p class="notice" id="choques" hidden></p>
     <p class="notice" id="envNote" hidden></p>
     <div id="tablas" style="display:grid;gap:14px"></div>
 
@@ -341,7 +342,10 @@ function prepararItems() {
   ITEMS = Object.entries(D.p).map(([barra, r]) => {
     const st = new Map(); for (let i = 0; i < r[8].length; i += 2) st.set(D.L[r[8][i]], r[8][i + 1]);
     const it = { barra, ref: r[0], titulo: r[1], autor: r[2], editorial: r[3], pvp: r[4], cat: r[5], tema: r[6], genero: r[7], st, v30: r[9], v90: r[10], portada: r[12] || "", sinopsis: r[13] || "", paginas: r[14] || "" };
-    it.tid = temaDe(norm([it.genero, it.tema, it.cat].join(" | ")));
+    // Manda la categoría de Odoo; luego el campo Tema. El género de Metadatos solo si los otros dos no dicen nada.
+    const tc = temaDe(norm(it.cat)), tt = temaDe(norm(it.tema)), tg = temaDe(norm(it.genero));
+    it.tid = tc || tt || tg;
+    it.choque = !!(tg && (tc || tt) && tg !== (tc || tt)) || !!(tc && tt && tc !== tt);
     return it;
   });
 }
@@ -391,7 +395,7 @@ function filas() {
 }
 function pintar() {
   if (!D) return;
-  $("out").hidden = false;
+  $("out").hidden = false; pintarChoques();
   $("outTitle").textContent = "Sugerido de envío · " + SUC;
   const fs = filas(), P = POR();
   const unidades = fs.reduce((s, x) => s + x.u, 0), pvp = fs.reduce((s, x) => s + x.u * x.it.pvp, 0);
@@ -418,7 +422,7 @@ function pintar() {
       ${ft.length ? `<div class="tbl" style="max-height:none"><table><thead><tr><th></th><th>Título</th><th class="n">PVP</th><th class="n">Ventas 90 d</th><th class="n">En ${esc(CF.prin)}</th><th>Sacar de</th><th class="n">Unidades</th><th></th></tr></thead><tbody>
       ${ft.map(x => { const s = sacarDe(x.it, x.u); return `<tr>
         <td>${x.it.portada ? `<img class="cover" loading="lazy" src="${esc(x.it.portada)}" alt="">` : `<span class="cover"></span>`}</td>
-        <td><b>${esc(x.it.titulo)}</b><div class="small-t">${esc(x.it.autor)}${x.it.editorial ? " · " + esc(x.it.editorial) : ""} · <span class="mono">${esc(x.barra)}</span></div><div class="small-t">${esc(x.it.genero || x.it.tema || x.it.cat)}</div></td>
+        <td><b>${esc(x.it.titulo)}</b><div class="small-t">${esc(x.it.autor)}${x.it.editorial ? " · " + esc(x.it.editorial) : ""} · <span class="mono">${esc(x.barra)}</span></div><div class="small-t">${esc(x.it.cat)}${x.it.choque ? ` <span class="chip c-quieto" title="La categoría, el tema y el género de Metadatos no coinciden en Odoo">Metadatos: ${esc(x.it.genero)}</span>` : ""}</div></td>
         <td class="n">${Q(x.it.pvp)}</td><td class="n">${x.it.v90}</td><td class="n">${x.it.st.get(CF.prin) || 0}</td>
         <td class="from">${s.r.map(([l, n]) => `<b>${esc(l)}</b> ${n}`).join(" · ")}${s.falta ? ` <span class="chip c-quieto">faltan ${s.falta}</span>` : ""}</td>
         <td class="n"><input type="number" min="0" max="20" value="${x.u}" data-u="${esc(x.barra)}" aria-label="Unidades"></td>
@@ -457,6 +461,21 @@ $("buscaRes").addEventListener("click", e => {
 });
 
 // ---------------------------------------------------------------- Excel y envío
+// Libros con clasificación contradictoria en Odoo (categoría, tema y género de Metadatos)
+function pintarChoques() {
+  const n = ITEMS.filter(i => i.choque).length;
+  $("choques").hidden = !n;
+  if (n) $("choques").innerHTML = `${n.toLocaleString("es-GT")} libros tienen la clasificación cruzada en Odoo: la categoría, el tema o el género de Metadatos dicen cosas distintas. El app usa la categoría. <button type="button" class="ghost small" id="xlsChoques">Descargar lista para corregir</button>`;
+}
+$("choques").addEventListener("click", e => {
+  if (e.target.id !== "xlsChoques") return;
+  const nom = id => (CF.temas.find(t => t.id === id) || { nombre: "" }).nombre;
+  const rows = ITEMS.filter(i => i.choque).sort((a, b) => b.v90 - a.v90).map(i => ({ "Código de barras": i.barra.replace(/^r:/, ""), "Referencia": i.ref, "Título": i.titulo, "Autor": i.autor,
+    "Categoría": i.cat, "Tema": i.tema, "Género (Metadatos)": i.genero, "El app lo pone en": nom(i.tid), "Ventas 90 días": i.v90 }));
+  const ws = XLSX.utils.json_to_sheet(rows); ws["!cols"] = [15, 11, 44, 24, 30, 24, 26, 26, 10].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Revisar clasificación");
+  XLSX.writeFile(wb, `Libros con clasificación cruzada - ${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
 $("xls").addEventListener("click", () => {
   const fs = filas().filter(x => x.u > 0), nom = id => (CF.temas.find(t => t.id === id) || { nombre: "Sin tema" }).nombre;
   const f = 1 - CF.margen / 100, wb = XLSX.utils.book_new();

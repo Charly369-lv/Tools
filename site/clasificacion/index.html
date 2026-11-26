@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Compara la categoría de Odoo con el género de Metadatos en los libros con existencia.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="robots" content="noindex,nofollow">
+<title>Revisión de clasificación · De Museo</title>
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<style>
+/* Surtido: 1 existencias propias (con clave), 2 aprobados, 3 reportes de tiendas, 4 por confirmar, 5 sugerido por tienda */
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8;
+  --gray: #5b6386; --gray-bg: #eceef4; --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; --gray: #9da6c9; --gray-bg: #1c2650; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1180px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 18px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.mast img { display: block; width: min(220px, 56vw); height: auto; }
+.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; }
+main { padding-block: 22px 56px; }
+main .inner { display: grid; gap: 18px; }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
+h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
+.step { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); color: var(--ink); font-weight: 800; }
+.step.done .num { background: var(--green-bg); color: var(--green); }
+.step-b { display: grid; gap: 10px; min-width: 0; }
+.status { font-size: 15px; font-weight: 600; }
+.status.ok { color: var(--green); }
+button, .btn { font: 700 15px var(--f-body); border-radius: 8px; cursor: pointer; padding: 9px 15px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 42px; display: inline-flex; align-items: center; }
+button.ghost, .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.small { min-height: 34px; padding: 5px 10px; font-size: 13px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, input:focus-visible, .btn:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
+input[type=password], input[type=number], input[type=search], select { font: 15px var(--f-body); padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+input[type=number] { width: 90px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.drop { border: 3px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; display: grid; gap: 4px; justify-items: center; cursor: pointer; }
+.drop.over { border-color: var(--navy); background: var(--soft); }
+.drop b { font-size: 16px; }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.ok { background: var(--green-bg); }
+.stores { display: flex; flex-wrap: wrap; gap: 6px; }
+.stores span { font-size: 13px; background: var(--soft); border-radius: 6px; padding: 4px 8px; }
+.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.sets label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.locs { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.locs label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; color: var(--ink); }
+details > summary { cursor: pointer; font-weight: 700; }
+
+.tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 70vh; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.big { font-weight: 800; font-size: 16px; }
+.mono { font-family: var(--f-mono); font-size: 13px; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.c-rep { background: var(--navy); color: var(--blanco); }
+.c-new { background: var(--green-bg); color: var(--green); }
+.c-sin { background: var(--gray-bg); color: var(--gray); }
+.c-quieto { background: var(--fill-red); color: var(--blanco); }
+.pill-red { display: inline-block; min-width: 28px; text-align: center; font-weight: 800; background: var(--fill-red); color: var(--blanco); border-radius: 999px; padding: 2px 9px; }
+tr.alerta td { background: var(--red-bg); }
+.alerta-box { border-radius: 10px; padding: 12px 14px; background: var(--red-bg); border: 1px solid var(--red); display: grid; gap: 2px; }
+.alerta-box b { color: var(--red); font-size: 17px; }
+.tabs button.t-red[aria-pressed="false"] { color: var(--red); border-color: var(--red); }
+.tabs button.t-red[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+select.rev { font-size: 13px; padding: 5px 6px; }
+select.rev.hecho { border-color: var(--green); }
+.from { font-size: 13px; }
+.from b { font-family: var(--f-mono); }
+.small-t { font-size: 12px; color: var(--muted); }
+tr.click { cursor: pointer; }
+tr.click:hover td, tr.sel td { background: var(--soft); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-pressed="true"] { background: var(--navy); color: var(--blanco); }
+.tabs button[aria-pressed="false"] { background: transparent; color: var(--ink); border-color: var(--line); }
+.cand { display: grid; gap: 6px; }
+.cand select { max-width: 100%; width: 100%; font-size: 13px; }
+.opts { display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; text-align: left; width: 100%; background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 500 14px var(--f-body); min-height: 0; cursor: pointer; }
+.opt:hover { border-color: var(--navy); }
+.opt.top { border-color: var(--green); }
+.opt .ot { font-weight: 700; }
+.opt .os { font-size: 12px; color: var(--muted); }
+.opt .ox { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--navy); }
+.opt .ox small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
+.opt .ox.cero { color: var(--muted); }
+.opt.no { grid-template-columns: 1fr; color: var(--muted); border-style: dashed; }
+@media (max-width: 640px) { #s4 thead { display: none; } #pcBody td { display: block; border-bottom: 0; } #pcBody tr { display: block; border-bottom: 1px solid var(--line); padding-bottom: 6px; } }
+.show-sm { display: none; }
+@media (max-width: 640px) { .show-sm { display: block; margin-top: 6px; } .hide-sm { display: none; } .step { grid-template-columns: 1fr; } .num { display: none; } }
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
+</style>
+<style>
+.c-amb { background: var(--amber-bg); color: var(--amber); }
+.fam { display: inline-block; font-size: 11px; font-weight: 700; color: var(--muted); margin-top: 2px; }
+.campo { display: grid; gap: 1px; }
+.campo b { font-weight: 600; font-size: 13px; }
+.campo.mal b { color: var(--red); }
+td select { font-size: 13px; padding: 5px 6px; width: 100%; max-width: 250px; }
+td input[type=text] { font: 13px var(--f-body); padding: 5px 6px; border: 2px solid var(--line); border-radius: 8px; width: 100%; margin-top: 4px; background: var(--surface); color: var(--ink); }
+.tot { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.tot button { display: grid; gap: 2px; text-align: left; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-height: 0; font-weight: 500; }
+.tot button.on { border: 2px solid var(--navy); }
+.tot span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.tot b { font: 700 22px var(--f-body); font-variant-numeric: tabular-nums; }
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+textarea { font: 12px var(--f-mono); width: 100%; min-height: 40px; padding: 6px 8px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.famrow { display: grid; grid-template-columns: 190px 1fr; gap: 8px; align-items: start; font-size: 13px; font-weight: 700; }
+.combo { cursor: pointer; }
+.combo:hover td { background: var(--soft); }
+@media (max-width: 640px) { .famrow { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner">
+  <a class="logo-link" href="../gerencia/" aria-label="Volver a las herramientas de Gerencia" title="Volver a Gerencia"><img src="../checador/logo.png" alt="De Museo" width="800" height="144"></a>
+  <span class="mast-t">Revisión de clasificación</span>
+</div></header>
+
+<main class="pad"><div class="inner">
+  <p class="muted">Compara, en los libros con existencia, la <b>subcategoría de Odoo</b> (2006 LIBROS / …) contra la que sugiere el <b>género de la pestaña Metadatos</b> (Metabooks y Google Books). Marca los que no coinciden para que elijas la subcategoría correcta. Solo revisa: no cambia nada en Odoo. La lista se actualiza cada noche con la sincronización.</p>
+
+  <section class="card step" id="s1">
+    <span class="num">1</span>
+    <div class="step-b">
+      <h3>Libros con existencia en Odoo</h3>
+      <p class="status" id="stStatus">Cargando…</p>
+      <form class="row" id="claveForm" hidden autocomplete="off">
+        <input type="password" id="clave" placeholder="Clave de existencias" autocomplete="current-password" style="flex:1;max-width:320px">
+        <button type="submit">Abrir</button>
+      </form>
+      <p class="notice bad" id="stErr" hidden></p>
+    </div>
+  </section>
+
+  <section id="out" hidden style="display:grid;gap:14px">
+    <div class="tot" id="tot"></div>
+
+    <section class="card">
+      <h3>Combinaciones que más se repiten</h3>
+      <p class="small-t">Si una misma combinación aparece en muchos libros, probablemente es un error en lote (por ejemplo, un género de Metadatos mal asignado a toda una editorial). Toca una fila para ver esos libros.</p>
+      <div class="tbl" style="max-height:300px"><table><thead><tr><th>Categoría actual</th><th>Género en Metadatos</th><th>Sugiere</th><th class="n">Libros</th></tr></thead><tbody id="combos"></tbody></table></div>
+    </section>
+
+    <section class="card">
+      <div class="filtros">
+        <input type="search" id="fBusca" placeholder="Título, autor, ISBN, editorial…" style="flex:1;min-width:220px">
+        <select id="fFam" aria-label="Subcategoría"><option value="">Todas las subcategorías</option></select>
+        <select id="fDec" aria-label="Decisión"><option value="">Todas</option><option value="pend">Sin decidir</option><option value="dec">Ya decididas</option></select>
+        <select id="fOrden" aria-label="Orden"><option value="v90">Más vendidos primero</option><option value="ex">Más existencia primero</option><option value="tit">Por título</option></select>
+        <button type="button" class="ghost small" id="fLimpiar">Quitar filtros</button>
+      </div>
+      <p class="small-t" id="cuenta"></p>
+      <div class="tbl"><table><thead><tr><th>Libro</th><th>Categoría actual</th><th>Género en Metadatos → sugiere</th><th>Tema (Odoo)</th><th class="n">Vend. 90 d</th><th class="n">Exist.</th><th>Categoría correcta</th></tr></thead><tbody id="lista"></tbody></table></div>
+      <div class="row"><button type="button" class="ghost" id="mas" hidden>Ver más</button></div>
+      <div class="row"><button type="button" id="xls">Descargar Excel de lo filtrado</button><button type="button" class="ghost" id="xlsDec">Descargar solo lo decidido</button></div>
+    </section>
+
+    <details class="card" id="ajustes">
+      <summary>Subcategorías y palabras para reconocer el género</summary>
+      <p class="small-t">Metadatos usa sus propios nombres ("Negocios y economía", "Business &amp; Economics"…). Cada género se traduce a la primera subcategoría de Odoo cuyas palabras contiene. Si un género sale "sin equivalencia" o cae en la subcategoría equivocada, corrige aquí sus palabras. El orden importa: las de arriba se revisan primero.</p>
+      <div id="famEd" style="display:grid;gap:8px"></div>
+      <div class="row"><button type="button" class="ghost small" id="famReset">Volver a las palabras iniciales</button></div>
+    </details>
+  </section>
+</div></main>
+
+<script>
+/* La librería de Excel se descarga después de abrir la página, para que la app cargue más rápido */
+window.excelListo = new Promise(function (ok) {
+  function cargar() { var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = ok; document.head.appendChild(s); }
+  if (document.readyState === "complete") cargar(); else window.addEventListener("load", cargar);
+});
+</script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const norm = s => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const sinNum = s => String(s || "").replace(/^\d+(\.\d+)?\s+/, "").trim();   // "30042 EMPRESA Y LIDERAZGO" → "EMPRESA Y LIDERAZGO"
+
+// ---------------------------------------------------------------- subcategorías de Odoo
+// Las subcategorías de 2006 LIBROS en Odoo. Cada una tiene un grupo (para distinguir un error grave de uno parecido)
+// y las palabras con las que se reconoce el género que viene en Metadatos (Metabooks / Google Books, español o inglés).
+// El orden importa: se revisan de arriba hacia abajo y gana la primera que coincide (las más específicas van primero).
+const SUB0 = [
+  ["30018", "AUDIOLIBROS", "Formato", "AUDIOLIBRO, AUDIOBOOK"],
+  ["30028", "COMIC Y MANGA", "Cómic", "COMIC, MANGA, NOVELA GRAFICA, GRAPHIC NOVEL"],
+  ["30056", "INFANTIL", "Infantil y juvenil", "INFANTIL, NINOS, NINAS, BEBES, PRIMEROS LECTORES, PREESCOLAR, CHILDREN, JUVENILE"],
+  ["30081", "NARRATIVA JUVENIL", "Infantil y juvenil", "JUVENIL, YOUNG ADULT, ADOLESCENT"],
+  ["30104", "TAROT", "Esoterismo", "TAROT"],
+  ["30047", "FENG SHUI", "Esoterismo", "FENG SHUI"],
+  ["30016", "ASTROLOGIA", "Esoterismo", "ASTROLOG, HOROSCOP, ZODIAC"],
+  ["30045", "ESOTERISMO Y OCULTISMO", "Esoterismo", "ESOTER, OCULT, MAGIA, NEW AGE, PARANORMAL, ANGELES"],
+  ["30024", "BUDISMO", "Espiritualidad", "BUDIS, BUDDHIS, ZEN"],
+  ["30067", "MEDITACION", "Espiritualidad", "MEDITACION, MEDITATION, MINDFULNESS"],
+  ["30046", "ESPIRITUALIDAD Y RELIGION", "Espiritualidad", "RELIGI, ESPIRITU, CRISTIAN, BIBLIA, BIBLIC, TEOLOG, CATOLIC, IGLESIA, BIBLE, CHRISTIAN, SPIRITUAL"],
+  ["30064", "LGBTQ+", "Sociedad", "LGBT, QUEER, GAY, LESBIAN"],
+  ["30076", "NARRATIVA EROTICA", "Narrativa", "EROTIC"],
+  ["30102", "SEXUALIDAD", "Bienestar", "SEXUALIDAD, SEXUALITY"],
+  ["30079", "NARRATIVA HISTORICA", "Narrativa", "NOVELA HISTORICA, FICCION HISTORICA, HISTORICAL FICTION, NARRATIVA HISTORICA"],
+  ["30074", "NARRATIVA DE TERROR", "Narrativa", "TERROR, HORROR"],
+  ["30082", "NARRATIVA POLICIACA NEGRA", "Narrativa", "POLICIA, NOVELA NEGRA, MISTERIO, SUSPENS, THRILLER, CRIMEN, MYSTERY, CRIME, DETECTIVE"],
+  ["30077", "NARRATIVA FANTASTICA Y DE FICCION", "Narrativa", "FANTAS, CIENCIA FICCION, SCIENCE FICTION, DISTOPI"],
+  ["30110", "NARRATIVA ROMANTICA", "Narrativa", "ROMANTIC, ROMANCE"],
+  ["30073", "NARRATIVA CLASICA", "Narrativa", "CLASICO, CLASICA, CLASSIC"],
+  ["30078", "NARRATIVA GUATEMALTECA", "Narrativa", "GUATEMAL"],
+  ["30080", "NARRATIVA ILUSTRADA", "Narrativa", "ILUSTRAD"],
+  ["30075", "NARRATIVA EN INGLES", "Narrativa", ""],
+  ["30097", "POESIA", "Narrativa", "POESIA, POETRY, POEMA"],
+  ["30021", "BIOGRAFIAS", "Historia", "BIOGRAF, MEMORIAS, BIOGRAPHY"],
+  ["30054", "HISTORIA", "Historia", "HISTORIA, HISTORY"],
+  ["30019", "AUTOAYUDA Y SUPERACION PERSONAL", "Desarrollo personal", "AUTOAYUDA, SUPERACION, DESARROLLO PERSONAL, CRECIMIENTO PERSONAL, MOTIVACION, AUTOESTIMA, SELF-HELP"],
+  ["30088", "PAREJA", "Desarrollo personal", "PAREJA, MATRIMONIO, RELACIONES, RELATIONSHIPS"],
+  ["30086", "PADRES", "Desarrollo personal", "PADRES, CRIANZA, MATERNIDAD, PATERNIDAD, PARENTING"],
+  ["30070", "MUJER", "Desarrollo personal", "MUJER, FEMINIS, WOMEN"],
+  ["30042", "EMPRESA Y LIDERAZGO", "Negocios", "EMPRESA, NEGOCIO, LIDERAZGO, ADMINISTRACION, MARKETING, MERCADEO, EMPRENDI, GERENCIA, VENTAS, BUSINESS, MANAGEMENT"],
+  ["30038", "ECONOMIA", "Negocios", "ECONOM, FINANZA, INVERSION, DINERO"],
+  ["30048", "FILOSOFIA Y PSICOLOGIA", "Pensamiento", "FILOSOF, PSICOLOG, PHILOSOPH, PSYCHOLOG"],
+  ["30101", "SALUD Y BIENESTAR", "Bienestar", "SALUD, BIENESTAR, NUTRICI, DIETA, MEDICIN, HEALTH, YOGA, FITNESS"],
+  ["30033", "DEPORTES", "Bienestar", "DEPORT, SPORTS, FUTBOL"],
+  ["30027", "COCINA", "Hogar", "COCINA, RECETA, GASTRONOM, COOKING, REPOSTER, BEBIDAS"],
+  ["30058", "JARDINERIA", "Hogar", "JARDIN, GARDEN"],
+  ["30049", "FOTOGRAFIA", "Artes", "FOTOGRAF, PHOTOGRAPH"],
+  ["30094", "PINTURA Y DIBUJO", "Artes", "PINTURA, DIBUJO, ACUARELA, DRAWING, PAINTING"],
+  ["30014", "ARQUITECTURA Y DISEÑO", "Artes", "ARQUITECT, ARCHITECTURE"],
+  ["30037", "DISEÑO Y DECORACION", "Artes", "DECORACION, INTERIORISMO, DISENO, DESIGN, MANUALIDADES, CRAFTS"],
+  ["30068", "MODA", "Artes", "MODA, FASHION"],
+  ["30026", "CINE Y MUSICA", "Artes", "CINE, MUSICA, MUSIC, FILM"],
+  ["30015", "ARTE", "Artes", "ARTE, ART"],
+  ["30017", "ASTRONOMIA", "Ciencia", "ASTRONOM, UNIVERSO"],
+  ["30050", "GUIAS TURISTICAS", "Viajes", "VIAJE, TURISM, GUIA DE, TRAVEL"],
+  ["30034", "DICCIONARIOS Y ENCICLOPEDIAS", "Referencia", "DICCIONARIO, ENCICLOPEDIA, REFERENCE"],
+  ["30039", "EDUCACION", "Referencia", "EDUCACION, EDUCATION, PEDAGOG, DIDACTIC, IDIOMAS, LANGUAGE, ESCOLAR"],
+  ["30089", "PASATIEMPOS", "Hogar", "PASATIEMPO, CRUCIGRAMA, SUDOKU, COLOREAR, GAMES, ACTIVIDADES"],
+  ["30098", "POLITICA Y SOCIEDAD", "Sociedad", "POLITIC, SOCIEDAD, SOCIOLOG, SOCIAL, DERECHO, LAW, ANTROPOLOG"],
+  ["30043", "ENSAYO Y NO FICCION", "Pensamiento", "ENSAYO, NO FICCION, NONFICTION, CIENCIA, SCIENCE, DIVULGACION, PERIODISMO"],
+  ["30072", "NARRATIVA", "Narrativa", "NARRATIVA, NOVELA, FICCION, FICTION, CUENTO, RELATO, LITERATURA"],
+  ["30087", "PAQUETES ESPECIALES", "Formato", ""],
+];
+// Categorías donde no tiene sentido comparar con el género (dependen del precio, el idioma o el formato)
+const NO_APLICA = /^(30114|30115|30116|30087|30075|30018)$/;
+const NOMCAT = c => { const x = SUB0.find(s => s[0] === c); return x ? `2006 LIBROS / ${x[0]} ${x[1]}` : ""; };
+let SUB = lsGet("clasif-subcats", null);
+if (!Array.isArray(SUB) || SUB.length !== SUB0.length) SUB = structuredClone(SUB0);
+let DEC = lsGet("clasif-decisiones", {});   // { barra: { cod: "30042", firma: "cat|gen" } }
+let D = null, ITEMS = [], VISTA = [], LIM = 200;
+let F = { tipo: "grave", combo: "" };
+
+const re = c => new RegExp("(^|[^A-Z])" + c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+function subDeTexto(txt) {        // género de Metadatos → código de subcategoría ("" si no se reconoce)
+  const t = norm(txt); if (!t.trim()) return null;
+  for (const [cod, , , cl] of SUB) if (cl.split(",").map(s => norm(s).trim()).filter(Boolean).some(c => re(c).test(t))) return cod;
+  return "";
+}
+const codDeCat = cat => (String(cat).match(/\b(30\d{3})\b/) || [])[1] || "";
+const grupo = cod => (SUB.find(s => s[0] === cod) || [])[2] || "";
+const nombre = cod => (SUB.find(s => s[0] === cod) || [])[1] || "";
+
+const TIPOS = [
+  ["grave", "Muy distinta", "Metadatos sugiere una subcategoría de otro grupo (ej. Religión contra Empresa)."],
+  ["parecida", "Parecida", "Metadatos sugiere otra subcategoría del mismo grupo (ej. Narrativa contra Narrativa policiaca)."],
+  ["sineq", "Género sin equivalencia", "El género de Metadatos no se reconoce: falta agregar su palabra a alguna subcategoría."],
+  ["sinmeta", "Sin género en Metadatos", "La pestaña Metadatos no tiene género."],
+  ["noaplica", "No aplica", "Bazar, paquetes, audiolibros o narrativa en inglés: la categoría no depende del género."],
+  ["ok", "Coinciden", "La categoría es la que sugiere Metadatos."],
+];
+function clasificar(it) {
+  it.cod = codDeCat(it.cat); it.sug = subDeTexto(it.genero); it.temaCod = subDeTexto(it.tema) || "";
+  if (NO_APLICA.test(it.cod) || /BAZAR/i.test(it.cat)) it.tipo = "noaplica";
+  else if (it.sug === null) it.tipo = "sinmeta";
+  else if (it.sug === "") it.tipo = "sineq";
+  else if (it.sug === it.cod) it.tipo = "ok";
+  else it.tipo = grupo(it.sug) && grupo(it.sug) === grupo(it.cod) ? "parecida" : "grave";
+  it.firma = [it.cat, it.genero].join("|");
+}
+
+// ---------------------------------------------------------------- datos cifrados
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+let SOBRE = null;
+async function abrir(clave, silencioso) {
+  $("stErr").hidden = true;
+  try {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(SOBRE.s), iterations: SOBRE.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    let plano;
+    try { plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(SOBRE.iv) }, key, b64(SOBRE.d)); } catch (e) { throw new Error("clave"); }
+    D = JSON.parse(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
+    listo();
+  } catch (e) {
+    if (!silencioso) { $("stErr").textContent = e.message === "clave" ? "Clave incorrecta. Revísala e intenta de nuevo." : "No se pudieron abrir los datos en este navegador."; $("stErr").hidden = false; }
+    $("claveForm").hidden = false;
+  }
+}
+function fechaLocal(v) { const d = new Date(String(v).replace(" ", "T") + ":00Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+$("claveForm").addEventListener("submit", e => { e.preventDefault(); const c = $("clave").value.trim(); if (c) abrir(c); });
+(async () => {
+  pintarFamilias();
+  try {
+    const r = await fetch("datos.enc?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw 0;
+    SOBRE = await r.json();
+    $("stStatus").textContent = "Escribe la clave de existencias.";
+    let c = null; try { c = localStorage.getItem("surtido-clave"); } catch (e) {}
+    if (c) await abrir(c, true); else $("claveForm").hidden = false;
+  } catch (e) { $("stStatus").textContent = "Todavía no se han publicado los datos. Se generan en la próxima sincronización con Odoo."; }
+})();
+
+function listo() {
+  ITEMS = Object.entries(D.p).map(([barra, r]) => ({ barra, ref: r[0], titulo: r[1], autor: r[2], editorial: r[3], cat: r[4] || "", tema: r[5] || "", genero: r[6] || "", ex: r[7], v90: r[8] }));
+  $("stStatus").textContent = `Listos: ${ITEMS.length.toLocaleString("es-GT")} libros con existencia (datos de Odoo al ${fechaLocal(D.v)}).`;
+  $("stStatus").className = "status ok"; $("s1").classList.add("done"); $("claveForm").hidden = true;
+  $("fFam").innerHTML = `<option value="">Todas las subcategorías</option>` + [...SUB].sort((a, b) => a[1].localeCompare(b[1])).map(f => `<option value="${f[0]}">${esc(f[1])}</option>`).join("");
+  recalcular();
+}
+function recalcular() {
+  ITEMS.forEach(clasificar);
+  // Una decisión deja de valer si en Odoo cambió la categoría o el género (ya lo corrigieron)
+  for (const it of ITEMS) { const d = DEC[it.barra]; if (d && d.firma !== it.firma) delete DEC[it.barra]; }
+  lsSet("clasif-decisiones", DEC);
+  $("out").hidden = false; pintarTotales(); pintarCombos(); filtrar();
+}
+
+// ---------------------------------------------------------------- pintar
+function pintarTotales() {
+  const n = t => ITEMS.filter(i => i.tipo === t).length;
+  $("tot").innerHTML = TIPOS.map(([k, t, d]) => `<button type="button" data-tipo="${k}" class="${F.tipo === k ? "on" : ""}" title="${esc(d)}"><span>${esc(t)}</span><b>${n(k).toLocaleString("es-GT")}</b></button>`).join("") +
+    `<button type="button" data-tipo="" class="${!F.tipo ? "on" : ""}"><span>Todos</span><b>${ITEMS.length.toLocaleString("es-GT")}</b></button>`;
+}
+$("tot").addEventListener("click", e => { const b = e.target.closest("[data-tipo]"); if (!b) return; F.tipo = b.dataset.tipo; F.combo = ""; pintarTotales(); filtrar(); });
+
+const llaveCombo = it => it.cod + "\u0001" + it.genero;
+function pintarCombos() {
+  const m = new Map();
+  for (const it of ITEMS) if (it.tipo === "grave" || it.tipo === "parecida") { const k = llaveCombo(it); const x = m.get(k) || { n: 0, it }; x.n++; m.set(k, x); }
+  const top = [...m.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 40);
+  $("combos").innerHTML = top.length ? top.map(([k, { n, it }]) => `<tr class="combo" data-combo="${esc(k)}"><td>${esc(nombre(it.cod) || it.cat)}</td><td>${esc(it.genero)}</td><td>${esc(nombre(it.sug))} ${it.tipo === "grave" ? '<span class="chip c-quieto">muy distinta</span>' : '<span class="chip c-amb">parecida</span>'}</td><td class="n">${n}</td></tr>`).join("")
+    : `<tr><td colspan="4" class="muted">No hay libros donde Metadatos contradiga a la categoría.</td></tr>`;
+}
+$("combos").addEventListener("click", e => { const r = e.target.closest("[data-combo]"); if (!r) return; F.combo = r.dataset.combo; F.tipo = ""; pintarTotales(); filtrar(); $("lista").scrollIntoView({ behavior: "smooth", block: "start" }); });
+
+function filtrar() {
+  const q = norm($("fBusca").value).trim().split(/\s+/).filter(Boolean), sc = $("fFam").value, dec = $("fDec").value, ord = $("fOrden").value;
+  VISTA = ITEMS.filter(it => (!F.tipo || it.tipo === F.tipo)
+    && (!F.combo || llaveCombo(it) === F.combo)
+    && (!sc || it.cod === sc || it.sug === sc)
+    && (!dec || (dec === "dec") === !!DEC[it.barra])
+    && (!q.length || q.every(w => norm([it.titulo, it.autor, it.barra, it.ref, it.editorial].join(" ")).includes(w))));
+  VISTA.sort(ord === "ex" ? (a, b) => b.ex - a.ex : ord === "tit" ? (a, b) => a.titulo.localeCompare(b.titulo, "es") : (a, b) => b.v90 - a.v90 || b.ex - a.ex);
+  LIM = 200; pintarLista();
+}
+for (const id of ["fBusca", "fFam", "fDec", "fOrden"]) $(id).addEventListener(id === "fBusca" ? "input" : "change", () => { clearTimeout(window._f); window._f = setTimeout(filtrar, 200); });
+$("fLimpiar").addEventListener("click", () => { $("fBusca").value = ""; $("fFam").value = ""; $("fDec").value = ""; F.combo = ""; filtrar(); });
+$("mas").addEventListener("click", () => { LIM += 200; pintarLista(); });
+
+const OPC = () => [...SUB].sort((a, b) => a[1].localeCompare(b[1])).map(s => [s[0], s[1]]);
+function pintarLista() {
+  const decid = VISTA.filter(i => DEC[i.barra]).length, opc = OPC();
+  $("cuenta").textContent = `${VISTA.length.toLocaleString("es-GT")} libros${F.combo ? " con esa combinación" : ""} · ${decid.toLocaleString("es-GT")} ya decididos.`;
+  $("lista").innerHTML = VISTA.slice(0, LIM).map(it => {
+    const d = DEC[it.barra], mal = it.tipo === "grave" || it.tipo === "parecida";
+    const sug = it.sug ? `<b>→ ${esc(nombre(it.sug))}</b>` : it.sug === "" ? '<span class="chip c-amb">sin equivalencia</span>' : "";
+    const temaOk = it.tema && it.temaCod ? (it.temaCod === it.cod ? "igual a la categoría" : "→ " + nombre(it.temaCod)) : "";
+    return `<tr>
+      <td><b>${esc(it.titulo)}</b><div class="small-t">${esc(it.autor)}${it.editorial ? " · " + esc(it.editorial) : ""}</div><div class="small-t mono">${esc(it.barra.replace(/^r:/, "Ref. "))}</div></td>
+      <td><div class="campo ${mal ? "mal" : ""}"><b>${esc(nombre(it.cod) || sinNum(it.cat) || "—")}</b><span class="fam">${esc(grupo(it.cod))}</span></div></td>
+      <td>${it.genero ? `<div class="campo"><span style="font-size:13px">${esc(it.genero)}</span>${sug}<span class="fam">${esc(grupo(it.sug))}</span></div>` : '<span class="chip c-sin">vacío</span>'}</td>
+      <td>${it.tema ? `<div class="campo"><span style="font-size:13px">${esc(it.tema)}</span><span class="fam">${esc(temaOk)}</span></div>` : '<span class="chip c-sin">vacío</span>'}</td>
+      <td class="n">${it.v90}</td><td class="n">${it.ex}</td>
+      <td><select data-dec="${esc(it.barra)}" aria-label="Categoría correcta">
+        <option value="">Sin decidir</option>
+        ${it.cod ? `<option value="${it.cod}" ${d?.cod === it.cod ? "selected" : ""}>✓ Dejar la actual (${esc(nombre(it.cod))})</option>` : ""}
+        ${it.sug && it.sug !== it.cod ? `<option value="${it.sug}" ${d?.cod === it.sug ? "selected" : ""}>✓ La de Metadatos (${esc(nombre(it.sug))})</option>` : ""}
+        <optgroup label="Otra subcategoría">${opc.map(([c, n]) => `<option value="${c}" ${d?.cod === c && c !== it.cod && c !== it.sug ? "selected" : ""}>${esc(n)}</option>`).join("")}</optgroup></select></td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="muted">No hay libros con estos filtros.</td></tr>`;
+  $("mas").hidden = VISTA.length <= LIM;
+}
+$("lista").addEventListener("change", e => {
+  const b = e.target.dataset.dec, it = b && ITEMS.find(i => i.barra === b); if (!it) return;
+  if (e.target.value) DEC[b] = { cod: e.target.value, firma: it.firma }; else delete DEC[b];
+  lsSet("clasif-decisiones", DEC);
+  $("cuenta").textContent = `${VISTA.length.toLocaleString("es-GT")} libros${F.combo ? " con esa combinación" : ""} · ${VISTA.filter(i => DEC[i.barra]).length.toLocaleString("es-GT")} ya decididos.`;
+});
+
+// ---------------------------------------------------------------- palabras editables
+function pintarFamilias() {
+  $("famEd").innerHTML = SUB.map(([c, n, g, cl], i) => `<div class="famrow"><span>${esc(n)}<br><span class="fam">${esc(c)} · ${esc(g)}</span></span><textarea data-i="${i}" aria-label="Palabras de ${esc(n)}">${esc(cl)}</textarea></div>`).join("");
+}
+$("famEd").addEventListener("change", e => { const i = e.target.dataset.i; if (i == null) return; SUB[i][3] = e.target.value; lsSet("clasif-subcats", SUB); if (D) recalcular(); });
+$("famReset").addEventListener("click", () => { SUB = structuredClone(SUB0); lsSet("clasif-subcats", SUB); pintarFamilias(); if (D) recalcular(); });
+
+// ---------------------------------------------------------------- Excel
+// Todo se corrige en Odoo (de ahí se actualiza la web): la categoría, el género de la pestaña Metadatos, o los dos
+function queCorregir(it, d) {
+  if (!d) return "";
+  const cat = d.cod !== it.cod, gen = it.sug && d.cod !== it.sug;
+  if (cat && gen) return "Categoría y género (pestaña Metadatos)";
+  if (cat) return "Categoría";
+  if (gen) return "Género (pestaña Metadatos)";
+  return "Nada";
+}
+function filasXls(lista) {
+  return lista.map(it => {
+    const d = DEC[it.barra];
+    return { "Código de barras": it.barra.replace(/^r:/, ""), "Referencia": it.ref, "Título": it.titulo, "Autor": it.autor, "Editorial": it.editorial,
+      "Categoría actual": it.cat, "Género (Metadatos)": it.genero, "Sugerida por Metadatos": NOMCAT(it.sug || ""), "Tema (Odoo)": it.tema,
+      "Situación": (TIPOS.find(t => t[0] === it.tipo) || [])[1], "Categoría correcta": d ? NOMCAT(d.cod) : "",
+      "Qué corregir en Odoo": queCorregir(it, d), "Ventas 90 días": it.v90, "Existencia": it.ex };
+  });
+}
+async function bajar(lista, nombreArch) {
+  await window.excelListo;
+  const ws = XLSX.utils.json_to_sheet(lista.length ? filasXls(lista) : [{ "": "Sin libros" }]);
+  ws["!cols"] = [15, 11, 44, 24, 18, 40, 28, 40, 24, 20, 40, 34, 10, 10].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Revisión");
+  XLSX.writeFile(wb, `${nombreArch} - ${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+$("xls").addEventListener("click", () => bajar(VISTA, "Revisión de clasificación"));
+$("xlsDec").addEventListener("click", () => bajar(ITEMS.filter(i => DEC[i.barra]), "Clasificación decidida"));
+</script>
+</body>
+</html>

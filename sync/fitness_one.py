@@ -1,5 +1,8 @@
 """Candidatos para el surtido de Fitness One (app Mayoreo – Fitness One), cifrados con clave.
 
+También publica site/clasificacion/datos.enc (todos los libros con existencia, con categoría,
+tema y género de Metadatos) para el app Revisión de clasificación.
+
 Publica en site/fitness/datos.enc los libros a precio normal (sin bazar) que tienen existencia,
 con lo necesario para elegir qué mandar:
   - título, autor, editorial, precio de venta (PVP), categoría, tema, género literario,
@@ -100,7 +103,7 @@ def main():
     print(f"  {len(salidas):,} salidas y {len(devol):,} devoluciones")
 
     # 3. Datos de los productos con existencia suficiente
-    ids = sorted(pid for pid, c in ex.items() if sum(c.values()) >= MIN_TOTAL)
+    ids = sorted(pid for pid, c in ex.items() if sum(c.values()) >= 1)
     pf = fields_get_es(o, "product.product", ["string", "type"])
     tt = ("char", "text", "many2one", "many2many", "selection")
     f_aut = (cfg.get("campo_autor") and [cfg["campo_autor"]]) or find_field(pf, ["Autor", "AUTOR", "Autores"], tt)
@@ -114,11 +117,11 @@ def main():
 
     L = sorted({u for c in ex.values() for u in c} | {u for c in vloc.values() for u in c})
     li = {u: i for i, u in enumerate(L)}
-    P = {}
+    P, R = {}, {}   # P: candidatos de Fitness One · R: todos los libros con existencia, para revisar la clasificación
     for i in range(0, len(ids), 2000):
         for p in o.call("product.product", "read", [ids[i:i + 2000]], {"fields": campos}):
             cat = as_text(p.get("categ_id"))
-            if "LIBRO" not in cat.upper() or BAZAR.search(cat):
+            if "LIBRO" not in cat.upper():
                 continue
             code = re.sub(r"\D", "", str(p.get("barcode") or ""))
             ref = clean(p.get("default_code") or "")
@@ -128,6 +131,11 @@ def main():
             titulo = g(meta["meta_titulo"]) or as_text(p.get("name")).strip()
             autor = g(meta["meta_autor"]) or (g(f_aut[0]) if f_aut else "")
             pid = p["id"]
+            total = int(sum(ex[pid].values()))
+            R[code or "r:" + ref] = [ref, titulo, autor, g(f_edi[0]) if f_edi else "", cat.split("/")[-1].strip(),
+                                     g(f_tem[0]) if f_tem else "", g(meta["meta_genero"]), total, max(0, round(v90[pid]))]
+            if total < MIN_TOTAL or BAZAR.search(cat):
+                continue
             st = [x for u, n in sorted(ex[pid].items(), key=lambda x: -x[1]) if int(n) > 0 for x in (li[u], int(n))]
             vl = [x for u, n in vloc[pid].items() if round(n) > 0 for x in (li[u], round(n))]
             sin = ""
@@ -150,6 +158,15 @@ def main():
     os.makedirs(out, exist_ok=True)
     with open(os.path.join(out, "datos.enc"), "w", encoding="utf-8") as f:
         json.dump(sobre, f, separators=(",", ":"))
+    # Revisión de clasificación (app de Gerencia)
+    datos = json.dumps({"v": version, "c": ["ref", "titulo", "autor", "editorial", "categoria", "tema", "genero", "existencia", "v90"], "p": R},
+                       ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    sobre2 = cifrar(gzip.compress(datos, 9), env["CLAVE_EXISTENCIAS"])
+    sobre2["v"] = version
+    os.makedirs(os.path.join(a.out, "clasificacion"), exist_ok=True)
+    with open(os.path.join(a.out, "clasificacion", "datos.enc"), "w", encoding="utf-8") as f:
+        json.dump(sobre2, f, separators=(",", ":"))
+    print(f"Clasificación: {len(R):,} libros con existencia.")
     print(f"Fitness One: {len(P):,} libros candidatos en {len(L)} ubicaciones ({len(sobre['d']) // 1024:,} KB cifrados).")
 
 
