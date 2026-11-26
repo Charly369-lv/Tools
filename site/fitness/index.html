@@ -148,7 +148,7 @@ td .acc { display: flex; gap: 4px; flex-wrap: wrap; }
 </div></header>
 
 <main class="pad"><div class="inner">
-  <p class="muted">Arma el sugerido de envío para la librería De Museo dentro de Fitness One. Elige los libros por tema y ventas, y los saca primero de la Bodega Central (BOD) y, si falta, de las tiendas con más existencia. Los datos vienen de Odoo cada noche.</p>
+  <p class="muted">Arma el sugerido de envío para la librería De Museo dentro de Fitness One. Elige los libros por tema y ventas, y los saca primero de la Bodega Central (BOD), luego de la bodega Walmart (WALLM) y, si falta, de las tiendas con más existencia. Los datos vienen de Odoo cada noche.</p>
 
   <section class="card step" id="s1">
     <span class="num">1</span>
@@ -214,7 +214,13 @@ td .acc { display: flex; gap: 4px; flex-wrap: wrap; }
   </section>
 </div></main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* La librería de Excel se descarga después de abrir la página, para que la app cargue más rápido */
+window.excelListo = new Promise(function (ok) {
+  function cargar() { var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = ok; document.head.appendChild(s); }
+  if (document.readyState === "complete") cargar(); else window.addEventListener("load", cargar);
+});
+</script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -230,8 +236,10 @@ const TEMAS0 = [
   { id: "emp", nombre: "Empresarial / finanzas", dos: 3, uno: 2, claves: "EMPRESA, NEGOCIO, ADMINISTRACION, FINANZA, ECONOMIA, LIDERAZGO, MARKETING, MERCADEO, EMPRENDI, VENTAS, INVERSION, GERENCIA" },
   { id: "aut", nombre: "Autoayuda / hábitos", dos: 5, uno: 2, claves: "AUTOAYUDA, SUPERACION, DESARROLLO PERSONAL, CRECIMIENTO PERSONAL, MOTIVACION, PSICOLOGIA POPULAR, HABITOS, AUTOESTIMA, BIENESTAR" },
 ];
-const CF0 = { esp: 36, margen: 35, minRes: 4, dejar: 2, tope: 0, prin: "BOD", sinLocs: null, temas: TEMAS0 };
+const CF0 = { walmV2: true, esp: 36, margen: 35, minRes: 4, dejar: 2, tope: 0, prin: "BOD", sinLocs: null, temas: TEMAS0 };
 let CF = Object.assign(structuredClone(CF0), lsGet("fit-ajustes", {}));
+// Antes la bodega Walmart venía excluida: se habilita una sola vez en los ajustes guardados
+if (!lsGet("fit-ajustes", {}).walmV2) { if (CF.sinLocs) CF.sinLocs = CF.sinLocs.filter(l => !/^WALLM/i.test(l)); CF.walmV2 = true; lsSet("fit-ajustes", CF); }
 const SUC0 = ["Fitness One Rus"];
 let SUCS = lsGet("fit-sucursales", SUC0), SUC = lsGet("fit-suc", SUCS[0]);
 let SEL = lsGet("fit-sel", {});        // { sucursal: { barra: { u, tema } } }
@@ -306,9 +314,9 @@ $("claveForm").addEventListener("submit", e => { e.preventDefault(); const c = $
   } catch (e) { $("stStatus").textContent = "Todavía no se han publicado los datos. Se generan en la próxima sincronización con Odoo."; }
 })();
 
-const esTienda = l => l !== CF.prin;
+const esTienda = l => l !== CF.prin && !esWalm(l);
 function pintarLocs() {
-  if (!CF.sinLocs) { CF.sinLocs = D.L.filter(l => /WAL|MAYOR|FITNE|DEVOL|MERMA|DANAD|BAZAR|TRANS/i.test(l)); guardarCF(); }
+  if (!CF.sinLocs) { CF.sinLocs = D.L.filter(l => /MAYOR|FITNE|DEVOL|MERMA|DANAD|BAZAR|TRANS/i.test(l)); guardarCF(); }
   $("cfLocs").innerHTML = D.L.map(l => `<label><input type="checkbox" data-loc="${esc(l)}" ${CF.sinLocs.includes(l) ? "checked" : ""}> ${esc(l)}</label>`).join("");
   if (!D.L.includes(CF.prin)) CF.prin = D.L.find(l => /^BOD/i.test(l)) || D.L[0];
   $("cfPrin").innerHTML = D.L.map(l => `<option ${l === CF.prin ? "selected" : ""}>${esc(l)}</option>`).join("");
@@ -340,14 +348,17 @@ function prepararItems() {
 const POR = () => new Map(ITEMS.map(i => [i.barra, i]));
 
 // De dónde sacar: primero la bodega principal, luego las tiendas con más existencia (dejando un mínimo en cada una)
+// Bodega Walmart (WALLM/Stock): bodega secundaria, se usa completa después de la principal y antes de las tiendas
+const esWalm = l => /^WALLM/i.test(l);
+const rango = l => l === CF.prin ? 2 : esWalm(l) ? 1 : 0;
 function fuentes(it) {
   const out = [];
   for (const [l, n] of it.st) {
     if (CF.sinLocs.includes(l)) continue;
-    const usable = l === CF.prin ? n : Math.max(0, n - CF.dejar);
+    const usable = rango(l) ? n : Math.max(0, n - CF.dejar);
     if (usable > 0) out.push([l, usable]);
   }
-  return out.sort((a, b) => (b[0] === CF.prin) - (a[0] === CF.prin) || b[1] - a[1]);
+  return out.sort((a, b) => rango(b[0]) - rango(a[0]) || b[1] - a[1]);
 }
 const disponible = it => fuentes(it).reduce((s, x) => s + x[1], 0);
 function sacarDe(it, u) {

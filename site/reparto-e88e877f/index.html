@@ -209,7 +209,13 @@ body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-vi
 </div></div>
 <dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script>
+/* La librería de Excel se descarga después de abrir la página, para que la app cargue más rápido */
+window.excelListo = new Promise(function (ok) {
+  function cargar() { var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"; s.onload = ok; s.onerror = ok; document.head.appendChild(s); }
+  if (document.readyState === "complete") cargar(); else window.addEventListener("load", cargar);
+});
+</script>
 <script>
 // ---------------------------------------------------------------- utilidades
 const $ = id => document.getElementById(id);
@@ -293,7 +299,7 @@ const num = v => { const x = val(v); if (x == null || x === "") return null; con
 
 async function leerTabla(f) {
     const buf = await f.arrayBuffer();
-    const wb = new ExcelJS.Workbook(); await wb.xlsx.load(buf);
+    await window.excelListo; const wb = new ExcelJS.Workbook(); await wb.xlsx.load(buf);
     let ws = null, hr = 0, H = [];
     for (const w of wb.worksheets) {
       for (let r = 1; r <= Math.min(12, w.rowCount); r++) {
@@ -554,7 +560,7 @@ $("btnOtro").onclick = () => { if (!confirm("¿Empezar con otro pedido? Se pierd
 $("btnXls").onclick = async () => {
   const b = $("btnXls"); b.disabled = true; b.textContent = "Preparando…";
   try {
-    const wb = new ExcelJS.Workbook(); await wb.xlsx.load(X.buf);
+    await window.excelListo; const wb = new ExcelJS.Workbook(); await wb.xlsx.load(X.buf);
     const ws = wb.getWorksheet(X.hoja);
     const T = new Set(X.tiendas.map(t => t.code).filter(t => X.activas.has(t)));
     for (const r of R) {
@@ -642,7 +648,7 @@ function tiendaDeArchivo(nombre) {
   return "";
 }
 async function leerPedido(f) {
-  const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await f.arrayBuffer());
+  await window.excelListo; const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await f.arrayBuffer());
   const txt = c => { const v = c && c.value; if (v == null) return ""; if (typeof v === "object") return String(v.result ?? v.text ?? (v.richText ? v.richText.map(r => r.text).join("") : "")); return String(v); };
   const num = c => { const v = c && c.value; const x = typeof v === "object" && v ? v.result : v; return Number(String(x ?? "").replace(/,/g, "")) || 0; };
   for (const ws of wb.worksheets) {

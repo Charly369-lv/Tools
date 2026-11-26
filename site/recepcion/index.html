@@ -189,7 +189,13 @@ td .num, .tile b, td.num { font-family: var(--f-num); }
   </section>
 </div></main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* La librería de Excel se descarga después de abrir la página, para que la app cargue más rápido */
+window.excelListo = new Promise(function (ok) {
+  function cargar() { var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = ok; document.head.appendChild(s); }
+  if (document.readyState === "complete") cargar(); else window.addEventListener("load", cargar);
+});
+</script>
 <script>
 // Catálogo: el mismo que usa el checador (../checador/), sincronizado cada noche con Odoo.
 // Producto: [código, referencia (item), título, autor, editorial, precio, tema, precioBazar?, %descuento?]
@@ -477,6 +483,7 @@ $("drop").addEventListener("drop", e => { e.preventDefault(); $("drop").classLis
 $("file").addEventListener("change", e => { if (e.target.files[0]) readFile(e.target.files[0]); e.target.value = ""; });
 
 async function readFile(f) {
+  await window.excelListo;
   $("loadErr").hidden = true;
   if (/\.pdf$/i.test(f.name)) { showErr("Por ahora la app lee Excel y CSV. Si la factura llegó en PDF, pide al proveedor el Excel o pega la lista de ISBN abajo."); return; }
   if (!window.XLSX) { showErr("No se pudo cargar el lector de Excel. Revisa la conexión a internet y recarga la página."); return; }

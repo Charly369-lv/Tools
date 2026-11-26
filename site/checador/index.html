@@ -812,7 +812,7 @@ document.addEventListener("keydown", e => {
 // Sonidos: archivos .wav publicados junto a la página (más confiables que el sintetizador del navegador)
 let soundOn = true, unlocked = false;
 try { soundOn = localStorage.getItem("dm-sonido") !== "off"; } catch (e) {}
-const SND = { bazar: new Audio("sonido-bazar.wav"), normal: new Audio("sonido-normal.wav") };
+const SND = { bazar: new Audio("sonido-bazar.mp3"), normal: new Audio("sonido-normal.mp3") };
 for (const a of Object.values(SND)) { a.preload = "auto"; a.volume = 1; }
 const sndBtn = $("snd");
 function paintSnd() { sndBtn.setAttribute("aria-pressed", soundOn); sndBtn.textContent = soundOn ? "Sonido" : "Sin sonido"; }

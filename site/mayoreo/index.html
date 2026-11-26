@@ -226,7 +226,13 @@ body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-vi
   </section>
 </div></main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* La librería de Excel se descarga después de abrir la página, para que la app cargue más rápido */
+window.excelListo = new Promise(function (ok) {
+  function cargar() { var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = ok; document.head.appendChild(s); }
+  if (document.readyState === "complete") cargar(); else window.addEventListener("load", cargar);
+});
+</script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -304,6 +310,7 @@ $("olvidar").addEventListener("click", () => { try { localStorage.removeItem("su
 
 // ---------------------------------------------------------------- lectura de archivos
 async function leerTabla(file) {
+  await window.excelListo;
   const buf = await file.arrayBuffer();
   if (/\.(csv|txt)$/i.test(file.name)) {
     let txt = new TextDecoder("utf-8").decode(buf);

@@ -162,7 +162,7 @@ const limpio = s => String(s || "").trim().replace(/\s+/g, "").toUpperCase();
 const hora = d => new Date(d).toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 // ---------------------------------------------------------------- sonidos
-const SND = { ok: new Audio("../checador/sonido-normal.wav"), bien: new Audio("../checador/sonido-bazar.wav"), err: new Audio("error.wav") };
+const SND = { ok: new Audio("../checador/sonido-normal.mp3"), bien: new Audio("../checador/sonido-bazar.mp3"), err: new Audio("error.mp3") };
 Object.values(SND).forEach(a => { a.preload = "auto"; a.volume = 1; });
 let sndOn = false;
 document.addEventListener("pointerdown", () => { if (sndOn) return; sndOn = true; Object.values(SND).forEach(a => { a.muted = true; a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; }); }); }, { once: true });

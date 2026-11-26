@@ -430,7 +430,7 @@ const newId = () => Date.now().toString(36).padStart(9, "0") + "-" + (seqN++).to
 
 // ---------- Sonidos ----------
 let soundUnlocked = false;
-const SND = { ok: new Audio("ok.wav"), bad: new Audio("error.wav") };
+const SND = { ok: new Audio("ok.mp3"), bad: new Audio("error.mp3") };
 Object.values(SND).forEach(a => { a.preload = "auto"; });
 function unlockAudio() {
   if (soundUnlocked) return; soundUnlocked = true;
