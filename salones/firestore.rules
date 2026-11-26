@@ -8,25 +8,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Las 12 tiendas que pueden ENTRAR y VER el calendario.
+    // Los usuarios que pueden ENTRAR y VER el calendario: tiendas, cafés y gerencia.
     function tiendas() {
       return [
-        'centrohistorico@demuseo.com', 'majadas@demuseo.com',
-        'antigua@demuseo.com',         'americas@demuseo.com',
+        'centrohistorico@demuseo.com', 'majadasonce@demuseo.com',
+        'antigua@demuseo.com',         'lasamericas@demuseo.com',
         'videre@demuseo.com',          'miraflores@demuseo.com',
         'pradera@demuseo.com',         'concepcion@demuseo.com',
-        'portales@demuseo.com',        'sankris@demuseo.com',
-        'coban@demuseo.com',           'xela@demuseo.com'
+        'portales@demuseo.com',        'sankrismall@demuseo.com',
+        'plazamagdalena@demuseo.com',  'interplazaxela@demuseo.com',
+        'cafemajadasonce@demuseo.com', 'cafevidere@demuseo.com',
+        'claribel.morales@demuseo.com', 'ingrid@demuseo.com'
       ];
     }
 
-    // Qué salones puede EDITAR cada tienda (las demás no editan nada).
+    // Qué salones puede EDITAR cada usuario (los demás solo ven).
     function permisos() {
       return {
-        'centrohistorico@demuseo.com': ['zona1'],
-        'majadas@demuseo.com':         ['majadas1', 'majadas2'],
-        'antigua@demuseo.com':         ['antigua'],
-        'americas@demuseo.com':        ['americas']
+        'centrohistorico@demuseo.com':  ['zona1'],
+        'majadasonce@demuseo.com':      ['majadas1', 'majadas2'],
+        'antigua@demuseo.com':          ['antigua'],
+        'lasamericas@demuseo.com':      ['americas'],
+        'claribel.morales@demuseo.com': ['zona1', 'majadas1', 'majadas2', 'antigua', 'americas'],
+        'ingrid@demuseo.com':           ['zona1', 'majadas1', 'majadas2', 'antigua', 'americas']
       };
     }
 

@@ -396,12 +396,12 @@ dialog[open] { animation: aparecer var(--dur-short) var(--ease-out); }
 //  Si cambia TIENDAS o SALONES, cambie también salones/firestore.rules.
 // =====================================================================
 const FIREBASE_CONFIG = {
-  apiKey: "PEGAR_AQUI",
-  authDomain: "PEGAR_AQUI",
-  projectId: "PEGAR_AQUI",
-  storageBucket: "PEGAR_AQUI",
-  messagingSenderId: "PEGAR_AQUI",
-  appId: "PEGAR_AQUI",
+  apiKey: "AIzaSyBerwBINTAuzW8E1kfKNN0F6PPmGi7UPuk",
+  authDomain: "salones-demuseo.firebaseapp.com",
+  projectId: "salones-demuseo",
+  storageBucket: "salones-demuseo.firebasestorage.app",
+  messagingSenderId: "619374966609",
+  appId: "1:619374966609:web:ce204457c5e61b15744570",
 };
 
 // id interno (no cambiarlo cuando ya haya eventos), nombre completo, nombre corto y tienda
@@ -413,20 +413,25 @@ const SALONES = [
   { id: "americas", nombre: "Salón Las Américas",  corto: "Las Américas", tienda: "Parque Las Américas" },
 ];
 
-// Usuario de cada tienda y los salones que puede editar
+// Usuario de cada tienda (igual que en Firebase, en minúsculas) y los salones que puede editar
 const TIENDAS = {
   "centrohistorico@demuseo.com": { nombre: "Centro Histórico",      salones: ["zona1"] },
-  "majadas@demuseo.com":         { nombre: "Majadas ONCE",          salones: ["majadas1", "majadas2"] },
+  "majadasonce@demuseo.com":     { nombre: "Majadas ONCE",          salones: ["majadas1", "majadas2"] },
   "antigua@demuseo.com":         { nombre: "La Antigua Guatemala",  salones: ["antigua"] },
-  "americas@demuseo.com":        { nombre: "Parque Las Américas",   salones: ["americas"] },
+  "lasamericas@demuseo.com":     { nombre: "Parque Las Américas",   salones: ["americas"] },
   "videre@demuseo.com":          { nombre: "Vidēre",                salones: [] },
   "miraflores@demuseo.com":      { nombre: "Miraflores",            salones: [] },
   "pradera@demuseo.com":         { nombre: "Galerías La Pradera",   salones: [] },
   "concepcion@demuseo.com":      { nombre: "Pradera Concepción",    salones: [] },
   "portales@demuseo.com":        { nombre: "Portales",              salones: [] },
-  "sankris@demuseo.com":         { nombre: "SanKris Mall",          salones: [] },
-  "coban@demuseo.com":           { nombre: "Plaza Magdalena Cobán", salones: [] },
-  "xela@demuseo.com":            { nombre: "Interplaza Xela",       salones: [] },
+  "sankrismall@demuseo.com":     { nombre: "SanKris Mall",          salones: [] },
+  "plazamagdalena@demuseo.com":  { nombre: "Plaza Magdalena Cobán", salones: [] },
+  "interplazaxela@demuseo.com":  { nombre: "Interplaza Xela",       salones: [] },
+  "cafemajadasonce@demuseo.com": { nombre: "De Museo Café Majadas ONCE", salones: [] },
+  "cafevidere@demuseo.com":      { nombre: "De Museo Café Vidēre",       salones: [] },
+  // Gerencia: crea y edita en los cinco salones
+  "claribel.morales@demuseo.com": { nombre: "Gerencia, Claribel", salones: ["zona1", "majadas1", "majadas2", "antigua", "americas"], gerencia: true },
+  "ingrid@demuseo.com":           { nombre: "Gerencia, Ingrid",   salones: ["zona1", "majadas1", "majadas2", "antigua", "americas"], gerencia: true },
 };
 
 // =====================================================================
@@ -780,7 +785,7 @@ function pintarSemana() {
     const tr = el("tr");
     const th = el("th"); th.scope = "row";
     th.append(el("span", "salon-n", s.nombre), el("span", "salon-t", s.tienda));
-    if (puedeEditar(s.id)) th.append(el("span", "salon-suyo", "Su salón"));
+    if (puedeEditar(s.id) && !tiendaDe(usuario).gerencia) th.append(el("span", "salon-suyo", "Su salón"));
     tr.append(th);
     for (const d of dias) {
       const td = el("td");

@@ -2,7 +2,7 @@
 
 La página está en `site/salones/index.html` y se abre en https://charly369-lv.github.io/Tools/salones/. Aparece en el índice de Tienda y en el directorio principal.
 
-Las 12 tiendas entran con su usuario y ven los eventos de los cinco salones, con la hora, el cliente, el teléfono y las observaciones. Solo cuatro tiendas pueden crear, cambiar o eliminar eventos, y cada una únicamente en sus propios salones:
+Las 12 tiendas y los dos cafés entran con su usuario y ven los eventos de los cinco salones, con la hora, el cliente, el teléfono y las observaciones. Gerencia (Claribel e Ingrid) puede crear, cambiar y eliminar eventos en los cinco salones. De las tiendas, solo cuatro pueden hacerlo, y cada una únicamente en sus propios salones:
 
 | Tienda | Salones que edita |
 |---|---|
@@ -30,25 +30,29 @@ Toma unos 30 minutos.
 
 Esos valores no son secretos. Firebase los pone en la página a propósito. Lo que protege los datos son las contraseñas y las reglas.
 
-### 2. Crear los 12 usuarios
+### 2. Crear los usuarios
 
 1. En el menú de la izquierda, entre a Authentication y haga clic en Comenzar.
 2. En Método de acceso, active Correo electrónico/contraseña.
-3. En Usuarios, agregue estos 12 usuarios en minúsculas, cada uno con su propia contraseña de al menos 10 caracteres:
+3. En Usuarios, agregue estos 16 usuarios en minúsculas, cada uno con su propia contraseña de al menos 10 caracteres. Son las 12 tiendas, los dos cafés y gerencia:
 
 ```
 centrohistorico@demuseo.com
-majadas@demuseo.com
+majadasonce@demuseo.com
 antigua@demuseo.com
-americas@demuseo.com
+lasamericas@demuseo.com
 videre@demuseo.com
 miraflores@demuseo.com
 pradera@demuseo.com
 concepcion@demuseo.com
 portales@demuseo.com
-sankris@demuseo.com
-coban@demuseo.com
-xela@demuseo.com
+sankrismall@demuseo.com
+plazamagdalena@demuseo.com
+interplazaxela@demuseo.com
+cafemajadasonce@demuseo.com
+cafevidere@demuseo.com
+claribel.morales@demuseo.com
+ingrid@demuseo.com
 ```
 
    No tienen que ser correos reales, solo funcionan como usuario. Si prefiere otros, cámbielos en la lista `TIENDAS` de `site/salones/index.html` y en `salones/firestore.rules`, con la misma escritura en los dos archivos.
@@ -76,7 +80,7 @@ GitHub Pages publica los cambios en uno o dos minutos.
 1. Entre como `antigua@demuseo.com` y cree un evento en el Salón Antigua.
 2. Intente crear otro que se cruce con ese horario. La página debe avisar del choque.
 3. Salga y entre como `videre@demuseo.com`. Debe ver el evento con todos sus datos, pero sin el botón Nuevo evento y sin poder cambiarlo.
-4. Entre como `majadas@demuseo.com`. Puede ver el evento de Antigua, pero no cambiarlo, y solo puede crear eventos en sus dos salones.
+4. Entre como `majadasonce@demuseo.com`. Puede ver el evento de Antigua, pero no cambiarlo, y solo puede crear eventos en sus dos salones.
 
 Si los cuatro pasos salen así, ya puede mandar a cada tienda la dirección, su usuario y su contraseña. Conviene mandar la contraseña por otro medio, por ejemplo en una llamada.
 
@@ -95,7 +99,7 @@ Los eventos se pueden revisar o corregir a mano en Firestore Database, colecció
 
 ## Límites
 
-El plan gratuito de Firebase permite 50,000 lecturas al día. Cada vez que alguien abre la página se leen los eventos del último año en adelante, y con 12 tiendas eso queda muy por debajo del límite.
+El plan gratuito de Firebase permite 50,000 lecturas al día. Cada vez que alguien abre la página se leen los eventos del último año en adelante, y con 16 usuarios eso queda muy por debajo del límite.
 
 La revisión de choques de horario la hace la página antes de guardar. Como cada salón lo edita una sola tienda, dos tiendas no pueden apartar el mismo salón al mismo tiempo.
 
