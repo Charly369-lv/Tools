@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Manual de Diferencias de traslados: cómo revisar y resolver faltantes y sobrantes antes de ajustar Odoo.">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32">
+<title>Manual · Diferencias de traslados</title>
+<link rel="stylesheet" href="../../fuentes/fuentes.css">
+<style>
+/* Hallmark · v2.0.0 · shape: narrative-workflow (custom, De Museo brand tokens kept) · genre: editorial · job: learn the daily routine, action "Abrir la bandeja" in hero and footer · signature: the real bandeja screenshot beside a three-step day · material: real app screenshots, real rules, no invented figures · surface: brand navy on tinted paper */
+/* Hallmark · pre-emit critique: P4 H5 E4 S5 R4 V3 · weakest: V, same brand system as the other Tools apps by design; kept it, the manual must look like the app it explains */
+:root {
+  --navy: oklch(30% 0.12 268); --navy-deep: oklch(22% 0.09 268); --gold: oklch(82% 0.14 82);
+  --paper: oklch(97.5% 0.008 268); --surface: oklch(99.5% 0.004 268); --ink: oklch(22% 0.05 268); --muted: oklch(48% 0.04 268);
+  --line: oklch(89% 0.02 268); --soft: oklch(94% 0.018 268); --on-navy: oklch(98% 0.005 268);
+  --red: oklch(50% 0.18 28); --red-bg: oklch(94% 0.04 28); --amber: oklch(52% 0.12 75); --amber-bg: oklch(95% 0.06 90);
+  --green: oklch(48% 0.12 150); --green-bg: oklch(94% 0.04 150);
+  --f-display: "Bodoni Moda", Georgia, serif; --f-body: "Archivo", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --shadow: 0 18px 40px -24px oklch(22% 0.09 268 / .45); --measure: 66ch; --wrap: 1120px; --r: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: oklch(16% 0.04 268); --surface: oklch(21% 0.05 268); --ink: oklch(94% 0.01 268); --muted: oklch(75% 0.03 268);
+    --line: oklch(32% 0.05 268); --soft: oklch(26% 0.05 268); --navy: oklch(42% 0.13 268);
+    --red: oklch(72% 0.15 28); --red-bg: oklch(30% 0.07 28); --amber: oklch(82% 0.13 82); --amber-bg: oklch(32% 0.06 82); --green: oklch(78% 0.13 150); --green-bg: oklch(30% 0.06 150); color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.55 var(--f-body); }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding-inline: max(20px, env(safe-area-inset-left, 0px)); }
+a { color: inherit; }
+a:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; transition: none; }
+header.bar { background: var(--navy-deep); color: var(--on-navy); }
+header.bar .wrap { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 64px; }
+header.bar img { display: block; width: 150px; height: auto; }
+header.bar nav { display: flex; gap: 20px; font-size: 15px; flex-wrap: wrap; }
+header.bar nav a { text-decoration: none; color: var(--on-navy); }
+header.bar nav a:hover { text-decoration: underline; }
+h1, h2 { font-family: var(--f-display); font-weight: 800; line-height: 1.05; text-wrap: balance; margin: 0; overflow-wrap: break-word; min-width: 0; color: var(--ink); }
+h1 { font-size: clamp(40px, 6vw, 72px); }
+h2 { font-size: clamp(30px, 4vw, 46px); }
+h3 { font: 700 19px/1.3 var(--f-body); margin: 0; }
+p { margin: 0; max-width: var(--measure); }
+.num { font-family: var(--f-body); font-weight: 700; font-variant-numeric: lining-nums tabular-nums; }
+.muted { color: var(--muted); }
+.btn { display: inline-flex; align-items: center; min-height: 48px; padding: 12px 20px; border-radius: 10px; background: var(--navy); color: var(--on-navy); font-weight: 700; text-decoration: none; border: 2px solid var(--navy); transition: background-color .15s ease, color .15s ease; }
+.btn:hover { background: var(--navy-deep); }
+.btn:active { transform: translateY(1px); }
+a:active { opacity: .8; }
+.btn.alt { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.alt:hover { background: var(--soft); }
+section { padding-block: clamp(56px, 8vw, 104px); border-top: 1px solid var(--line); }
+.hero { border-top: 0; padding-block: clamp(36px, 5vw, 64px); display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: center; }
+.hero .copy { display: grid; gap: 24px; }
+.hero .lead { font-size: 21px; }
+.acts { display: flex; gap: 12px; flex-wrap: wrap; }
+figure { margin: 0; }
+.shot { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); box-shadow: var(--shadow); }
+.shot img { display: block; width: 100%; height: auto; }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 12px; }
+.head { display: grid; gap: 16px; margin-bottom: 40px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; counter-reset: s; }
+.steps li { display: grid; gap: 12px; align-content: start; }
+.steps .n { font-family: var(--f-body); font-weight: 700; font-size: 64px; line-height: 1; color: var(--navy); }
+.split { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 48px; align-items: start; }
+.split.rev { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+.keys { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+.keys li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; }
+.keys .k { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--navy); color: var(--on-navy); font: 700 16px var(--f-body); }
+table { width: 100%; border-collapse: collapse; font-size: 16px; }
+th, td { text-align: left; padding: 16px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 14px; font-weight: 700; color: var(--muted); }
+.tag { display: inline-block; font-size: 14px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
+.tag.r { background: var(--red-bg); color: var(--red); } .tag.a { background: var(--amber-bg); color: var(--amber); } .tag.g { background: var(--green-bg); color: var(--green); }
+.who { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+.who div { padding: 24px; display: grid; gap: 8px; align-content: start; }
+.who div + div { border-left: 1px solid var(--line); }
+.who b { font-family: var(--f-display); font-size: 26px; font-weight: 800; }
+dl.fail { margin: 0; display: grid; gap: 0; }
+dl.fail div { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+dl.fail dt { font-family: var(--f-mono); font-size: 15px; color: var(--red); }
+dl.fail dd { margin: 0; }
+footer { background: var(--navy-deep); color: var(--on-navy); padding-block: 56px; }
+footer .wrap { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+footer h2 { color: var(--on-navy); font-size: clamp(28px, 3.5vw, 40px); }
+footer .btn { background: var(--gold); border-color: var(--gold); color: var(--navy-deep); }
+footer .btn:hover { background: var(--on-navy); border-color: var(--on-navy); }
+footer p { color: var(--on-navy); opacity: .8; font-size: 15px; margin-top: 8px; }
+@media (max-width: 860px) {
+  .hero, .split, .split.rev { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .steps, .who { grid-template-columns: minmax(0, 1fr); }
+  .who div + div { border-left: 0; border-top: 1px solid var(--line); }
+  dl.fail div { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  table, thead, tbody, tr, th, td { display: block; } thead { display: none; }
+  tr { border-bottom: 1px solid var(--line); padding-block: 12px; } td { border: 0; padding: 4px 0; }
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+@media print { header.bar nav, .acts, footer .btn { display: none; } section { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a href="../"><img src="../../checador/logo.png" alt="De Museo · volver a Diferencias de traslados" width="800" height="143"></a>
+  <nav aria-label="Secciones del manual"><a href="#dia">Tu día</a><a href="#bandeja">La bandeja</a><a href="#resolver">Resolver</a><a href="#problemas">Si algo falla</a><a href="#mes">Cada mes</a></nav>
+</div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <div class="copy">
+      <h1>Nada se ajusta sin tu visto bueno</h1>
+      <p class="lead">Cada faltante y sobrante espera en tu bandeja hasta que decides qué pasó.</p>
+      <div class="acts"><a class="btn" href="../">Abrir la bandeja</a><a class="btn alt" href="#dia">Ver los tres pasos</a></div>
+    </div>
+    <figure class="shot"><img src="bandeja.jpg" width="1080" height="620" alt="La bandeja de Diferencias de traslados: arriba los totales de casos, fuera de plazo, faltantes, sobrantes e incidentes de sello; abajo la lista de casos por tienda."></figure>
+  </div>
+
+  <section id="dia">
+    <div class="head"><h2>Tu día en tres pasos</h2><p class="muted">Diez minutos cada mañana.</p></div>
+    <ol class="steps">
+      <li><span class="n">1</span><h3>Lee el resumen de las 7</h3><p>Llega a auditoria@demuseo.com de lunes a viernes con todo lo pendiente.</p></li>
+      <li><span class="n">2</span><h3>Resuelve lo rojo primero</h3><p>La barra roja marca los casos con más de 2 días hábiles.</p></li>
+      <li><span class="n">3</span><h3>Persigue lo atrasado</h3><p>Llama a las tiendas con cajas sin revisar y al CEDIS si no terminó un envío.</p></li>
+    </ol>
+  </section>
+
+  <section id="bandeja" class="split">
+    <figure class="shot"><img src="bandeja.jpg" width="1080" height="620" alt="Captura de la bandeja con sus partes."><figcaption>Entra con tu código y PIN de Despachos.</figcaption></figure>
+    <div>
+      <div class="head"><h2>Cómo leer la bandeja</h2></div>
+      <ul class="keys">
+        <li><span class="k">1</span><p><b>Los totales:</b> casos, fuera de plazo y valor.</p></li>
+        <li><span class="k">2</span><p><b>La barra roja:</b> ya pasó el plazo.</p></li>
+        <li><span class="k">3</span><p><b>Las etiquetas.</b> <span class="tag r">Faltan 2</span> <span class="tag a">Sobran 1</span> <span class="tag r">Sello</span> dicen qué pasó.</p></li>
+        <li><span class="k">4</span><p><b>Toca una fila</b> para abrir el caso.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="resolver">
+    <div class="split rev">
+      <figure class="shot"><img src="caso.jpg" width="560" height="826" alt="Ventana de un caso: datos del producto, envío, quién armó y recibió, las tres decisiones posibles, a quién se le carga, nota y PIN."></figure>
+      <div>
+        <div class="head"><h2>Resolver un caso</h2><p class="muted">Elige lo que pasó y pon tu PIN. Odoo se ajusta en ese momento.</p></div>
+        <table>
+          <thead><tr><th>Si encontraste que…</th><th>Elige</th><th>Qué hace en Odoo</th></tr></thead>
+          <tbody>
+            <tr><td>Faltó de verdad</td><td><span class="tag r">Faltante confirmado</span></td><td>Baja; cuenta en el score.</td></tr>
+            <tr><td>Se quedó en el CEDIS</td><td><span class="tag g">Apareció en el CEDIS</span></td><td>Regresa a BOD.</td></tr>
+            <tr><td>La tienda contó mal</td><td><span class="tag g">La tienda lo encontró</span></td><td>Entra a la tienda.</td></tr>
+            <tr><td>Llegó algo de más</td><td><span class="tag a">Se queda en la tienda</span></td><td>Sale de BOD, entra a la tienda.</td></tr>
+            <tr><td>El código no existe</td><td><span class="tag a">No existe en el sistema</span></td><td>Nada; darlo de alta.</td></tr>
+            <tr><td>No era sobrante</td><td><span class="tag a">No era sobrante</span></td><td>Nada.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="responsable">
+    <div class="head"><h2>¿A quién se le carga?</h2><p class="muted">Solo al confirmar un faltante.</p></div>
+    <div class="who">
+      <div><b>Sello intacto</b><p>A quien armó la caja.</p></div>
+      <div><b>Sello roto o distinto</b><p>Revisa la foto y decide: armador, piloto o tienda.</p></div>
+      <div><b>No se pudo saber</b><p>“No se pudo determinar”: no baja el score de nadie.</p></div>
+    </div>
+  </section>
+
+  <section id="problemas">
+    <div class="head"><h2>Si algo falla</h2></div>
+    <dl class="fail">
+      <div><dt>Primero debe registrarse la llegada</dt><dd>Que el CEDIS pulse Terminar traslado y un supervisor, Reintentar.</dd></div>
+      <div><dt>Solo hay N de M unidades</dt><dd>Otra caja del envío lo compensó. Revísalo a mano en Odoo.</dd></div>
+      <div><dt>La escritura en el sistema está apagada</dt><dd>Seguimos en prueba: pide agregar el traslado a SOLO_TRASLADOS.</dd></div>
+      <div><dt>PIN incorrecto</dt><dd>A los 5 intentos se bloquea 15 minutos.</dd></div>
+    </dl>
+  </section>
+
+  <section id="mes" class="split">
+    <figure class="shot"><img src="bitacora.jpg" width="1080" height="600" alt="Pestaña Bitácora y score con las tablas por persona y por tienda."></figure>
+    <div>
+      <div class="head"><h2>Cada mes</h2></div>
+      <p>El día 1 llega el reporte a auditoría, Ingrid y Claribel: exactitud, faltantes y auditorías por persona.</p>
+      <p style="margin-top:16px">Antes, en la pestaña <b>Bitácora y score</b>.</p>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  <div><h2>¿Listo para empezar?</h2></div>
+  <a class="btn" href="../">Abrir la bandeja</a>
+</div></footer>
+</body>
+</html>

@@ -192,7 +192,7 @@ function pintar() {
   const tiendas = [...new Map(DATOS.map(d => [d.tienda, d.tiendaNombre])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
   app.innerHTML = `
   <section class="card">
-    <div class="row between"><h1>Diferencias de traslados</h1><div class="row"><button type="button" class="ghost sm" id="bRec">Actualizar</button><button type="button" class="ghost sm" id="bXls">Descargar Excel</button></div></div>
+    <div class="row between"><h1>Diferencias de traslados</h1><div class="row"><a class="ghost sm" href="manual/" style="display:inline-flex;align-items:center;min-height:34px;padding:4px 10px;border:2px solid var(--line);border-radius:10px;font:700 13px var(--f-body);color:var(--ink);text-decoration:none">Manual</a><button type="button" class="ghost sm" id="bRec">Actualizar</button><button type="button" class="ghost sm" id="bXls">Descargar Excel</button></div></div>
     <p class="muted">Nada se ajusta en Odoo hasta que lo resuelvas aquí. Plazo: ${PLAZO} días hábiles.</p>
     <div class="kpis">
       <div class="kpi"><span>Casos por resolver</span><b>${p.length}</b></div>
