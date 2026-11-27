@@ -29,6 +29,7 @@ import time
 from html import escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tiendas import nombre  # noqa: E402
 from sync_odoo import Odoo, as_text, clean, find_field, fields_get_es  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -173,13 +174,14 @@ def q(x):
 
 
 def asunto(t, n, primera):
-    return f"Remarcaje {'inicial' if primera else 'de la semana'} · {t}: {n:,} libro{'s' if n != 1 else ''}"
+    # Lo importante primero: en la bandeja del celular solo se ven unos 40 caracteres
+    return f"{nombre(t)}: {n:,} libro{'s' if n != 1 else ''} por remarcar" + (" (lista inicial)" if primera else " esta semana")
 
 
 def correo(t, fecha, filas, cont, primera):
     S = "Arial, Helvetica, sans-serif"
     tiles = "".join(
-        f'<td align="center" style="background:{bg};border-radius:8px;padding:10px 4px;font:11px {S};color:{fg}"><div style="font:bold 24px {S}">{cont.get(k, 0)}</div>{lab}</td><td width="4"></td>'
+        f'<td align="center" style="background:{bg};border-radius:8px;padding:10px 4px;font:12px {S};color:{fg}"><div style="font:bold 24px {S}">{cont.get(k, 0)}</div>{lab.capitalize()}</td><td width="4"></td>'
         for k, (lab, bg, fg) in ACC.items())
 
     def precio(f):
@@ -195,34 +197,34 @@ def correo(t, fecha, filas, cont, primera):
         if f["editorial"] != ed_actual:
             ed_actual = f["editorial"]
             n_ed = sum(1 for x in filas if x["editorial"] == ed_actual)
-            cuerpo.append(f'<tr><td colspan="2" style="background:#112369;color:#fff;font:bold 13px {S};padding:8px 10px">{escape(ed_actual)} · {n_ed}</td></tr>')
+            cuerpo.append(f'<tr><td colspan="2" style="background:#112369;color:#fff;font:bold 13px {S};padding:8px 10px">{escape(ed_actual)} ({n_ed} libro{"s" if n_ed != 1 else ""})</td></tr>')
         lab, bg, fg = ACC[f["accion"]]
         cuerpo.append(f'''<tr style="background:{"#fff" if n % 2 else "#f3f4f9"}">
 <td valign="top" style="padding:9px 6px 9px 10px;font:13px {S};color:#111a3d;overflow-wrap:anywhere">
-<span style="font:bold 11px {S};color:#112369;background:#e9ecf6;padding:1px 5px;border-radius:3px">📍 {escape(f["localidad"] or "sin estante")}</span><br>
-<b>{escape(f["titulo"])}</b><br><span style="font-size:11px;color:#5b6386">{escape(f["autor"])}<br>Ref. {escape(f["ref"])} · {escape(f["isbn"])} · <b>{f["exist"]} u.</b></span></td>
+<span style="font:bold 12px {S};color:#112369;background:#e9ecf6;padding:1px 5px;border-radius:3px">{("Estante " + escape(f["localidad"])) if f["localidad"] else "Sin estante"}</span><br>
+<b>{escape(f["titulo"])}</b><br><span style="font-size:12px;color:#5b6386">{escape(f["autor"])}<br>Ref. {escape(f["ref"])}. Tienes {f["exist"]}.</span></td>
 <td valign="top" align="right" style="padding:9px 10px 9px 4px;font:13px {S};color:#111a3d;width:118px">
-<span style="display:inline-block;background:{bg};color:{fg};font:bold 10px {S};padding:3px 6px;border-radius:4px;margin-bottom:4px">{lab}</span><br>{precio(f)}</td></tr>''')
+<span style="display:inline-block;background:{bg};color:{fg};font:bold 12px {S};padding:3px 6px;border-radius:4px;margin-bottom:4px">{lab.capitalize()}</span><br>{precio(f)}</td></tr>''')
         n += 1
     resto = len(filas) - min(len(filas), MAX_FILAS_CORREO)
     nota_resto = f'<p style="font:bold 14px {S};color:#c42318;margin:12px 0 0">+ {resto:,} libros más en el Excel adjunto.</p>' if resto > 0 else ""
     intro = ("Primera lista: todos los libros en bazar que tienes en existencia, para revisar que tengan su etiqueta correcta. Desde la próxima semana llegarán solo los cambios."
              if primera else "Libros que cambiaron esta semana y que tienes en existencia.")
-    return f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(asunto(t, len(filas), primera))}</title></head>
-<body style="margin:0;background:#f3f4f9"><div style="display:none">{len(filas)} libros por remarcar en {escape(t)}.</div>
+    return f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(asunto(t, len(filas), primera))}</title>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&display=swap" rel="stylesheet"></head>
+<body style="margin:0;background:#f3f4f9"><div style="display:none">{len(filas)} libros por remarcar en {escape(nombre(t))}.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f9"><tr><td align="center" style="padding:16px 8px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#fff;border-radius:10px;overflow:hidden">
 <tr><td style="background:#0b1748;padding:22px 24px"><img src="{LOGO_URL}" width="200" alt="De Museo" style="display:block;width:200px;height:auto;border:0">
-<div style="font:bold 26px Georgia,serif;color:#fff;margin-top:14px">Remarcaje {"inicial" if primera else "de la semana"}</div>
-<div style="font:14px {S};color:#c9cfe8;margin-top:4px">{fecha} · Tienda {escape(t)}</div></td></tr>
+<div style="font:bold 26px 'Bodoni Moda',Georgia,serif;color:#fff;margin-top:14px">Remarcaje {"inicial" if primera else "de la semana"}</div>
+<div style="font:14px {S};color:#c9cfe8;margin-top:4px">{escape(nombre(t))}, {fecha}</div></td></tr>
 <tr><td style="padding:16px 24px 4px;font:14px {S};color:#111a3d">{intro}</td></tr>
 <tr><td style="padding:10px 24px 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>{tiles}</tr></table></td></tr>
 <tr><td style="padding:0 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed">
-<tr style="background:#e9ecf6"><td style="padding:6px 6px 6px 10px;font:bold 10px {S};color:#5b6386">ESTANTE Y LIBRO</td><td style="padding:6px 10px 6px 4px;font:bold 10px {S};color:#5b6386;width:118px;text-align:right">QUÉ HACER · ETIQUETA</td></tr>
+<tr style="background:#e9ecf6"><td style="padding:6px 6px 6px 10px;font:bold 12px {S};color:#5b6386">Estante y libro</td><td style="padding:6px 10px 6px 4px;font:bold 12px {S};color:#5b6386;width:118px;text-align:right">Precio que debe quedar</td></tr>
 {"".join(cuerpo)}</table>{nota_resto}</td></tr>
-<tr><td style="padding:18px 24px;font:12px {S};color:#5b6386;line-height:1.5">📎 El Excel adjunto tiene la lista completa con una casilla para marcar cada libro remarcado; está listo para imprimir.<br>
-Ordenado por editorial y por estante. "Etiqueta" es el precio que debe quedar en el libro.</td></tr>
-<tr><td style="background:#f3f4f9;padding:14px 24px;font:11px {S};color:#5b6386;text-align:center">Correo automático · Uso interno de De Museo</td></tr>
+<tr><td style="padding:18px 24px;font:13px {S};color:#5b6386;line-height:1.5">El Excel adjunto tiene la lista completa, ordenada por editorial y por estante, con una casilla para marcar cada libro remarcado. Está listo para imprimir.</td></tr>
+<tr><td style="background:#f3f4f9;padding:14px 24px;font:11px {S};color:#5b6386;text-align:center">Correo automático de De Museo, de uso interno.</td></tr>
 </table></td></tr></table></body></html>'''
 
 
@@ -236,7 +238,7 @@ def excel(path, t, fecha, filas, primera):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Remarcar"
-    ws["A1"] = f"Remarcaje {'inicial' if primera else 'de la semana'} · Tienda {t} · {fecha} · {len(filas):,} libros"
+    ws["A1"] = f"Remarcaje {'inicial' if primera else 'de la semana'} · {nombre(t)} · {fecha} · {len(filas):,} libros"
     ws["A1"].font = Font(bold=True, size=13, color="112369")
     head = ["✓", "Editorial", "Estante", "Título", "Autor", "Ref.", "ISBN", "Exist.", "Qué hacer", "Precio anterior", "Etiqueta nueva", "% bazar"]
     ws.append([])
@@ -278,7 +280,7 @@ def excel(path, t, fecha, filas, primera):
 
 def pagina_indice(fecha, indice, primera):
     filas = "".join(
-        f'<tr><td><b>{escape(t)}</b></td><td><a href="remarcaje_{fn}.html">{escape(asunto(t, n, primera))}</a></td>'
+        f'<tr><td><b>{escape(nombre(t))}</b></td><td><a href="remarcaje_{fn}.html">{escape(asunto(t, n, primera))}</a></td>'
         f'<td style="text-align:center">{c.get("entra", 0)}</td><td style="text-align:center">{c.get("cambia", 0)}</td>'
         f'<td style="text-align:center">{c.get("sale", 0)}</td><td style="text-align:center">{c.get("precio", 0)}</td>'
         f'<td><a href="Remarcaje_{fn}.xlsx">Excel</a></td></tr>' for t, fn, n, c in indice)

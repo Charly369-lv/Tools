@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Usuarios, empleados y descuentos manuales en las cajas de cada tienda.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="robots" content="noindex,nofollow">
+<title>Revisión de cajas · De Museo</title>
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<style>
+/* Surtido: 1 existencias propias (con clave), 2 aprobados, 3 reportes de tiendas, 4 por confirmar, 5 sugerido por tienda */
+:root {
+  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
+  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
+  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8;
+  --gray: #5b6386; --gray-bg: #eceef4; --gold: #f2bd3c;
+  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
+    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; --gray: #9da6c9; --gray-bg: #1c2650; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1180px; margin: 0 auto; }
+header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 18px; }
+.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.mast img { display: block; width: min(220px, 56vw); height: auto; }
+.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; }
+main { padding-block: 22px 56px; }
+main .inner { display: grid; gap: 18px; }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
+h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
+.step { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); color: var(--ink); font-weight: 800; }
+.step.done .num { background: var(--green-bg); color: var(--green); }
+.step-b { display: grid; gap: 10px; min-width: 0; }
+.status { font-size: 15px; font-weight: 600; }
+.status.ok { color: var(--green); }
+button, .btn { font: 700 15px var(--f-body); border-radius: 8px; cursor: pointer; padding: 9px 15px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 42px; display: inline-flex; align-items: center; }
+button.ghost, .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button.small { min-height: 34px; padding: 5px 10px; font-size: 13px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, input:focus-visible, .btn:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
+input[type=password], input[type=number], input[type=search], select { font: 15px var(--f-body); padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+input[type=number] { width: 90px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.drop { border: 3px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; display: grid; gap: 4px; justify-items: center; cursor: pointer; }
+.drop.over { border-color: var(--navy); background: var(--soft); }
+.drop b { font-size: 16px; }
+.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
+.notice.bad { background: var(--red-bg); }
+.notice.ok { background: var(--green-bg); }
+.stores { display: flex; flex-wrap: wrap; gap: 6px; }
+.stores span { font-size: 13px; background: var(--soft); border-radius: 6px; padding: 4px 8px; }
+.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.sets label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.locs { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.locs label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; color: var(--ink); }
+details > summary { cursor: pointer; font-weight: 700; }
+
+.tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 70vh; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.big { font-weight: 800; font-size: 16px; }
+.mono { font-family: var(--f-mono); font-size: 13px; }
+.chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.c-rep { background: var(--navy); color: var(--blanco); }
+.c-new { background: var(--green-bg); color: var(--green); }
+.c-sin { background: var(--gray-bg); color: var(--gray); }
+.c-quieto { background: var(--fill-red); color: var(--blanco); }
+.pill-red { display: inline-block; min-width: 28px; text-align: center; font-weight: 800; background: var(--fill-red); color: var(--blanco); border-radius: 999px; padding: 2px 9px; }
+tr.alerta td { background: var(--red-bg); }
+.alerta-box { border-radius: 10px; padding: 12px 14px; background: var(--red-bg); border: 1px solid var(--red); display: grid; gap: 2px; }
+.alerta-box b { color: var(--red); font-size: 17px; }
+.tabs button.t-red[aria-pressed="false"] { color: var(--red); border-color: var(--red); }
+.tabs button.t-red[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+select.rev { font-size: 13px; padding: 5px 6px; }
+select.rev.hecho { border-color: var(--green); }
+.from { font-size: 13px; }
+.from b { font-family: var(--f-mono); }
+.small-t { font-size: 12px; color: var(--muted); }
+tr.click { cursor: pointer; }
+tr.click:hover td, tr.sel td { background: var(--soft); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-pressed="true"] { background: var(--navy); color: var(--blanco); }
+.tabs button[aria-pressed="false"] { background: transparent; color: var(--ink); border-color: var(--line); }
+.cand { display: grid; gap: 6px; }
+.cand select { max-width: 100%; width: 100%; font-size: 13px; }
+.opts { display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; text-align: left; width: 100%; background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 500 14px var(--f-body); min-height: 0; cursor: pointer; }
+.opt:hover { border-color: var(--navy); }
+.opt.top { border-color: var(--green); }
+.opt .ot { font-weight: 700; }
+.opt .os { font-size: 12px; color: var(--muted); }
+.opt .ox { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--navy); }
+.opt .ox small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
+.opt .ox.cero { color: var(--muted); }
+.opt.no { grid-template-columns: 1fr; color: var(--muted); border-style: dashed; }
+@media (max-width: 640px) { #s4 thead { display: none; } #pcBody td { display: block; border-bottom: 0; } #pcBody tr { display: block; border-bottom: 1px solid var(--line); padding-bottom: 6px; } }
+.show-sm { display: none; }
+@media (max-width: 640px) { .show-sm { display: block; margin-top: 6px; } .hide-sm { display: none; } .step { grid-template-columns: 1fr; } .num { display: none; } }
+
+/* Arreglos de la auditoría de diseño (noviembre 2026) */
+:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+html, body { overflow-x: clip; }
+button:active:not(:disabled) { transform: scale(0.98); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
+a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
+body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
+</style>
+<style>
+.tot { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.tot div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; display: grid; gap: 2px; }
+.tot span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.tot b { font: 700 22px var(--f-body); font-variant-numeric: tabular-nums; }
+.caja { display: grid; gap: 10px; }
+.caja h3 { font-size: 16px; color: var(--ink); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.lista { display: grid; gap: 2px; font-size: 14px; }
+.lista div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding: 3px 0; }
+.lista b { font-weight: 600; }
+.c-amb { background: var(--amber-bg); color: var(--amber); }
+</style>
+</head>
+<body>
+<header class="mast pad"><div class="inner">
+  <a class="logo-link" href="../gerencia/" aria-label="Volver a las herramientas de Gerencia" title="Volver a Gerencia"><img src="../checador/logo.png" alt="De Museo" width="800" height="144"></a>
+  <span class="mast-t">Revisión de cajas</span>
+</div></header>
+
+<main class="pad"><div class="inner">
+  <p class="muted">Qué usuarios y empleados se usan en las cajas de cada tienda, y cómo se están dando los descuentos manuales. Sirve para preparar el límite de descuento por cajero: <b>más del 25 % solo con la clave de un supervisor</b>. Solo lee Odoo y se actualiza cada noche.</p>
+
+  <section class="card step" id="s1">
+    <span class="num">1</span>
+    <div class="step-b">
+      <h3>Cajas en Odoo</h3>
+      <p class="status" id="stStatus">Cargando…</p>
+      <form class="row" id="claveForm" hidden autocomplete="off">
+        <input type="password" id="clave" placeholder="Clave de existencias" autocomplete="current-password" style="flex:1;max-width:320px">
+        <button type="submit">Abrir</button>
+      </form>
+      <p class="notice bad" id="stErr" hidden></p>
+    </div>
+  </section>
+
+  <section id="out" hidden style="display:grid;gap:14px">
+    <div class="tot" id="tot"></div>
+    <p class="notice" id="aviso" hidden></p>
+    <div class="row"><label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="sinVentas"> Mostrar también cajas sin ventas</label>
+      <button type="button" class="ghost small" id="xls">Descargar Excel</button></div>
+    <div id="cajas" style="display:grid;gap:14px"></div>
+  </section>
+</div></main>
+
+<script>
+window.excelListo = new Promise(function (ok) {
+  function cargar() { var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = ok; document.head.appendChild(s); }
+  if (document.readyState === "complete") cargar(); else window.addEventListener("load", cargar);
+});
+</script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const N = n => Number(n || 0).toLocaleString("es-GT");
+const Q = n => "Q" + Number(n || 0).toLocaleString("es-GT", { maximumFractionDigits: 0 });
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+let SOBRE = null, D = null;
+
+async function abrir(clave, silencioso) {
+  $("stErr").hidden = true;
+  try {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(SOBRE.s), iterations: SOBRE.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    let plano;
+    try { plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(SOBRE.iv) }, key, b64(SOBRE.d)); } catch (e) { throw new Error("clave"); }
+    D = JSON.parse(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+    try { localStorage.setItem("surtido-clave", clave); } catch (e) {}
+    listo();
+  } catch (e) {
+    if (!silencioso) { $("stErr").textContent = e.message === "clave" ? "Clave incorrecta. Revísala e intenta de nuevo." : "No se pudieron abrir los datos en este navegador."; $("stErr").hidden = false; }
+    $("claveForm").hidden = false;
+  }
+}
+function fechaLocal(v) { const d = new Date(String(v).replace(" ", "T") + ":00Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+$("claveForm").addEventListener("submit", e => { e.preventDefault(); const c = $("clave").value.trim(); if (c) abrir(c); });
+(async () => {
+  try {
+    const r = await fetch("datos.enc?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw 0;
+    SOBRE = await r.json();
+    $("stStatus").textContent = "Escribe la clave de existencias.";
+    let c = null; try { c = localStorage.getItem("surtido-clave"); } catch (e) {}
+    if (c) await abrir(c, true); else $("claveForm").hidden = false;
+  } catch (e) { $("stStatus").textContent = "Todavía no se han publicado los datos. Se generan en la próxima sincronización con Odoo."; }
+})();
+
+// Una caja "comparte usuario" si todas sus ventas salen con un solo usuario y sin empleados: ahí no se sabe quién cobró
+const comparte = c => c.tickets > 0 && c.empleados.length === 0 && c.usuarios.length <= 1;
+const siNo = (v, si, no) => v === null || v === undefined ? '<span class="chip c-sin">no se pudo leer</span>' : v ? `<span class="chip c-new">${si}</span>` : `<span class="chip c-amb">${no}</span>`;
+
+function listo() {
+  $("stStatus").textContent = `Listos: ${D.cajas.length} cajas, ventas de los últimos ${D.dias} días (datos de Odoo al ${fechaLocal(D.v)}).`;
+  $("stStatus").className = "status ok"; $("s1").classList.add("done"); $("claveForm").hidden = true; $("out").hidden = false;
+  pintar();
+}
+$("sinVentas").addEventListener("change", pintar);
+function pintar() {
+  const C = D.cajas.filter(c => c.tickets > 0 || $("sinVentas").checked), conVentas = D.cajas.filter(c => c.tickets > 0);
+  const lineas = conVentas.reduce((s, c) => s + c.descuentos.reduce((t, x) => t + x.lineas, 0), 0);
+  const sobre = conVentas.reduce((s, c) => s + c.descuentos.reduce((t, x) => t + x.sobre_limite, 0), 0);
+  const conEmp = conVentas.filter(c => c.empleados.length > 0).length;
+  $("tot").innerHTML = [[conVentas.length, "cajas con ventas"], [`${conEmp} de ${conVentas.length}`, "cajas donde se sabe qué empleado cobró"],
+    [N(lineas), "líneas con descuento manual"], [N(sobre), `de más del ${D.limite} %`]].map(([v, l]) => `<div><span>${l}</span><b>${v}</b></div>`).join("");
+  const comp = conVentas.filter(comparte);
+  $("aviso").hidden = !comp.length;
+  if (comp.length) $("aviso").textContent = `En ${comp.length} caja${comp.length > 1 ? "s" : ""} todas las ventas salen con un solo usuario y sin empleado: ahí no se sabe qué cajero cobró ni dio el descuento. Para que el límite por cajero funcione, cada cajero debe entrar a la caja con su propio empleado y PIN.`;
+  $("cajas").innerHTML = C.map(c => {
+    const tit = c.tienda && c.tienda !== c.caja ? `${esc(c.tienda)} <span class="small-t">(${esc(c.caja)})</span>` : esc(c.caja);
+    const lista = (arr, vacio) => arr.length ? `<div class="lista">${arr.map(([n, k]) => `<div><b>${esc(n)}</b><span>${N(k)} tickets</span></div>`).join("")}</div>` : `<p class="small-t">${vacio}</p>`;
+    const nombres = (arr, vacio) => arr.length ? `<div class="lista">${arr.map(n => `<div><b>${esc(n)}</b></div>`).join("")}</div>` : `<p class="small-t">${vacio}</p>`;
+    const desc = c.descuentos.length ? `<div class="tbl" style="max-height:none"><table><thead><tr><th>Quién cobró</th><th class="n">Líneas con descuento</th><th class="n">Promedio</th><th class="n">Máximo</th><th class="n">Más de ${D.limite} %</th><th class="n">Descontado</th></tr></thead><tbody>
+      ${c.descuentos.map(x => `<tr><td>${esc(x.quien)}</td><td class="n">${N(x.lineas)}</td><td class="n">${x.promedio} %</td><td class="n">${x.max} %</td><td class="n">${x.sobre_limite ? `<b style="color:var(--red)">${N(x.sobre_limite)}</b>` : "0"}</td><td class="n">${Q(x.quetzales)}</td></tr>`).join("")}</tbody></table></div>`
+      : `<p class="small-t">Sin descuentos manuales en estos ${D.dias} días.</p>`;
+    return `<section class="card caja">
+      <div class="row" style="justify-content:space-between"><h3>${tit}</h3><span class="small-t">${N(c.tickets)} tickets, ${Q(c.total)}</span></div>
+      <div class="row" style="gap:6px">${siNo(c.con_empleados, "Entran con empleado y PIN", "Sin inicio por empleado")}
+        ${siNo(c.descuento_manual === null ? null : !c.descuento_manual, "Descuento manual apagado", "Descuento manual encendido")}
+        ${siNo(c.precio_solo_gerentes, "Cambio de precio solo gerentes", "Cualquiera cambia precios")}
+        ${comparte(c) ? '<span class="chip c-quieto">Un solo usuario para todo</span>' : ""}
+        ${c.lista_precios ? `<span class="chip c-sin">Lista: ${esc(c.lista_precios)}</span>` : ""}</div>
+      <div class="cols">
+        <div><div class="small-t"><b>Usuarios en las ventas</b></div>${lista(c.usuarios, "Sin ventas.")}</div>
+        <div><div class="small-t"><b>Empleados en las ventas</b></div>${lista(c.empleados, "Ninguna venta registra empleado.")}</div>
+        <div><div class="small-t"><b>Pueden autorizar (supervisores)</b></div>${nombres(c.supervisores, "Nadie configurado.")}</div>
+      </div>
+      <div><div class="small-t" style="margin-bottom:4px"><b>Descuentos manuales</b></div>${desc}</div>
+    </section>`;
+  }).join("") || `<p class="muted">No hay cajas con ventas en estos días.</p>`;
+}
+$("xls").addEventListener("click", async () => {
+  await window.excelListo;
+  const wb = XLSX.utils.book_new();
+  const res = D.cajas.map(c => ({ "Caja": c.caja, "Tienda": c.tienda, "Tickets": c.tickets, "Total (Q)": c.total, "Entran con empleado": c.con_empleados ? "Sí" : "No",
+    "Usuarios": c.usuarios.map(([n, k]) => `${n} (${k})`).join("; "), "Empleados": c.empleados.map(([n, k]) => `${n} (${k})`).join("; "),
+    "Supervisores": c.supervisores.join("; "), "Líneas con descuento": c.descuentos.reduce((t, x) => t + x.lineas, 0),
+    [`Más de ${D.limite} %`]: c.descuentos.reduce((t, x) => t + x.sobre_limite, 0) }));
+  const w1 = XLSX.utils.json_to_sheet(res); w1["!cols"] = [22, 22, 9, 12, 12, 40, 40, 30, 12, 10].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, w1, "Cajas");
+  const det = D.cajas.flatMap(c => c.descuentos.map(x => ({ "Caja": c.caja, "Tienda": c.tienda, "Quién cobró": x.quien, "Líneas con descuento": x.lineas, "Promedio %": x.promedio, "Máximo %": x.max, [`Más de ${D.limite} %`]: x.sobre_limite, "Descontado (Q)": x.quetzales })));
+  const w2 = XLSX.utils.json_to_sheet(det.length ? det : [{ "": "Sin descuentos manuales" }]); w2["!cols"] = [22, 22, 28, 12, 10, 10, 10, 12].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, w2, "Descuentos");
+  XLSX.writeFile(wb, `Revisión de cajas - ${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+</script>
+</body>
+</html>

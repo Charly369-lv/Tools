@@ -41,5 +41,20 @@
       }
     ],
     "empaque_redondeo": 0.5
+  },
+  "nombres_tiendas": {
+    "PRADE": "Galerías La Pradera",
+    "CONCE": "Pradera Concepción",
+    "ANTIG": "La Antigua Guatemala",
+    "MIRAF": "Miraflores",
+    "PORTA": "Portales",
+    "INTER": "Interplaza Xela",
+    "COBAN": "Plaza Magdalena Cobán",
+    "AMERI": "Parque Las Américas",
+    "ZONA1": "Centro Histórico",
+    "SANC": "SanKris Mall",
+    "VIDER": "Vidēre",
+    "MAJAD": "Majadas ONCE",
+    "BOD": "Bodega Central"
   }
 }

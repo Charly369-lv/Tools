@@ -12,7 +12,7 @@ on:
         options: [semanales, ranking, todos]
         default: semanales
       solo_a:
-        description: "Prueba: mandar TODO solo a este correo (bórralo para enviar a las tiendas)"
+        description: "Prueba: mandar TODO solo a este correo. Para enviar a las tiendas, bórralo Y pon la variable ENVIAR_A_TIENDAS = si"
         required: false
         default: "ingrid@demuseo.com"
 
@@ -35,7 +35,9 @@ jobs:
       GMAIL_USER: ${{ secrets.GMAIL_USER }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       CORREOS: ${{ secrets.CORREOS }}
-      SOLO_A: ${{ inputs.solo_a }}
+      # Seguro: mientras la variable ENVIAR_A_TIENDAS (Settings → Secrets and variables → Actions → Variables)
+      # no diga "si", TODO se manda solo a ingrid@demuseo.com, también en las corridas programadas.
+      SOLO_A: ${{ inputs.solo_a || (vars.ENVIAR_A_TIENDAS != 'si' && 'ingrid@demuseo.com' || '') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -93,7 +95,9 @@ jobs:
       GMAIL_USER: ${{ secrets.GMAIL_USER }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       CORREOS: ${{ secrets.CORREOS }}
-      SOLO_A: ${{ inputs.solo_a }}
+      # Seguro: mientras la variable ENVIAR_A_TIENDAS (Settings → Secrets and variables → Actions → Variables)
+      # no diga "si", TODO se manda solo a ingrid@demuseo.com, también en las corridas programadas.
+      SOLO_A: ${{ inputs.solo_a || (vars.ENVIAR_A_TIENDAS != 'si' && 'ingrid@demuseo.com' || '') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

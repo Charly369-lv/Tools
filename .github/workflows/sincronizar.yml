@@ -77,6 +77,17 @@ jobs:
           CLAVE_EXISTENCIAS: ${{ secrets.CLAVE_EXISTENCIAS }}
         run: python sync/fitness_one.py --out site
 
+      # Revisión de cajas: usuarios, empleados y descuentos por tienda (cifrado, solo lectura)
+      - name: Revisión de cajas
+        continue-on-error: true
+        env:
+          ODOO_URL: ${{ secrets.ODOO_URL }}
+          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_USER: ${{ secrets.ODOO_USER }}
+          ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+          CLAVE_EXISTENCIAS: ${{ secrets.CLAVE_EXISTENCIAS }}
+        run: python sync/revisar_cajas.py --out site
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v4

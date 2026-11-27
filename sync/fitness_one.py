@@ -112,7 +112,7 @@ def main():
     price = cfg.get("campo_precio") or ("lst_price" if "lst_price" in pf else "list_price")
     meta = {k: (cfg.get(k) or (META[k][0] if META[k][0] in pf else None)) for k in ("meta_genero", "meta_titulo", "meta_autor", "meta_portada", "meta_sinopsis", "meta_paginas")}
     extra = [x for x in (f_aut[:1] + f_edi[:1] + f_tem[:1] + [m for m in meta.values() if m]) if x in pf]
-    campos = ["id", "default_code", "barcode", "name", "categ_id", price] + sorted(set(extra))
+    campos = ["id", "product_tmpl_id", "default_code", "barcode", "name", "categ_id", price] + sorted(set(extra))
     print("Campos:", ", ".join(campos))
 
     L = sorted({u for c in ex.values() for u in c} | {u for c in vloc.values() for u in c})
@@ -133,7 +133,9 @@ def main():
             pid = p["id"]
             total = int(sum(ex[pid].values()))
             R[code or "r:" + ref] = [ref, titulo, autor, g(f_edi[0]) if f_edi else "", cat.split("/")[-1].strip(),
-                                     g(f_tem[0]) if f_tem else "", g(meta["meta_genero"]), total, max(0, round(v90[pid]))]
+                                     g(f_tem[0]) if f_tem else "", g(meta["meta_genero"]), total, max(0, round(v90[pid])),
+                                     g(f_aut[0]) if f_aut else "", g(meta["meta_autor"]), as_text(p.get("name")).strip(),
+                                     (p.get("product_tmpl_id") or [0])[0], as_text(p.get("categ_id"))]
             if total < MIN_TOTAL or BAZAR.search(cat):
                 continue
             st = [x for u, n in sorted(ex[pid].items(), key=lambda x: -x[1]) if int(n) > 0 for x in (li[u], int(n))]
@@ -159,7 +161,7 @@ def main():
     with open(os.path.join(out, "datos.enc"), "w", encoding="utf-8") as f:
         json.dump(sobre, f, separators=(",", ":"))
     # Revisión de clasificación (app de Gerencia)
-    datos = json.dumps({"v": version, "c": ["ref", "titulo", "autor", "editorial", "categoria", "tema", "genero", "existencia", "v90"], "p": R},
+    datos = json.dumps({"v": version, "c": ["ref", "titulo", "autor", "editorial", "categoria", "tema", "genero", "existencia", "v90", "autor_odoo", "autor_metadatos", "nombre_producto", "id_plantilla", "categoria_completa"], "p": R},
                        ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     sobre2 = cifrar(gzip.compress(datos, 9), env["CLAVE_EXISTENCIAS"])
     sobre2["v"] = version

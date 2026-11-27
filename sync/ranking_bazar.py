@@ -10,6 +10,10 @@ Fuente: líneas de venta del punto de venta de Odoo (lo que realmente se cobró)
     descuento real (20% o más). Así no cuentan los descuentos sueltos a productos normales ni las ventas de ese
     libro a precio completo antes de entrar al bazar. El % es el de su categoría.
 
+El ranking ordena las tiendas por UNIDADES de bazar vendidas en el mes (no por dinero): su objetivo es motivar
+a las tiendas a vender más libros de bazar. El correo de cada tienda muestra solo unidades y cuánto le falta
+para alcanzar a la de arriba; ingreso y % de liquidación van solo para gerencia y en el Excel.
+
 Métricas por tienda (mes cerrado anterior):
   - Unidades e ingreso del bazar (con IVA, como en el ticket).
   - % de liquidación = unidades vendidas / (unidades vendidas + existencia actual de bazar).
@@ -29,6 +33,7 @@ import sys
 from html import escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tiendas import nombre  # noqa: E402
 from sync_odoo import Odoo, as_text, clean, find_field, fields_get_es  # noqa: E402
 
 LOGO_URL = os.environ.get("LOGO_URL", "https://charly369-lv.github.io/Tools/checador/logo.png")
@@ -177,10 +182,11 @@ def main():
                     u_ano=int(round(sum(V[k][t]["u"] for k in meses_ano))), q_ano=sum(V[k][t]["q"] for k in meses_ano))
 
     filas = [fila(t) for t in tiendas]
-    activas = sorted([f for f in filas if f["u"] > 0], key=lambda f: (-f["liq"], -f["u"]))
+    # Gana la tienda que más libros de bazar vende (unidades, no dinero): el ranking es para motivar a vender bazar
+    activas = sorted([f for f in filas if f["u"] > 0], key=lambda f: (-f["u"], -f["liq"]))
     sin = sorted([f for f in filas if f["u"] <= 0], key=lambda f: f["tienda"])
     # posición del mes anterior (para ▲▼)
-    prev = sorted([t for t in tiendas if V[ka][t]["u"] > 0], key=lambda t: -(V[ka][t]["u"] / (V[ka][t]["u"] + EXB.get(t, 0) or 1)))
+    prev = sorted([t for t in tiendas if V[ka][t]["u"] > 0], key=lambda t: -V[ka][t]["u"])
     pos_ant = {t: i + 1 for i, t in enumerate(prev)}
     for i, f in enumerate(activas, 1):
         f["pos"] = i
@@ -206,23 +212,24 @@ def main():
         top = [(ficha(pid), int(round(n))) for pid, n in TOP[f["tienda"]].most_common(10)]
         fn = re.sub(r"[^A-Za-z0-9]", "_", f["tienda"])
         with open(os.path.join(out, f"tienda_{fn}.html"), "w", encoding="utf-8") as fh:
-            fh.write(correo_tienda(nombre_mes, f, len(activas), POR_PCT[f["tienda"]], pcts, top))
+            fh.write(correo_tienda(nombre_mes, f, activas, sin, len(tiendas), POR_PCT[f["tienda"]], pcts, top))
     excel(os.path.join(out, f"Ranking_bazar_{km}.xlsx"), nombre_mes, activas, sin, V, meses_ano, tiendas, POR_PCT, pcts, TOP, ficha)
     with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as fh:
         fh.write(indice(nombre_mes, activas, sin, km))
     print(f"\nListo: {len(activas)} tiendas con ventas de bazar, {len(sin)} sin ventas. Total {tot['u']:,} unidades, {q(tot['q'])}.")
     for f in activas:
-        print(f"  #{f['pos']} {f['tienda']}: {f['liq']:.0%} liquidación · {f['u']:,} u. · {q(f['q'])}")
+        print(f"  #{f['pos']} {f['tienda']}: {f['u']:,} u. · {f['liq']:.0%} liquidación · {q(f['q'])}")
 
 
 def tend(t):
+    """Cambio de posición contra el mes anterior: dato, no adorno."""
     if t is None:
-        return '<span style="color:#112369">★ nueva</span>'
+        return '<span style="color:#112369">nueva</span>'
     if t > 0:
         return f'<span style="color:#157a3d">▲{t}</span>'
     if t < 0:
         return f'<span style="color:#c42318">▼{-t}</span>'
-    return '<span style="color:#5b6386">=</span>'
+    return '<span style="color:#5b6386">igual</span>'
 
 
 def var(a, b):
@@ -230,77 +237,117 @@ def var(a, b):
         return ""
     d = (a - b) / b
     color = "#157a3d" if d >= 0 else "#c42318"
-    return f'<span style="color:{color};font-size:11px">{"▲" if d >= 0 else "▼"}{abs(d):.0%}</span>'
+    return f'<span style="color:{color};font-size:12px">{"▲" if d >= 0 else "▼"}{abs(d):.0%}</span>'
 
 
-def marco(titulo, sub, cuerpo):
-    return f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(titulo)}</title></head>
+TITULO = "'Bodoni Moda', Georgia, 'Times New Roman', serif"   # Bodoni de la marca; Georgia si el correo no la carga
+
+
+def marco(titulo, sub, cuerpo, como):
+    return f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(titulo)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&display=swap" rel="stylesheet"></head>
 <body style="margin:0;background:#f3f4f9"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f9"><tr><td align="center" style="padding:16px 8px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#fff;border-radius:10px;overflow:hidden">
 <tr><td style="background:#0b1748;padding:22px 24px"><img src="{LOGO_URL}" width="200" alt="De Museo" style="display:block;width:200px;height:auto;border:0">
-<div style="font:bold 25px Georgia,serif;color:#fff;margin-top:14px">{escape(titulo)}</div><div style="font:14px {S};color:#c9cfe8;margin-top:4px">{escape(sub)}</div></td></tr>
+<div style="font:bold 26px {TITULO};color:#fff;margin-top:14px">{escape(sub[0])}</div><div style="font:14px {S};color:#c9cfe8;margin-top:4px">{escape(sub[1])}</div></td></tr>
 {cuerpo}
-<tr><td style="padding:16px 24px;font:12px {S};color:#5b6386;line-height:1.5"><b>Cómo se calcula:</b> ventas del punto de venta cobradas con 35% o más de descuento (precio de bazar), con IVA.
-% de liquidación = unidades vendidas en el mes ÷ (vendidas + existencia de bazar actual). Compara de forma justa tiendas grandes y pequeñas.</td></tr>
-<tr><td style="background:#f3f4f9;padding:14px 24px;font:11px {S};color:#5b6386;text-align:center">Correo automático · Uso interno de De Museo</td></tr>
+<tr><td style="padding:16px 24px;font:12px {S};color:#5b6386;line-height:1.5"><b>Cómo se calcula.</b> {como}</td></tr>
+<tr><td style="background:#f3f4f9;padding:14px 24px;font:11px {S};color:#5b6386;text-align:center">Correo automático de De Museo, de uso interno.</td></tr>
 </table></td></tr></table></body></html>'''
 
 
-def kpis(items):
-    tds = "".join(f'<td align="center" style="background:{bg};border-radius:8px;padding:10px 4px;font:11px {S};color:{fg}"><div style="font:bold 22px {S}">{v}</div>{lab}</td><td width="4"></td>'
-                  for v, lab, bg, fg in items)
+def cifras(items):
+    """Recuadros de cifras, todos en navy: vender bazar es bueno, así que nada va en rojo."""
+    tds = "".join(f'<td align="center" style="background:#e9ecf6;border-radius:8px;padding:10px 4px;font:12px {S};color:#112369"><div style="font:bold 24px {S}">{v}</div>{lab}</td><td width="4"></td>'
+                  for v, lab in items)
     return f'<tr><td style="padding:16px 24px 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>{tds}</tr></table></td></tr>'
 
 
+def subtitulo(t):
+    return f'<tr><td style="padding:18px 24px 6px;font:bold 14px {S};color:#111a3d">{t}</td></tr>'
+
+
+def tabla_cadena(activas, sin, resaltar=None, con_dinero=False):
+    """Ranking de las tiendas por unidades de bazar vendidas."""
+    def fila(f, i):
+        mia = f["tienda"] == resaltar
+        bg = "#fff3d1" if mia else ("#fff" if i % 2 else "#f3f4f9")
+        extra = (f'<td align="right" style="padding:8px 4px;font:13px {S};color:#111a3d">{f["liq"]:.0%}</td>'
+                 f'<td align="right" style="padding:8px 10px 8px 4px;font:13px {S};color:#111a3d">{q(f["q"])}</td>') if con_dinero else ""
+        return (f'<tr style="background:{bg}"><td style="padding:8px 4px 8px 10px;font:bold 16px {S};color:#112369;width:34px">{f["pos"]}</td>'
+                f'<td style="padding:8px 4px;font:{"bold " if mia else ""}14px {S};color:#111a3d">{escape(nombre(f["tienda"]))}{" (tu tienda)" if mia else ""}<br><span style="font-size:12px">{tend(f["tend"])}</span></td>'
+                f'<td align="right" style="padding:8px {"4" if con_dinero else "10"}px 8px 4px;font:bold 16px {S};color:#111a3d">{f["u"]:,}<br>{var(f["u"], f["u_ant"])}</td>{extra}</tr>')
+    cab_extra = (f'<td align="right" style="padding:7px 4px;font:bold 12px {S};color:#fff">Liquidación</td>'
+                 f'<td align="right" style="padding:7px 10px 7px 4px;font:bold 12px {S};color:#fff">Ingreso</td>') if con_dinero else ""
+    filas = "".join(fila(f, i) for i, f in enumerate(activas, 1))
+    filas += "".join(f'<tr style="background:{"#fff3d1" if f["tienda"] == resaltar else "#fff"}"><td style="padding:8px 4px 8px 10px;font:14px {S};color:#5b6386">–</td>'
+                     f'<td colspan="{4 if con_dinero else 2}" style="padding:8px 10px 8px 4px;font:14px {S};color:#5b6386">{escape(nombre(f["tienda"]))}: aún sin ventas de bazar este mes</td></tr>' for f in sin)
+    return (f'<tr><td style="padding:0 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">'
+            f'<tr style="background:#112369"><td style="padding:7px 4px 7px 10px;font:bold 12px {S};color:#fff">#</td><td style="padding:7px 4px;font:bold 12px {S};color:#fff">Tienda</td>'
+            f'<td align="right" style="padding:7px {"4" if con_dinero else "10"}px 7px 4px;font:bold 12px {S};color:#fff">Libros vendidos</td>{cab_extra}</tr>{filas}</table></td></tr>')
+
+
+COMO_TIENDA = ("Gana la tienda que más libros de bazar vende en el mes: cuentan las unidades, no el dinero. "
+               "Son libros que hoy están en bazar y que se cobraron con su descuento en la caja. Participan las 12 tiendas físicas.")
+COMO_GERENCIA = ("El ranking ordena por libros de bazar vendidos en el mes (unidades). Cuentan los libros que hoy están en bazar y se cobraron "
+                 "con descuento real en la caja; ingreso con IVA. Liquidación = vendidos ÷ (vendidos + existencia de bazar actual).")
+
+
 def correo_gerencia(mes, activas, sin, tot, V, meses_ano, tiendas, POR_PCT, pcts):
-    filas = "".join(f'''<tr style="background:{"#fff" if f["pos"] % 2 else "#f3f4f9"}">
-<td style="padding:9px 4px 9px 10px;font:bold 18px {S};color:#112369;width:40px">{f["pos"]}<br><span style="font:11px {S}">{tend(f["tend"])}</span></td>
-<td style="padding:9px 4px;font:bold 14px {S};color:#111a3d">{escape(f["tienda"])}<br><span style="font:11px {S};color:#5b6386">exist. bazar {f["ex"]:,} u.</span></td>
-<td align="right" style="padding:9px 4px;font:bold 16px {S};color:#111a3d">{f["liq"]:.0%}</td>
-<td align="right" style="padding:9px 4px;font:14px {S};color:#111a3d">{f["u"]:,}<br>{var(f["u"], f["u_ant"])}</td>
-<td align="right" style="padding:9px 10px 9px 4px;font:14px {S};color:#111a3d">{q(f["q"])}<br><span style="font-size:11px;color:#5b6386">año {q(f["q_ano"])}</span></td></tr>''' for f in activas)
-    sin_txt = (f'<tr><td style="padding:12px 24px 0;font:13px {S};color:#5b6386"><b>Aún sin ventas de bazar en {escape(mes)}:</b> {escape(", ".join(f["tienda"] for f in sin))}</td></tr>' if sin else "")
-    cab = "".join(f'<td align="right" style="padding:6px 4px;font:bold 10px {S};color:#5b6386">{MESES[int(k[5:]) - 1][:3].upper()}</td>' for k in meses_ano[-6:])
-    evol = "".join(f'<tr><td style="padding:5px 4px 5px 10px;font:12px {S};color:#111a3d">{escape(t)}</td>' +
-                   "".join(f'<td align="right" style="padding:5px 4px;font:12px {S};color:#111a3d">{int(round(V[k][t]["u"])):,}</td>' for k in meses_ano[-6:]) + "</tr>"
+    cab = "".join(f'<td align="right" style="padding:6px 4px;font:bold 12px {S};color:#5b6386">{MESES[int(k[5:]) - 1][:3].capitalize()}</td>' for k in meses_ano[-6:])
+    evol = "".join(f'<tr><td style="padding:5px 4px 5px 10px;font:13px {S};color:#111a3d">{escape(nombre(t))}</td>' +
+                   "".join(f'<td align="right" style="padding:5px 4px;font:13px {S};color:#111a3d">{int(round(V[k][t]["u"])):,}</td>' for k in meses_ano[-6:]) + "</tr>"
                    for t in [f["tienda"] for f in activas])
     pct_tot = collections.Counter()
     for t in POR_PCT:
         for p, n in POR_PCT[t].items():
             pct_tot[p] += n
-    pct_txt = " · ".join(f"<b>{p}%</b>: {int(round(pct_tot[p])):,} u." for p in pcts if pct_tot[p])
-    cuerpo = kpis([(f'{tot["u"]:,}', "UNIDADES", "#fde8e6", "#c42318"), (q(tot["q"]), "INGRESO", "#fff3d1", "#9a6700"),
-                   (f'{len(activas)}', "TIENDAS CON VENTAS", "#e3f4e8", "#157a3d")]) + f'''
-<tr><td style="padding:4px 24px;font:13px {S};color:#111a3d">Por descuento: {pct_txt or "—"} · Mes anterior: {tot["u_ant"]:,} u. · Año: {q(tot["q_ano"])}</td></tr>
-<tr><td style="padding:14px 12px 4px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
-<tr style="background:#112369"><td style="padding:7px 4px 7px 10px;font:bold 10px {S};color:#fff">#</td><td style="padding:7px 4px;font:bold 10px {S};color:#fff">TIENDA</td>
-<td align="right" style="padding:7px 4px;font:bold 10px {S};color:#fff">% LIQUID.</td><td align="right" style="padding:7px 4px;font:bold 10px {S};color:#fff">UNIDADES</td>
-<td align="right" style="padding:7px 10px 7px 4px;font:bold 10px {S};color:#fff">INGRESO</td></tr>{filas}</table></td></tr>
-{sin_txt}
-<tr><td style="padding:18px 24px 4px;font:bold 12px {S};color:#5b6386;letter-spacing:1px">UNIDADES DE BAZAR POR MES</td></tr>
+    pct_txt = ", ".join(f"{int(round(pct_tot[p])):,} al {p}%" for p in pcts if pct_tot[p])
+    cuerpo = cifras([(f'{tot["u"]:,}', "libros vendidos"), (f'{len(activas)} de {len(tiendas)}', "tiendas con ventas"), (q(tot["q"]), "ingreso")]) + f'''
+<tr><td style="padding:4px 24px;font:14px {S};color:#111a3d;line-height:1.5">El mes anterior se vendieron {tot["u_ant"]:,} {var(tot["u"], tot["u_ant"])}. En el año van {q(tot["q_ano"])}.{(" Por descuento: " + pct_txt + ".") if pct_txt else ""}</td></tr>
+{subtitulo("Ranking de tiendas")}
+{tabla_cadena(activas, sin, con_dinero=True)}
+{subtitulo("Libros de bazar vendidos por mes")}
 <tr><td style="padding:0 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
-<tr style="background:#e9ecf6"><td style="padding:6px 4px 6px 10px;font:bold 10px {S};color:#5b6386">TIENDA</td>{cab}</tr>{evol}</table></td></tr>
-<tr><td style="padding:12px 24px 0;font:12px {S};color:#5b6386">📎 Excel adjunto: ranking, evolución mensual (unidades e ingreso), ventas por descuento y top 10 por tienda.</td></tr>'''
-    return marco("Ranking del Bazar · Gerencia", f"{mes[0].upper() + mes[1:]} · todas las tiendas", cuerpo)
+<tr style="background:#e9ecf6"><td style="padding:6px 4px 6px 10px;font:bold 12px {S};color:#5b6386">Tienda</td>{cab}</tr>{evol}</table></td></tr>
+<tr><td style="padding:12px 24px 0;font:13px {S};color:#5b6386">Adjunto: Excel con el ranking, la evolución mensual (unidades e ingreso), las ventas por descuento y el top 10 de cada tienda.</td></tr>'''
+    titulo = f"Ranking del Bazar de {mes}: {tot['u']:,} libros vendidos" + (f", ganó {nombre(activas[0]['tienda'])}" if activas else "")
+    return marco(titulo, ("Ranking del Bazar", f"{mes[0].upper() + mes[1:]}, las {len(tiendas)} tiendas"), cuerpo, COMO_GERENCIA)
 
 
-def correo_tienda(mes, f, n_activas, por_pct, pcts, top):
+def correo_tienda(mes, f, activas, sin, n_tiendas, por_pct, pcts, top):
+    t = f["tienda"]
+    nt = nombre(t)
     if f["u"] > 0:
-        lugar = f'<tr><td style="padding:18px 24px 0;font:bold 22px Georgia,serif;color:#112369">Tu tienda quedó #{f["pos"]} de {n_activas} {tend(f["tend"])}</td></tr>'
+        i = f["pos"] - 1
+        if f["pos"] == 1:
+            seg = activas[1] if len(activas) > 1 else None
+            reto = (f"Le sacas {f['u'] - seg['u']:,} libros a {escape(nombre(seg['tienda']))}, que va en segundo lugar. ¡A mantenerlo!"
+                    if seg else "Eres la única tienda con ventas de bazar este mes.")
+            frase = f"¡{escape(nt)} quedó en primer lugar!"
+            titulo = f"{nt}: ¡primer lugar en el Bazar de {mes}!"
+        else:
+            arriba = activas[i - 1]
+            falta = arriba["u"] - f["u"] + 1
+            reto = (f"Te faltan {falta:,} libro{'s' if falta != 1 else ''} para pasar a {escape(nombre(arriba['tienda']))} (#{arriba['pos']}). "
+                    f"La tienda #1, {escape(nombre(activas[0]['tienda']))}, vendió {activas[0]['u']:,}.")
+            frase = f"{escape(nt)} quedó en el lugar {f['pos']} de {n_tiendas} {tend(f['tend'])}"
+            titulo = f"{nt}: lugar {f['pos']} de {n_tiendas} en el Bazar de {mes}"
+        lugar = (f'<tr><td style="padding:20px 24px 0;font:bold 24px {TITULO};color:#112369">{frase}</td></tr>'
+                 f'<tr><td style="padding:8px 24px 0;font:15px {S};color:#111a3d;line-height:1.5">{reto}</td></tr>')
+        recuadros = cifras([(f'{f["u"]:,}', "libros de bazar vendidos"), (f'{f["u_ant"]:,}', "el mes anterior"), (f'{f["ex"]:,}', "te quedan por vender")])
     else:
-        lugar = f'<tr><td style="padding:18px 24px 0;font:15px {S};color:#111a3d">Este mes tu tienda todavía no registró ventas de bazar. Cuando montes el bazar, aquí verás tu avance.</td></tr>'
-    pct_txt = " · ".join(f"<b>{p}%</b>: {int(round(por_pct[p])):,} u." for p in pcts if por_pct.get(p))
+        lider = activas[0] if activas else None
+        lugar = (f'<tr><td style="padding:20px 24px 0;font:15px {S};color:#111a3d;line-height:1.5">Este mes {escape(nt)} todavía no registró ventas de bazar. '
+                 f'Tienes {f["ex"]:,} libros de bazar para vender.' + (f' La tienda #1, {escape(nombre(lider["tienda"]))}, vendió {lider["u"]:,}.' if lider else "") + '</td></tr>')
+        recuadros, titulo = "", f"{nt}: el Bazar de {mes} te espera"
     filas = "".join(f'''<tr style="background:{"#fff" if i % 2 else "#f3f4f9"}"><td style="padding:8px 4px 8px 10px;font:bold 15px {S};color:#112369;width:28px">{i}</td>
-<td style="padding:8px 4px;font:13px {S};color:#111a3d"><b>{escape(t)}</b><br><span style="font-size:11px;color:#5b6386">{escape(au)}{" · " + escape(ed) if ed else ""} · Ref. {escape(ref)}</span></td>
-<td align="right" style="padding:8px 10px 8px 4px;font:bold 15px {S};color:#111a3d">{n:,}</td></tr>''' for i, ((t, au, ed, ref), n) in enumerate(top, 1))
-    recuadros = kpis([(f'{f["liq"]:.0%}', "LIQUIDACIÓN", "#e3f4e8", "#157a3d"), (f'{f["u"]:,}', "UNIDADES", "#fde8e6", "#c42318"),
-                      (q(f["q"]), "INGRESO", "#fff3d1", "#9a6700")]) if f["u"] > 0 else ""
-    cuerpo = lugar + recuadros + f'''
-<tr><td style="padding:4px 24px;font:13px {S};color:#111a3d">Mes anterior: {f["u_ant"]:,} u. {var(f["u"], f["u_ant"])} · Año: {f["u_ano"]:,} u., {q(f["q_ano"])}<br>
-Existencia de bazar hoy: {f["ex"]:,} u.{(" · Por descuento: " + pct_txt) if pct_txt else ""}</td></tr>''' + (f'''
-<tr><td style="padding:16px 24px 4px;font:bold 12px {S};color:#5b6386;letter-spacing:1px">TUS 10 LIBROS DE BAZAR MÁS VENDIDOS</td></tr>
-<tr><td style="padding:0 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">{filas}</table></td></tr>''' if top else "")
-    return marco(f"Bazar de Descuentos · {f['tienda']}", f"Resultados de {mes}", cuerpo)
+<td style="padding:8px 4px;font:14px {S};color:#111a3d"><b>{escape(ti)}</b><br><span style="font-size:12px;color:#5b6386">{escape(au)}{(", " + escape(ed)) if ed else ""}. Ref. {escape(ref)}</span></td>
+<td align="right" style="padding:8px 10px 8px 4px;font:bold 15px {S};color:#111a3d">{n:,}</td></tr>''' for i, ((ti, au, ed, ref), n) in enumerate(top, 1))
+    cuerpo = lugar + recuadros + subtitulo("Así va la cadena") + tabla_cadena(activas, sin, resaltar=t) + (
+        subtitulo("Tus libros de bazar más vendidos") +
+        f'<tr><td style="padding:0 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">{filas}</table></td></tr>' if top else "")
+    return marco(titulo, ("Ranking del Bazar", f"{mes[0].upper() + mes[1:]}, {nt}"), cuerpo, COMO_TIENDA)
 
 
 def excel(path, mes, activas, sin, V, meses_ano, tiendas, POR_PCT, pcts, TOP, ficha):
@@ -331,34 +378,34 @@ def excel(path, mes, activas, sin, V, meses_ano, tiendas, POR_PCT, pcts, TOP, fi
 
     ws = wb.active
     ws.title = "Ranking"
-    hoja(ws, f"Ranking del Bazar · {mes}", ["Posición", "Tienda", "% liquidación", "Unidades", "Ingreso (Q)", "Exist. bazar", "Unid. mes ant.", "Unid. año", "Ingreso año (Q)"],
-         [[f["pos"], f["tienda"], f["liq"], f["u"], round(f["q"], 2), f["ex"], f["u_ant"], f["u_ano"], round(f["q_ano"], 2)] for f in activas]
-         + [["Sin ventas", f["tienda"], 0, 0, 0, f["ex"], f["u_ant"], f["u_ano"], round(f["q_ano"], 2)] for f in sin],
-         {"C": "0%", "E": '"Q"#,##0', "I": '"Q"#,##0'})
+    hoja(ws, f"Ranking del Bazar · {mes}", ["Posición", "Tienda", "Unidades", "Unid. mes ant.", "% liquidación", "Ingreso (Q)", "Exist. bazar", "Unid. año", "Ingreso año (Q)"],
+         [[f["pos"], nombre(f["tienda"]), f["u"], f["u_ant"], f["liq"], round(f["q"], 2), f["ex"], f["u_ano"], round(f["q_ano"], 2)] for f in activas]
+         + [["Sin ventas", nombre(f["tienda"]), 0, f["u_ant"], 0, 0, f["ex"], f["u_ano"], round(f["q_ano"], 2)] for f in sin],
+         {"E": "0%", "F": '"Q"#,##0', "I": '"Q"#,##0'})
     nm = [MESES[int(k[5:]) - 1].capitalize() for k in meses_ano]
     hoja(wb.create_sheet("Unidades por mes"), "Unidades de bazar por mes", ["Tienda"] + nm,
-         [[t] + [int(round(V[k][t]["u"])) for k in meses_ano] for t in tiendas])
+         [[nombre(t)] + [int(round(V[k][t]["u"])) for k in meses_ano] for t in tiendas])
     hoja(wb.create_sheet("Ingreso por mes"), "Ingreso de bazar por mes (Q, con IVA)", ["Tienda"] + nm,
-         [[t] + [round(V[k][t]["q"], 2) for k in meses_ano] for t in tiendas])
+         [[nombre(t)] + [round(V[k][t]["q"], 2) for k in meses_ano] for t in tiendas])
     hoja(wb.create_sheet("Por descuento"), f"Unidades por descuento · {mes}", ["Tienda"] + [f"{p}%" for p in pcts],
-         [[t] + [int(round(POR_PCT[t].get(p, 0))) for p in pcts] for t in tiendas])
+         [[nombre(t)] + [int(round(POR_PCT[t].get(p, 0))) for p in pcts] for t in tiendas])
     rows = []
     for f in activas:
         for i, (pid, n) in enumerate(TOP[f["tienda"]].most_common(10), 1):
             t, au, ed, ref = ficha(pid)
-            rows.append([f["tienda"], i, t, au, ed, ref, int(round(n))])
+            rows.append([nombre(f["tienda"]), i, t, au, ed, ref, int(round(n))])
     hoja(wb.create_sheet("Top 10 por tienda"), f"Top 10 de bazar por tienda · {mes}", ["Tienda", "#", "Título", "Autor", "Editorial", "Ref.", "Unidades"], rows)
     wb.save(path)
 
 
 def indice(mes, activas, sin, km):
-    filas = "".join(f'<tr><td>#{f["pos"]}</td><td><a href="tienda_{re.sub(r"[^A-Za-z0-9]", "_", f["tienda"])}.html">{escape(f["tienda"])}</a></td><td>{f["liq"]:.0%}</td><td>{f["u"]:,}</td><td>{q(f["q"])}</td></tr>' for f in activas)
-    filas += "".join(f'<tr><td>—</td><td><a href="tienda_{re.sub(r"[^A-Za-z0-9]", "_", f["tienda"])}.html">{escape(f["tienda"])}</a></td><td colspan="3">Aún sin ventas de bazar</td></tr>' for f in sin)
+    filas = "".join(f'<tr><td>#{f["pos"]}</td><td><a href="tienda_{re.sub(r"[^A-Za-z0-9]", "_", f["tienda"])}.html">{escape(nombre(f["tienda"]))}</a></td><td>{f["u"]:,}</td><td>{f["liq"]:.0%}</td><td>{q(f["q"])}</td></tr>' for f in activas)
+    filas += "".join(f'<tr><td>—</td><td><a href="tienda_{re.sub(r"[^A-Za-z0-9]", "_", f["tienda"])}.html">{escape(nombre(f["tienda"]))}</a></td><td colspan="3">Aún sin ventas de bazar</td></tr>' for f in sin)
     return f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vista previa · Ranking del Bazar</title>
 <style>body{{font:15px Arial,sans-serif;color:#111a3d;max-width:900px;margin:24px auto;padding:0 16px}}h1{{font-family:Georgia,serif}}table{{border-collapse:collapse;width:100%}}td,th{{padding:8px;border-bottom:1px solid #d9dcea;text-align:left}}th{{background:#112369;color:#fff}}a{{color:#112369}}</style></head>
 <body><h1>Vista previa · Ranking del Bazar · {escape(mes)}</h1><p><b>Datos reales de Odoo.</b> No se envió ningún correo.</p>
-<p>👔 <a href="gerencia.html">Correo de gerencia</a> · 📎 <a href="Ranking_bazar_{km}.xlsx">Excel</a></p>
-<table><tr><th>#</th><th>Tienda (clic para ver su correo)</th><th>% liquidación</th><th>Unidades</th><th>Ingreso</th></tr>{filas}</table></body></html>'''
+<p><a href="gerencia.html">Correo de gerencia</a>, <a href="Ranking_bazar_{km}.xlsx">Excel</a></p>
+<table><tr><th>#</th><th>Tienda (clic para ver su correo)</th><th>Unidades</th><th>% liquidación</th><th>Ingreso</th></tr>{filas}</table></body></html>'''
 
 
 if __name__ == "__main__":

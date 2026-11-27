@@ -29,6 +29,7 @@ import sys
 from html import escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tiendas import nombre  # noqa: E402
 from sync_odoo import Odoo, as_text, clean, find_field, fields_get_es  # noqa: E402
 import correo_top25 as C  # noqa: E402
 
@@ -223,7 +224,7 @@ def excel(out, top, pos_prev, total, info, U, EX, ubic, w0, m0, hoy):
 
 def pagina_indice(periodo, indice, top, total, info):
     filas = "".join(
-        f'<tr><td><b>{escape(s)}</b></td><td><a href="{fn}">{escape(asunto)}</a></td>'
+        f'<tr><td><b>{escape(nombre(s))}</b></td><td><a href="{fn}">{escape(asunto)}</a></td>'
         f'<td style="color:#c42318;text-align:center">{ag}</td><td style="color:#9a6700;text-align:center">{bj}</td></tr>'
         for s, fn, asunto, ag, bj in indice)
     return f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -231,7 +232,7 @@ def pagina_indice(periodo, indice, top, total, info):
 <style>body{{font:15px Arial,sans-serif;color:#111a3d;max-width:900px;margin:24px auto;padding:0 16px}}h1{{font-family:Georgia,serif}}
 table{{border-collapse:collapse;width:100%}}td,th{{padding:8px;border-bottom:1px solid #d9dcea;text-align:left}}th{{background:#112369;color:#fff}}a{{color:#112369}}</style></head>
 <body><h1>Vista previa del correo · Top 25</h1><p>{escape(periodo)}. <b>Datos reales de Odoo.</b> No se envió ningún correo: aquí ves lo que recibiría cada sucursal.</p>
-<p>📎 <a href="Top25.xlsx">Top25.xlsx</a>: ranking de la semana y del mes con existencias y ventas de todas las ubicaciones.</p>
+<p>Adjunto: <a href="Top25.xlsx">Top25.xlsx</a>, con el ranking de la semana y del mes con existencias y ventas de todas las ubicaciones.</p>
 <table><tr><th>Sucursal</th><th>Asunto del correo (clic para verlo)</th><th>Agotados</th><th>Por agotarse</th></tr>{filas}</table>
 </body></html>'''
 

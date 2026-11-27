@@ -1,0 +1,67 @@
+name: Aplicar cambios en Odoo
+
+# Escribe en Odoo: los cambios aprobados en el app Revisión de clasificación (sync/cambios/pendiente.json),
+# o prepara el bazar nuevo (etiquetas "Bazar NN%" y lista de precios "Bazar De Museo", sin tocar categorías).
+# Solo se corre a mano. Por defecto SIMULA: primero revisa lo que haría y después córrelo en modo "aplicar".
+on:
+  workflow_dispatch:
+    inputs:
+      tarea:
+        description: "Qué hacer"
+        type: choice
+        options: ["cambios aprobados", "preparar bazar (etiquetas y lista de precios)"]
+        default: "cambios aprobados"
+      modo:
+        description: "simular (no cambia nada) o aplicar (escribe en Odoo)"
+        type: choice
+        options: [simular, aplicar]
+        default: simular
+      incluir_bazar:
+        description: "También devolver la categoría a los libros de bazar (solo cuando la nueva marca de bazar esté lista)"
+        type: boolean
+        default: false
+      deshacer:
+        description: "Para deshacer: ruta de un registro, ej. sync/cambios/registro/2026-11-27_1530.json (déjalo vacío normalmente)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write   # para guardar el registro de lo aplicado
+
+concurrency:
+  group: aplicar-cambios-odoo
+  cancel-in-progress: false
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    env:
+      ODOO_URL: ${{ secrets.ODOO_URL }}
+      ODOO_DB: ${{ secrets.ODOO_DB }}
+      ODOO_WRITE_USER: ${{ secrets.ODOO_WRITE_USER }}
+      ODOO_WRITE_API_KEY: ${{ secrets.ODOO_WRITE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Cambios en Odoo
+        run: |
+          ARGS=""
+          [ "${{ inputs.modo }}" = "aplicar" ] && ARGS="$ARGS --aplicar"
+          if [ "${{ inputs.tarea }}" != "cambios aprobados" ]; then
+            python sync/bazar_odoo.py $ARGS
+            exit 0
+          fi
+          [ "${{ inputs.incluir_bazar }}" = "true" ] && ARGS="$ARGS --incluir-bazar"
+          [ -n "${{ inputs.deshacer }}" ] && ARGS="$ARGS --deshacer ${{ inputs.deshacer }}"
+          python sync/aplicar_cambios.py $ARGS
+      - name: Guardar registro
+        if: inputs.modo == 'aplicar'
+        run: |
+          git config user.name "Cambios Odoo De Museo"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A sync/cambios
+          git diff --cached --quiet && exit 0
+          git commit -m "Cambios aplicados en Odoo $(date +%d/%m/%Y)"
+          for i in 1 2 3; do git pull --rebase -q && git push -q && break; sleep 5; done

@@ -140,6 +140,15 @@ textarea { font: 12px var(--f-mono); width: 100%; min-height: 40px; padding: 6px
 .famrow { display: grid; grid-template-columns: 190px 1fr; gap: 8px; align-items: start; font-size: 13px; font-weight: 700; }
 .combo { cursor: pointer; }
 .combo:hover td { background: var(--soft); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { background: var(--surface); color: var(--ink); border: 1px solid var(--line); font-weight: 700; }
+.tabs button.on { background: var(--navy); color: var(--blanco); border-color: var(--navy); }
+.grupo { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; background: var(--surface); }
+.grupo.listo { border-color: var(--green); }
+.var { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 14px; }
+.var label { display: inline-flex; gap: 6px; align-items: baseline; font-weight: 600; cursor: pointer; }
+.var .mono { font-size: 14px; }
+.motivo { font-size: 12px; color: var(--muted); }
 @media (max-width: 640px) { .famrow { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -150,7 +159,7 @@ textarea { font: 12px var(--f-mono); width: 100%; min-height: 40px; padding: 6px
 </div></header>
 
 <main class="pad"><div class="inner">
-  <p class="muted">Compara, en los libros con existencia, la <b>subcategoría de Odoo</b> (2006 LIBROS / …) contra la que sugiere el <b>género de la pestaña Metadatos</b> (Metabooks y Google Books). Marca los que no coinciden para que elijas la subcategoría correcta. Solo revisa: no cambia nada en Odoo. La lista se actualiza cada noche con la sincronización.</p>
+  <p class="muted">Revisa en los libros con existencia que Odoo esté bien: categoría, autores y editoriales. En <b>Categorías</b> compara la <b>subcategoría de Odoo</b> (2006 LIBROS / …) contra la que sugiere el <b>género de la pestaña Metadatos</b> (Metabooks y Google Books). Marca los que no coinciden para que elijas la subcategoría correcta. Solo revisa: no cambia nada en Odoo. La lista se actualiza cada noche con la sincronización.</p>
 
   <section class="card step" id="s1">
     <span class="num">1</span>
@@ -163,6 +172,55 @@ textarea { font: 12px var(--f-mono); width: 100%; min-height: 40px; padding: 6px
       </form>
       <p class="notice bad" id="stErr" hidden></p>
     </div>
+  </section>
+
+  <section class="card" id="prep" hidden>
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div style="display:grid;gap:4px;max-width:720px"><h3>Llevar lo aprobado a Odoo</h3>
+        <p class="small-t">Junta en un archivo todo lo que decidiste en las cuatro pestañas. Súbelo al repo como <span class="mono">sync/cambios/pendiente.json</span> y corre en GitHub "Aplicar cambios en Odoo": primero en modo simular para ver qué haría, después en modo aplicar.</p>
+        <p class="small-t" id="prepRes"></p></div>
+      <button type="button" id="prepBtn">Preparar cambios para Odoo</button>
+    </div>
+  </section>
+
+  <nav class="tabs" id="tabs" hidden aria-label="Qué revisar">
+    <button type="button" data-tab="cat" class="on">Categorías</button>
+    <button type="button" data-tab="aut">Autores</button>
+    <button type="button" data-tab="edi">Editoriales</button>
+    <button type="button" data-tab="baz">Recuperar bazar</button>
+  </nav>
+
+  <section id="outNom" hidden style="display:grid;gap:14px">
+    <p class="muted" id="nomIntro"></p>
+    <div class="tot" id="nomTot"></div>
+    <section class="card">
+      <div class="filtros">
+        <input type="search" id="nBusca" placeholder="Buscar un nombre…" style="flex:1;min-width:220px">
+        <select id="nDec" aria-label="Decisión"><option value="">Todos</option><option value="pend">Sin decidir</option><option value="dec">Ya decididos</option></select>
+        <button type="button" class="ghost small" id="nLimpiar">Quitar filtros</button>
+      </div>
+      <p class="small-t" id="nCuenta"></p>
+      <div id="nLista" style="display:grid;gap:10px"></div>
+      <div class="row"><button type="button" class="ghost" id="nMas" hidden>Ver más</button></div>
+      <div class="row"><button type="button" id="nXls">Descargar Excel para corregir en Odoo</button></div>
+    </section>
+  </section>
+
+  <section id="outBaz" hidden style="display:grid;gap:14px">
+    <p class="muted">Libros en <b>Bazar 1, 2 o 3</b> con la subcategoría que tenían antes, sugerida desde el campo <b>Tema</b> de Odoo y el <b>género de Metadatos</b>. Confirma o corrige cada una. El Excel trae el ID de cada producto para que Odoo los actualice al importar, sin crear duplicados.</p>
+    <p class="notice">Todavía no lo importes en Odoo: primero hay que tener lista la nueva forma de marcar el bazar (lista de precios y etiqueta). Si se devuelven las categorías antes, las tiendas dejan de ver qué libros están en oferta.</p>
+    <div class="tot" id="bazTot"></div>
+    <section class="card">
+      <div class="filtros">
+        <input type="search" id="bBusca" placeholder="Título, autor, ISBN…" style="flex:1;min-width:220px">
+        <select id="bBaz" aria-label="Bazar"><option value="">Todos los bazares</option></select>
+        <button type="button" class="ghost small" id="bTodas">Aceptar todas las sugerencias de confianza alta</button>
+      </div>
+      <p class="small-t" id="bCuenta"></p>
+      <div class="tbl"><table><thead><tr><th>Libro</th><th>Bazar</th><th>Tema (Odoo)</th><th>Género en Metadatos</th><th>Categoría a recuperar</th></tr></thead><tbody id="bLista"></tbody></table></div>
+      <div class="row"><button type="button" class="ghost" id="bMas" hidden>Ver más</button></div>
+      <div class="row"><button type="button" id="bXls">Descargar archivo para importar en Odoo</button></div>
+    </section>
   </section>
 
   <section id="out" hidden style="display:grid;gap:14px">
@@ -340,10 +398,12 @@ $("claveForm").addEventListener("submit", e => { e.preventDefault(); const c = $
 })();
 
 function listo() {
-  ITEMS = Object.entries(D.p).map(([barra, r]) => ({ barra, ref: r[0], titulo: r[1], autor: r[2], editorial: r[3], cat: r[4] || "", tema: r[5] || "", genero: r[6] || "", ex: r[7], v90: r[8] }));
+  ITEMS = Object.entries(D.p).map(([barra, r]) => ({ barra, ref: r[0], titulo: r[1], autor: r[2], editorial: r[3], cat: r[4] || "", tema: r[5] || "", genero: r[6] || "", ex: r[7], v90: r[8],
+    autorOdoo: r[9] ?? r[2] ?? "", autorMeta: r[10] || "", nombre: r[11] || "", tmpl: r[12] || 0, catFull: r[13] || "" }));
   $("stStatus").textContent = `Listos: ${ITEMS.length.toLocaleString("es-GT")} libros con existencia (datos de Odoo al ${fechaLocal(D.v)}).`;
   $("stStatus").className = "status ok"; $("s1").classList.add("done"); $("claveForm").hidden = true;
   $("fFam").innerHTML = `<option value="">Todas las subcategorías</option>` + [...SUB].sort((a, b) => a[1].localeCompare(b[1])).map(f => `<option value="${f[0]}">${esc(f[1])}</option>`).join("");
+  prepararNombres(); prepararBazar(); $("tabs").hidden = false; $("prep").hidden = false;
   recalcular();
 }
 function recalcular() {
@@ -351,7 +411,7 @@ function recalcular() {
   // Una decisión deja de valer si en Odoo cambió la categoría o el género (ya lo corrigieron)
   for (const it of ITEMS) { const d = DEC[it.barra]; if (d && d.firma !== it.firma) delete DEC[it.barra]; }
   lsSet("clasif-decisiones", DEC);
-  $("out").hidden = false; pintarTotales(); pintarCombos(); filtrar();
+  $("out").hidden = TAB !== "cat"; pintarTotales(); pintarCombos(); filtrar();
 }
 
 // ---------------------------------------------------------------- pintar
@@ -450,6 +510,271 @@ async function bajar(lista, nombreArch) {
 }
 $("xls").addEventListener("click", () => bajar(VISTA, "Revisión de clasificación"));
 $("xlsDec").addEventListener("click", () => bajar(ITEMS.filter(i => DEC[i.barra]), "Clasificación decidida"));
+
+// ================================================================ Autores y editoriales
+// Convención acordada: MAYÚSCULAS, con tildes y ñ, sin punto final; autores como "APELLIDO, NOMBRE".
+let TAB = "cat", NOMF = { tipo: "", lim: 60 };
+let DECN = lsGet("clasif-nombres", { aut: {}, edi: {} });
+const VARIOS = /^(VARIOS( AUTORES)?|VV ?AA|AA ?VV|S ?A|ANONIMO|SIN AUTOR|N ?A|AUTORES VARIOS)$/;
+const sinTilde = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const base = s => sinTilde(s).toUpperCase().replace(/[.,;:'"´`()\[\]\-_/&]+/g, " ").replace(/\s+/g, " ").trim();
+const llave = s => { const b = base(s); return VARIOS.test(b) ? "__VARIOS" : b.split(" ").sort().join(" "); };
+function limpia(s) {
+  let t = String(s || "").replace(/\s+/g, " ").trim().replace(/[\s.,;:]+$/, "").replace(/\s+,/g, ",").replace(/,(?=\S)/g, ", ");
+  t = t.toUpperCase();
+  return VARIOS.test(base(t)) ? "VARIOS AUTORES" : t;
+}
+function motivos(raw) {
+  const m = [], s = String(raw);
+  if (/[.,;:]\s*$/.test(s)) m.push("signo al final");
+  if (/\s{2,}/.test(s) || s !== s.trim()) m.push("espacios de más");
+  if (/\s,|,\S/.test(s)) m.push("coma mal espaciada");
+  if (s !== s.toUpperCase()) m.push("minúsculas");
+  if (VARIOS.test(base(s)) && limpia(s) !== s) m.push("forma de varios autores");
+  return m;
+}
+const tieneTilde = s => /[ÁÉÍÓÚÜÑáéíóúüñ]/.test(s);
+function lev(a, b) {
+  if (a === b) return 0; const m = a.length, n = b.length; if (!m || !n) return m || n;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+  return prev[n];
+}
+const campoDe = (it, modo) => modo === "aut" ? (it.autorOdoo || "") : (it.editorial || "");
+
+let GRUPOS = { aut: [], edi: [] }, METAMAL = [];
+function armarGrupos(modo) {
+  const porLlave = new Map();
+  for (const it of ITEMS) {
+    const raw = campoDe(it, modo); if (!raw.trim()) continue;
+    const k = llave(raw);
+    if (!porLlave.has(k)) porLlave.set(k, new Map());
+    const vs = porLlave.get(k), v = vs.get(raw) || { raw, libros: [], v90: 0 };
+    v.libros.push(it); v.v90 += it.v90; vs.set(raw, v);
+  }
+  // Une llaves casi iguales (una letra de diferencia, o dos en nombres largos), dentro de bloques por inicio
+  const keys = [...porLlave.keys()], padre = new Map(keys.map(k => [k, k]));
+  const raiz = k => { while (padre.get(k) !== k) k = padre.get(k); return k; };
+  const bloques = new Map();
+  for (const k of keys) { if (k === "__VARIOS") continue; const b = k.slice(0, 3); (bloques.get(b) || bloques.set(b, []).get(b)).push(k); }
+  for (const lista of bloques.values()) {
+    if (lista.length > 400) continue;
+    for (let i = 0; i < lista.length; i++) for (let j = i + 1; j < lista.length; j++) {
+      const a = lista[i], b = lista[j]; if (Math.abs(a.length - b.length) > 2 || a.length < 6) continue;
+      const d = lev(a, b); if (d === 1 || (d === 2 && Math.min(a.length, b.length) >= 12)) padre.set(raiz(a), raiz(b));
+    }
+  }
+  const unidos = new Map();
+  for (const k of keys) { const r = raiz(k); (unidos.get(r) || unidos.set(r, []).get(r)).push(...porLlave.get(k).values()); }
+  const out = [];
+  for (const [r, vars] of unidos) {
+    const conProblema = vars.some(v => motivos(v.raw).length);
+    if (vars.length < 2 && !conProblema) continue;
+    vars.sort((a, b) => b.libros.length - a.libros.length || b.v90 - a.v90);
+    const mejor = [...vars].sort((a, b) => (tieneTilde(b.raw) - tieneTilde(a.raw)) || (b.libros.length - a.libros.length))[0];
+    const sug = r === "__VARIOS" ? "VARIOS AUTORES" : limpia(mejor.raw);
+    out.push({ k: r, vars, sug, tipo: vars.length > 1 ? "var" : "regla", libros: vars.reduce((s, v) => s + v.libros.length, 0), v90: vars.reduce((s, v) => s + v.v90, 0),
+      firma: vars.map(v => v.raw).sort().join("|") });
+  }
+  out.sort((a, b) => b.v90 - a.v90 || b.libros - a.libros);
+  // Las decisiones viejas dejan de valer si el grupo cambió (ya corrigieron en Odoo)
+  for (const g of out) { const d = DECN[modo][g.k]; if (d && d.firma !== g.firma) delete DECN[modo][g.k]; }
+  lsSet("clasif-nombres", DECN);
+  return out;
+}
+function armarMetaMal() {
+  const tok = s => new Set(base(s).split(" ").filter(w => w.length >= 3));
+  return ITEMS.filter(it => it.autorOdoo && it.autorMeta && !VARIOS.test(base(it.autorOdoo)))
+    .filter(it => { const a = tok(it.autorOdoo), b = tok(it.autorMeta); return a.size && b.size && ![...a].some(w => b.has(w)); })
+    .sort((a, b) => b.v90 - a.v90);
+}
+function prepararNombres() { GRUPOS.aut = armarGrupos("aut"); GRUPOS.edi = armarGrupos("edi"); METAMAL = armarMetaMal(); }
+
+$("tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  TAB = b.dataset.tab; [...$("tabs").children].forEach(x => x.classList.toggle("on", x === b));
+  $("out").hidden = TAB !== "cat"; $("outNom").hidden = TAB !== "aut" && TAB !== "edi"; $("outBaz").hidden = TAB !== "baz";
+  if (TAB === "aut" || TAB === "edi") { NOMF = { tipo: "", lim: 60 }; pintarNombres(); }
+  if (TAB === "baz") { BAZF = { conf: "", lim: 200 }; pintarBazar(); }
+});
+function pintarNombres() {
+  const modo = TAB, G = GRUPOS[modo], dec = DECN[modo], que = modo === "aut" ? "autor" : "editorial";
+  $("nomIntro").innerHTML = modo === "aut"
+    ? "Autores escritos de varias formas en Odoo (con punto final, sin tildes, en otro orden…) o que no siguen la regla: <b>MAYÚSCULAS, con tildes, sin punto final, APELLIDO, NOMBRE</b>. Elige la forma correcta de cada grupo; el Excel dice qué libros cambiar en Odoo."
+    : "Editoriales (sello) escritas de varias formas en Odoo o que no siguen la regla: <b>MAYÚSCULAS, con tildes, sin punto final</b>. Elige la forma correcta de cada grupo; el Excel dice qué libros cambiar en Odoo.";
+  const n = t => G.filter(g => g.tipo === t).length, nd = G.filter(g => dec[g.k]).length;
+  const tiles = [["var", "Escrito de varias formas", n("var")], ["regla", "Una forma, pero mal escrita", n("regla")]];
+  if (modo === "aut") tiles.push(["meta", "Distinto al de Metadatos", METAMAL.length]);
+  tiles.push(["dec", "Ya decididos", nd], ["", "Todos los grupos", G.length]);
+  $("nomTot").innerHTML = tiles.map(([k, t, v]) => `<button type="button" data-ntipo="${k}" class="${NOMF.tipo === k ? "on" : ""}"><span>${t}</span><b>${v.toLocaleString("es-GT")}</b></button>`).join("");
+  if (NOMF.tipo === "meta") return pintarMetaMal();
+  const q = base($("nBusca").value), fd = $("nDec").value;
+  const V = G.filter(g => (!NOMF.tipo || (NOMF.tipo === "dec" ? !!dec[g.k] : g.tipo === NOMF.tipo))
+    && (!fd || (fd === "dec") === !!dec[g.k]) && (!q || g.vars.some(v => base(v.raw).includes(q))));
+  $("nCuenta").textContent = `${V.length.toLocaleString("es-GT")} grupos con ${V.reduce((s, g) => s + g.libros, 0).toLocaleString("es-GT")} libros con existencia. Ordenados por ventas.`;
+  $("nLista").innerHTML = V.slice(0, NOMF.lim).map(g => {
+    const d = dec[g.k], elegido = d?.forma;
+    const opciones = [...new Set([g.sug, ...g.vars.map(v => v.raw).filter(r => limpia(r) === r)])];   // solo formas ya bien escritas
+    return `<div class="grupo ${d ? "listo" : ""}" data-g="${esc(g.k)}">
+      <div class="row" style="justify-content:space-between"><b>${esc(g.sug)}</b><span class="small-t">${g.libros} libro${g.libros !== 1 ? "s" : ""}, ${g.v90} vendidos en 90 días</span></div>
+      <div class="small-t">Así está en Odoo:</div>
+      ${g.vars.map(v => { const m = motivos(v.raw); return `<div class="var"><span class="mono" style="white-space:pre">“${esc(v.raw)}”</span><span class="motivo">${v.libros.length} libro${v.libros.length !== 1 ? "s" : ""}${m.length ? ": " + esc(m.join(", ")) : ""}${g.vars.length > 1 && !tieneTilde(v.raw) && g.vars.some(x => tieneTilde(x.raw)) ? (m.length ? ", sin tildes" : ": sin tildes") : ""}</span></div>`; }).join("")}
+      <div class="small-t">Forma correcta:</div>
+      ${opciones.map(o => `<div class="var"><label><input type="radio" name="g-${esc(g.k)}" value="${esc(o)}" ${elegido === o ? "checked" : ""}> ${esc(o)}</label>${o === g.sug ? '<span class="chip c-new">sugerida</span>' : ""}</div>`).join("")}
+      <div class="var"><label><input type="radio" name="g-${esc(g.k)}" value="__otra" ${elegido && !opciones.includes(elegido) ? "checked" : ""}> Otra:</label>
+        <input type="text" data-otra="${esc(g.k)}" value="${esc(elegido && !opciones.includes(elegido) ? elegido : "")}" placeholder="Escribe la forma correcta" style="flex:1;min-width:180px;font:14px var(--f-body);padding:5px 8px;border:2px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)"></div>
+      ${d ? `<div><button type="button" class="ghost small" data-quitar="${esc(g.k)}">Quitar decisión</button></div>` : ""}
+    </div>`;
+  }).join("") || `<p class="muted">No hay ${que}es con estos filtros.</p>`;
+  $("nMas").hidden = V.length <= NOMF.lim;
+}
+function pintarMetaMal() {
+  $("nCuenta").textContent = `${METAMAL.length.toLocaleString("es-GT")} libros donde el autor de Odoo no comparte ningún nombre con el de Metadatos. Puede estar mal cualquiera de los dos: revisa el libro.`;
+  $("nLista").innerHTML = `<div class="tbl"><table><thead><tr><th>Libro</th><th>Autor en Odoo</th><th>Autor en Metadatos</th><th class="n">Vend. 90 d</th></tr></thead><tbody>` +
+    METAMAL.slice(0, NOMF.lim * 3).map(it => `<tr><td><b>${esc(it.titulo)}</b><div class="small-t mono">${esc(it.barra.replace(/^r:/, "Ref. "))}</div></td><td>${esc(it.autorOdoo)}</td><td>${esc(it.autorMeta)}</td><td class="n">${it.v90}</td></tr>`).join("") + `</tbody></table></div>`;
+  $("nMas").hidden = METAMAL.length <= NOMF.lim * 3;
+}
+$("nomTot").addEventListener("click", e => { const b = e.target.closest("[data-ntipo]"); if (!b) return; NOMF.tipo = b.dataset.ntipo; NOMF.lim = 60; pintarNombres(); });
+for (const id of ["nBusca", "nDec"]) $(id).addEventListener(id === "nBusca" ? "input" : "change", () => { clearTimeout(window._n); window._n = setTimeout(() => { NOMF.lim = 60; pintarNombres(); }, 200); });
+$("nLimpiar").addEventListener("click", () => { $("nBusca").value = ""; $("nDec").value = ""; NOMF.tipo = ""; pintarNombres(); });
+$("nMas").addEventListener("click", () => { NOMF.lim += 60; pintarNombres(); });
+function decidir(k, forma) {
+  const g = GRUPOS[TAB].find(x => x.k === k); if (!g) return;
+  if (forma) DECN[TAB][k] = { forma, firma: g.firma }; else delete DECN[TAB][k];
+  lsSet("clasif-nombres", DECN);
+  const el = document.querySelector(`.grupo[data-g="${CSS.escape(k)}"]`); if (el) el.classList.toggle("listo", !!forma);
+  const nd = GRUPOS[TAB].filter(x => DECN[TAB][x.k]).length, t = document.querySelector('[data-ntipo="dec"] b'); if (t) t.textContent = nd.toLocaleString("es-GT");
+}
+$("nLista").addEventListener("change", e => {
+  const r = e.target.closest('input[type=radio]'), o = e.target.dataset.otra;
+  if (r) { const k = r.name.slice(2); decidir(k, r.value === "__otra" ? limpia(document.querySelector(`[data-otra="${CSS.escape(k)}"]`).value) : r.value); }
+  if (o != null) { const v = limpia(e.target.value); const rr = document.querySelector(`input[name="g-${CSS.escape(o)}"][value="__otra"]`); if (rr) rr.checked = true; decidir(o, v); }
+});
+$("nLista").addEventListener("click", e => { const k = e.target.dataset.quitar; if (k == null) return; decidir(k, ""); pintarNombres(); });
+$("nXls").addEventListener("click", async () => {
+  await window.excelListo;
+  const filas = [];
+  for (const modo of ["aut", "edi"]) for (const g of GRUPOS[modo]) {
+    const d = DECN[modo][g.k]; if (!d) continue;
+    for (const v of g.vars) if (v.raw !== d.forma) for (const it of v.libros) filas.push({
+      "Código de barras": it.barra.replace(/^r:/, ""), "Referencia": it.ref, "Título": it.titulo, "Campo en Odoo": modo === "aut" ? "Autor" : "Editorial",
+      "Así está": v.raw, "Debe quedar": d.forma, "¿Corregir también el nombre del producto?": base(it.nombre).includes(base(v.raw)) && v.raw.trim() !== d.forma ? "Sí, el nombre lo repite" : "",
+      "Ventas 90 días": it.v90, "Existencia": it.ex });
+  }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(filas.length ? filas : [{ "": "Todavía no hay decisiones: elige la forma correcta de algún grupo." }]);
+  ws["!cols"] = [15, 11, 44, 12, 34, 34, 22, 10, 10].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, "Corregir en Odoo");
+  if (METAMAL.length) {
+    const w2 = XLSX.utils.json_to_sheet(METAMAL.map(it => ({ "Código de barras": it.barra.replace(/^r:/, ""), "Referencia": it.ref, "Título": it.titulo, "Autor en Odoo": it.autorOdoo, "Autor en Metadatos": it.autorMeta, "Ventas 90 días": it.v90 })));
+    w2["!cols"] = [15, 11, 44, 30, 30, 10].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, w2, "Autor distinto en Metadatos");
+  }
+  XLSX.writeFile(wb, `Autores y editoriales para corregir - ${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+
+// ================================================================ Recuperar bazar
+// Bazar 1/2/3 marcan la oferta usando la categoría, y así el libro perdió su tema. Aquí se sugiere la subcategoría original.
+let BAZF = { conf: "", lim: 200 }, BAZ = [];
+let DECB = lsGet("clasif-bazar", {});   // { barra: cod }
+const esBazar = it => /BAZAR/i.test(it.cat);
+function subDeTema(t) {
+  const n = norm(sinNum(t)).replace(/\s+/g, " ").trim(); if (!n) return "";
+  const exacto = SUB.find(x => norm(x[1]) === n || norm(x[1]).replace(/ Y /g, " / ") === n);
+  if (exacto) return exacto[0];
+  const n2 = n.replace(/\s*\/\s*/g, " Y ");
+  const ex2 = SUB.find(x => norm(x[1]) === n2);
+  return ex2 ? ex2[0] : (subDeTexto(t) || "");
+}
+function prepararBazar() {
+  BAZ = ITEMS.filter(esBazar).map(it => {
+    const deTema = subDeTema(it.tema), deMeta = it.genero ? (subDeTexto(it.genero) || "") : "";
+    let sug = "", conf = "nada", origen = "Sin datos para sugerir";
+    if (deTema && deMeta && deTema === deMeta) { sug = deTema; conf = "alta"; origen = "Tema y Metadatos coinciden"; }
+    else if (deTema && deMeta) { sug = deTema; conf = "revisar"; origen = "Tema y Metadatos dicen distinto"; }
+    else if (deTema) { sug = deTema; conf = "media"; origen = "Solo el Tema"; }
+    else if (deMeta) { sug = deMeta; conf = "media"; origen = "Solo Metadatos"; }
+    return { it, deTema, deMeta, sug, conf, origen, bazar: sinNum(it.cat) };
+  }).sort((a, b) => b.it.v90 - a.it.v90 || b.it.ex - a.it.ex);
+  $("bBaz").innerHTML = `<option value="">Todos los bazares</option>` + [...new Set(BAZ.map(b => b.bazar))].sort().map(b => `<option>${esc(b)}</option>`).join("");
+}
+const CONFS = [["alta", "Confianza alta", "El Tema y Metadatos dicen la misma subcategoría."], ["media", "Confianza media", "Solo uno de los dos da una pista."],
+  ["revisar", "Por revisar", "El Tema y Metadatos no coinciden."], ["nada", "Sin sugerencia", "No hay Tema ni género reconocible."]];
+function pintarBazar() {
+  const n = c => BAZ.filter(b => b.conf === c).length, nd = BAZ.filter(b => DECB[b.it.barra]).length;
+  $("bazTot").innerHTML = CONFS.map(([k, t, d]) => `<button type="button" data-bconf="${k}" class="${BAZF.conf === k ? "on" : ""}" title="${esc(d)}"><span>${t}</span><b>${n(k).toLocaleString("es-GT")}</b></button>`).join("") +
+    `<button type="button" data-bconf="dec" class="${BAZF.conf === "dec" ? "on" : ""}"><span>Ya confirmados</span><b>${nd.toLocaleString("es-GT")}</b></button>` +
+    `<button type="button" data-bconf="" class="${!BAZF.conf ? "on" : ""}"><span>Libros de bazar</span><b>${BAZ.length.toLocaleString("es-GT")}</b></button>`;
+  const q = norm($("bBusca").value).trim().split(/\s+/).filter(Boolean), bz = $("bBaz").value, opc = OPC().filter(([c]) => !NO_APLICA.test(c));
+  const V = BAZ.filter(b => (!BAZF.conf || (BAZF.conf === "dec" ? !!DECB[b.it.barra] : b.conf === BAZF.conf)) && (!bz || b.bazar === bz)
+    && (!q.length || q.every(w => norm([b.it.titulo, b.it.autor, b.it.barra, b.it.ref].join(" ")).includes(w))));
+  $("bCuenta").textContent = `${V.length.toLocaleString("es-GT")} libros, de los más vendidos a los menos.`;
+  $("bLista").innerHTML = V.slice(0, BAZF.lim).map(b => {
+    const d = DECB[b.it.barra] || "";
+    const chip = { alta: "c-new", media: "c-amb", revisar: "c-quieto", nada: "c-sin" }[b.conf];
+    return `<tr><td><b>${esc(b.it.titulo)}</b><div class="small-t">${esc(b.it.autor)}</div><div class="small-t mono">${esc(b.it.barra.replace(/^r:/, "Ref. "))}</div></td>
+      <td>${esc(b.bazar)}<div class="small-t">${b.it.ex} en existencia</div></td>
+      <td>${b.it.tema ? `<div class="campo"><span style="font-size:13px">${esc(b.it.tema)}</span><span class="fam">${b.deTema ? "→ " + esc(nombre(b.deTema)) : "no se reconoce"}</span></div>` : '<span class="chip c-sin">vacío</span>'}</td>
+      <td>${b.it.genero ? `<div class="campo"><span style="font-size:13px">${esc(b.it.genero)}</span><span class="fam">${b.deMeta ? "→ " + esc(nombre(b.deMeta)) : "no se reconoce"}</span></div>` : '<span class="chip c-sin">vacío</span>'}</td>
+      <td><span class="chip ${chip}">${esc(b.origen)}</span><br><select data-bdec="${esc(b.it.barra)}" aria-label="Categoría a recuperar" style="margin-top:4px">
+        <option value="">${b.sug ? "Sin confirmar" : "Elige una"}</option>
+        ${b.sug ? `<option value="${b.sug}" ${d === b.sug ? "selected" : ""}>✓ ${esc(nombre(b.sug))}</option>` : ""}
+        <optgroup label="Otra subcategoría">${opc.map(([c, nm]) => `<option value="${c}" ${d === c && c !== b.sug ? "selected" : ""}>${esc(nm)}</option>`).join("")}</optgroup></select></td></tr>`;
+  }).join("") || `<tr><td colspan="5" class="muted">No hay libros de bazar con estos filtros.</td></tr>`;
+  $("bMas").hidden = V.length <= BAZF.lim;
+}
+$("bazTot").addEventListener("click", e => { const b = e.target.closest("[data-bconf]"); if (!b) return; BAZF.conf = b.dataset.bconf; BAZF.lim = 200; pintarBazar(); });
+for (const id of ["bBusca", "bBaz"]) $(id).addEventListener(id === "bBusca" ? "input" : "change", () => { clearTimeout(window._b); window._b = setTimeout(() => { BAZF.lim = 200; pintarBazar(); }, 200); });
+$("bMas").addEventListener("click", () => { BAZF.lim += 200; pintarBazar(); });
+$("bLista").addEventListener("change", e => { const b = e.target.dataset.bdec; if (b == null) return; if (e.target.value) DECB[b] = e.target.value; else delete DECB[b]; lsSet("clasif-bazar", DECB);
+  const t = document.querySelector('[data-bconf="dec"] b'); if (t) t.textContent = BAZ.filter(x => DECB[x.it.barra]).length.toLocaleString("es-GT"); });
+$("bTodas").addEventListener("click", () => {
+  const alta = BAZ.filter(b => b.conf === "alta" && !DECB[b.it.barra]);
+  if (!alta.length) return;
+  if (!window.confirm(`Se confirmarán ${alta.length} libros donde el Tema y Metadatos coinciden. ¿Seguir?`)) return;
+  for (const b of alta) DECB[b.it.barra] = b.sug;
+  lsSet("clasif-bazar", DECB); pintarBazar();
+});
+$("bXls").addEventListener("click", async () => {
+  await window.excelListo;
+  const ok = BAZ.filter(b => DECB[b.it.barra]);
+  const wb = XLSX.utils.book_new();
+  // Hoja para importar: "id" con el ID de la base de datos actualiza el producto existente (no crea uno nuevo)
+  const imp = ok.filter(b => b.it.tmpl).map(b => ({ ".id": b.it.tmpl, "categ_id": NOMCAT(DECB[b.it.barra]) }));
+  const ws = XLSX.utils.json_to_sheet(imp.length ? imp : [{ ".id": "", "categ_id": "" }]); ws["!cols"] = [{ wch: 10 }, { wch: 48 }];
+  XLSX.utils.book_append_sheet(wb, ws, "Importar en Odoo");
+  const det = ok.map(b => ({ "ID producto": b.it.tmpl || "", "Código de barras": b.it.barra.replace(/^r:/, ""), "Referencia": b.it.ref, "Título": b.it.titulo,
+    "Estaba en": b.it.catFull || b.it.cat, "Bazar (para la nueva etiqueta)": b.bazar, "Categoría recuperada": NOMCAT(DECB[b.it.barra]), "De dónde salió": b.origen, "Existencia": b.it.ex }));
+  const w2 = XLSX.utils.json_to_sheet(det.length ? det : [{ "": "Todavía no hay libros confirmados." }]); w2["!cols"] = [10, 15, 11, 44, 26, 14, 44, 26, 10].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, w2, "Detalle");
+  const w3 = XLSX.utils.aoa_to_sheet([["Cómo importar (cuando la nueva marca de bazar esté lista)"], [""],
+    ["1. En Odoo: Inventario → Productos → Productos, vista de lista → ⚙ → Importar registros."],
+    ["2. Sube este archivo y elige la hoja \"Importar en Odoo\"."],
+    ["3. Revisa que la columna .id quede como \"ID de la base de datos\" y categ_id como \"Categoría de producto\"."],
+    ["4. Presiona \"Probar\" primero; si no hay errores, \"Importar\". Odoo actualiza la categoría de esos productos, no crea productos nuevos."],
+    [""], ["La hoja Detalle dice en qué bazar estaba cada libro: con eso se le pone su etiqueta de bazar y su regla en la lista de precios."]]);
+  w3["!cols"] = [{ wch: 110 }]; XLSX.utils.book_append_sheet(wb, w3, "Instrucciones");
+  XLSX.writeFile(wb, `Recuperar categorías de bazar - ${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+
+// ================================================================ Llevar lo aprobado a Odoo
+function cambiosAprobados() {
+  const P = new Map(ITEMS.map(i => [i.barra, i])), categorias = [], bazar = [], autores = [], editoriales = [];
+  for (const [barra, d] of Object.entries(DEC)) {
+    const it = P.get(barra); if (!it || !it.tmpl || d.cod === it.cod || esBazar(it)) continue;
+    categorias.push({ id: it.tmpl, titulo: it.titulo, antes: it.catFull, despues: NOMCAT(d.cod) });
+  }
+  for (const b of BAZ) { const c = DECB[b.it.barra]; if (c && b.it.tmpl) bazar.push({ id: b.it.tmpl, titulo: b.it.titulo, antes: b.it.catFull, despues: NOMCAT(c), bazar: b.bazar }); }
+  for (const g of GRUPOS.aut) { const d = DECN.aut[g.k]; if (d) for (const v of g.vars) if (v.raw !== d.forma) autores.push({ antes: v.raw, despues: d.forma }); }
+  for (const g of GRUPOS.edi) { const d = DECN.edi[g.k]; if (!d) continue; const antes = g.vars.map(v => v.raw).filter(r => r !== d.forma); if (antes.length) editoriales.push({ antes, despues: d.forma }); }
+  return { creado: new Date().toISOString(), datos_de_odoo: D.v, categorias, bazar, autores, editoriales };
+}
+$("prepBtn").addEventListener("click", () => {
+  const c = cambiosAprobados(), n = c.categorias.length + c.bazar.length + c.autores.length + c.editoriales.length;
+  if (!n) { $("prepRes").textContent = "Todavía no hay nada aprobado en ninguna pestaña."; return; }
+  const blob = new Blob([JSON.stringify(c, null, 1)], { type: "application/json" }), a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "pendiente.json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  $("prepRes").textContent = `Listo: ${c.categorias.length} categorías, ${c.bazar.length} libros de bazar (quedan en espera hasta que la nueva marca de bazar esté lista), ` +
+    `${c.autores.length} formas de autor y ${c.editoriales.length} editoriales por unir.`;
+});
 </script>
 </body>
 </html>
