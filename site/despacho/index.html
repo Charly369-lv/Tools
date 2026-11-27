@@ -143,6 +143,14 @@ body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-vi
 <body>
 <header class="mast pad"><div class="inner">
   <a class="logo-link" href="../cedis/" aria-label="Volver a las herramientas de CEDIS" title="Volver a CEDIS"><img src="../checador/logo.png" alt="De Museo" width="800" height="144"></a>
+  <script>
+  // Si se entró desde el índice de Tienda (?desde=tienda), el logo regresa a Tienda.
+  (function () {
+    var desde = null;
+    try { if (new URLSearchParams(location.search).get("desde") === "tienda") sessionStorage.setItem("despacho-desde", "tienda"); desde = sessionStorage.getItem("despacho-desde"); } catch (e) {}
+    if (desde === "tienda") { var a = document.currentScript.previousElementSibling; a.href = "../tienda/"; a.title = "Volver a Tienda"; a.setAttribute("aria-label", "Volver a las herramientas de Tienda"); }
+  })();
+  </script>
   <div class="who" id="who" hidden><span id="whoTxt"></span><button type="button" class="ghost sm" id="btnInicio">Inicio</button><button type="button" class="ghost sm" id="btnSalir">Cambiar operador</button></div>
 </div></header>
 
