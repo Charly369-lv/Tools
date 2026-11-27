@@ -18,10 +18,12 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pick.reg .pr b, :root:not([data-theme="light"]) .pick .pe { color: var(--ink); } }
 :root[data-theme="dark"] .pick.reg .pr b, :root[data-theme="dark"] .pick .pe { color: var(--ink); }
 #count.offline::after { content: " · sin internet"; color: #c0392b; font-weight: 600; }
-.man-link { margin: 28px 0 8px; font-size: 14px; text-align: center; }
-.man-link a { color: var(--muted); text-underline-offset: 3px; }
-.man-link a:hover { color: var(--ink); }
-.man-link a:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.man-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 14px 6px 10px; border: 1.5px solid rgba(242,189,60,.75); border-radius: 999px;
+  color: var(--on-navy); text-decoration: none; font: 700 14px var(--f-body); letter-spacing: .01em; background: rgba(255,255,255,.06); transition: background .15s, border-color .15s, transform .15s; }
+.man-btn svg { width: 20px; height: 20px; flex: none; color: var(--gold); }
+.man-btn:hover { background: rgba(242,189,60,.16); border-color: var(--gold); transform: translateY(-1px); }
+.man-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.mast-side { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -275,7 +277,10 @@ body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-vi
   <div class="inner">
     <div class="mast-top">
       <img class="logo" src="logo.png" alt="De Museo" width="800" height="144" draggable="false">
-      <span class="tagline">Un mundo por descubrir</span>
+      <div class="mast-side">
+        <span class="tagline">Un mundo por descubrir</span>
+        <a class="man-btn" href="manual/" title="Cómo usar el Checador"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7.5h8M8 11h6"/></svg>Manual</a>
+      </div>
     </div>
     <div class="ribbon">
       <span class="ribbon-t" id="ribbonT">Bazar de Descuentos</span>
@@ -314,7 +319,6 @@ body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-vi
       <h3>Últimas consultas</h3>
       <ol id="histList"></ol>
     </section>
-    <p class="man-link"><a href="manual/">Manual del checador</a></p>
   </div>
 </main>
 
