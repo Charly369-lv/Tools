@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Guía de cajeros, PIN y bazar · Herramientas De Museo</title>
+<meta name="description" content="Cómo probar en la Caja Móvil y configurar en cada tienda los cajeros con PIN, la autorización de descuentos y el precio de bazar.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="theme-color" content="#0b1748">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<link rel="stylesheet" href="../estilo/indices.css">
+<style>
+.man { max-width: 46rem; }
+.man section { padding-block: var(--space-xl) 0; }
+.man h2 { font-size: var(--text-2xl); font-weight: 400; font-variation-settings: "opsz" 96; max-width: none; }
+.man h2 .n { margin-right: var(--space-sm); vertical-align: 0.35em; }
+.man > section > p { margin-top: var(--space-sm); color: var(--color-ink-2); }
+.pasos { list-style: none; counter-reset: p; margin: var(--space-md) 0 0; padding: 0; border-top: var(--rule-hair) solid var(--color-rule-2); }
+.pasos > li { counter-increment: p; display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); gap: var(--space-md); padding-block: var(--space-md); border-bottom: var(--rule-hair) solid var(--color-rule); }
+.pasos > li::before { content: counter(p); font-family: var(--font-num); font-weight: 700; font-size: var(--text-xl); line-height: 1.2; color: var(--color-accent); }
+.pasos > li > div > b { display: block; }
+.pasos p, .pasos ul { margin: var(--space-2xs) 0 0; color: var(--color-ink-2); }
+.pasos ul { padding-left: 1.1em; }
+.pasos li li + li { margin-top: var(--space-3xs); }
+.nota { margin-top: var(--space-md); padding: var(--space-md); background: var(--color-paper-2); border: var(--rule-hair) solid var(--color-rule-2); }
+.preg { margin: var(--space-md) 0 0; border-top: var(--rule-hair) solid var(--color-rule-2); }
+.preg details { border-bottom: var(--rule-hair) solid var(--color-rule); }
+.preg summary { cursor: pointer; padding-block: var(--space-md); font-weight: 600; min-height: 44px; }
+.preg details p { padding-bottom: var(--space-md); color: var(--color-ink-2); }
+.man a { color: var(--color-accent); font-weight: 600; }
+.volver { display: inline-flex; margin-top: var(--space-xl); }
+.man ol.sub { margin: var(--space-2xs) 0 0; padding-left: 1.2em; color: var(--color-ink-2); }
+.tabla { width: 100%; border-collapse: collapse; margin-top: var(--space-md); font-size: var(--text-sm); }
+.tabla th, .tabla td { text-align: left; padding: var(--space-xs) var(--space-sm); border-bottom: var(--rule-hair) solid var(--color-rule); vertical-align: top; }
+.tabla th { font-weight: 700; color: var(--color-ink-2); }
+.ok { color: var(--color-accent); font-weight: 700; }
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap bar-in">
+  <a class="bar-logo" href="../"><img src="../checador/logo.png" alt="De Museo, volver a Herramientas" width="800" height="143"></a>
+  <a class="bar-back" href="./">Volver a Revisión de cajas</a>
+</div></header>
+<main class="wrap">
+  <div class="cab">
+    <h1><span class="guide">Guía de cajas</span></h1>
+    <p>Para Informática. Cómo probar en la Caja Móvil y después dejar cada tienda con cajeros que entran con su PIN, descuentos que autoriza un supervisor y el bazar cobrado solo.</p>
+  </div>
+
+  <div class="man">
+    <section>
+      <h2><span class="n">01</span>Qué queremos lograr</h2>
+      <p>Hoy los cajeros marcan el descuento del bazar a mano, y a veces lo marcan dos veces. Además, cada tienda entra a la caja con un usuario compartido, así que Odoo no sabe quién cobró ni quién dio un descuento.</p>
+      <p>Con este cambio cada caja queda así:</p>
+      <ol class="pasos">
+        <li><div><b>El bazar se cobra solo</b><p>La lista de precios «Bazar De Museo» ya tiene el precio de etiqueta de los 11,508 libros de bazar (el mismo del Checador). El cajero escanea y la caja cobra ese precio, sin marcar nada.</p></div></li>
+        <li><div><b>Cada cajero entra con su PIN</b><p>Dentro del mismo usuario de la tienda. Los empleados no son usuarios de Odoo y no pagan licencia: seguimos con dos usuarios por tienda.</p></div></li>
+        <li><div><b>Los descuentos los autoriza un supervisor</b><p>El cajero ya no puede cambiar precios ni poner descuentos por su cuenta. Si un cliente necesita un descuento, lo aplica un supervisor con su PIN.</p></div></li>
+      </ol>
+      <p class="nota">No cambie ninguna tienda hasta terminar la prueba de la Caja Móvil y hasta que Carlos Recinos apruebe pasar a las tiendas.</p>
+    </section>
+
+    <section>
+      <h2><span class="n">02</span>Prueba en la Caja Móvil</h2>
+      <p>La Caja Móvil (FILGUA) ya está lista: usa la lista «Bazar De Museo», pide empleado al entrar, tiene de cajeros a Allan Garcia y Jonathan Torres y de supervisor a Carlos Recinos, y solo los gerentes pueden cambiar precios. Los tres ya tienen su PIN.</p>
+      <p>En la prueba no se cobra nada: se arma un ticket, se revisa y se borra, para no mover inventario ni contabilidad.</p>
+      <ol class="pasos">
+        <li><div><b>Abra la caja</b><p>En Odoo, entre a Punto de venta y en la tarjeta «Caja Móvil(FILGUA)» toque Abrir caja. Si pide el efectivo de apertura, ponga 0.</p></div></li>
+        <li><div><b>Entre como cajero</b><p>Debe salir una pantalla para elegir quién entra. Elija Allan Garcia y escriba su PIN.</p><p><span class="ok">Correcto:</span> entra a la caja y arriba se ve su nombre. Si entra directo sin preguntar, el inicio por empleado no quedó activo: anótelo y avise.</p></div></li>
+        <li><div><b>Escanee un libro de bazar</b><p>Por ejemplo <i>Love Letters to the Dead</i>, código 9781250062963. Su precio normal es Q115.</p><p><span class="ok">Correcto:</span> la caja cobra Q29, igual que el Checador.</p></div></li>
+        <li><div><b>Escanee un libro que no esté en bazar</b><p><span class="ok">Correcto:</span> cobra su precio normal.</p></div></li>
+        <li><div><b>Intente un descuento como cajero</b><p>Toque una línea del ticket y luego «% Desc.» en el teclado de la caja. Pruebe también «Precio».</p><p><span class="ok">Correcto:</span> no lo deja. Puede que los botones salgan apagados o que la caja pida un gerente. Anote cuál de las dos pasó.</p></div></li>
+        <li><div><b>Autorice el descuento como supervisor</b><p>Toque el nombre del cajero arriba, elija Carlos Recinos y escriba su PIN (o pídale a Carlos que lo escriba). Aplique un 10 % en una línea. Luego toque otra vez el nombre y regrese a Allan.</p><p><span class="ok">Correcto:</span> con el supervisor sí deja; al volver a Allan, ya no.</p></div></li>
+        <li><div><b>Borre el ticket y cierre</b><p>Borre las líneas con la tecla de borrar hasta vaciar el ticket. Después, en el menú de la caja, Cerrar sesión, y confirme con 0.</p></div></li>
+        <li><div><b>Mande el resultado</b><p>Escriba a Carlos qué pasó en cada paso, sobre todo en el 5 y el 6. Con eso se decide cómo se explica la autorización en las tiendas.</p></div></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2><span class="n">03</span>Antes de cambiar una tienda</h2>
+      <ol class="pasos">
+        <li><div><b>Pida la lista de personas</b><p>Al gerente de la tienda: nombre completo de cada cajero y quiénes serán supervisores (normalmente el gerente y su segundo). Que haya al menos un supervisor en cada turno: sin él, nadie puede autorizar descuentos.</p></div></li>
+        <li><div><b>Elija la hora</b><p>Fuera del horario de venta, o con la caja cerrada. Ninguna caja de la tienda puede tener una sesión abierta mientras la cambia.</p></div></li>
+        <li><div><b>Cambie todas las cajas de la tienda el mismo día</b><p>Por ejemplo Miraflores tiene tres cajas. Si una cobra el bazar solo y otra no, los clientes verán precios distintos.</p></div></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2><span class="n">04</span>Crear los empleados y su PIN</h2>
+      <p>Su usuario (informatica@demuseo.com) ya tiene permiso para esto.</p>
+      <ol class="pasos">
+        <li><div><b>Revise si la persona ya existe</b><p>En Empleados, busque por nombre. Hoy hay empleados con nombre de tienda («Antigua», «Miraflores»…): no son personas, no los use como cajeros.</p></div></li>
+        <li><div><b>Cree el empleado</b><p>Empleados, Nuevo. Escriba el nombre completo y, en Puesto, «Cajero» o «Supervisor». Guarde.</p></div></li>
+        <li><div><b>Póngale su PIN</b><p>En la ficha del empleado, pestaña Configuración de RH, campo PIN. Use 4 números.</p>
+          <ul>
+            <li>El PIN lo elige la persona o se lo da usted en privado. No lo mande por WhatsApp ni lo deje anotado en la caja.</li>
+            <li>Cada persona tiene su propio PIN. Nadie usa el de otro, y menos el del supervisor.</li>
+          </ul></div></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2><span class="n">05</span>Configurar cada caja</h2>
+      <p>En Punto de venta, Configuración, Ajustes. Arriba elija la caja (por ejemplo «Miraflores TIENDA (CAJA 1)»). Los nombres de las opciones pueden variar un poco; si no encuentra una, tome una captura y avise.</p>
+      <ol class="pasos">
+        <li><div><b>Lista de precios</b><p>En la sección de precios, active las listas de precios. En Lista de precios predeterminada elija «Bazar De Museo», y que sea la única disponible.</p></div></li>
+        <li><div><b>Inicio con empleados</b><p>Active «Iniciar sesión con empleados». En Básicos agregue a los cajeros de esa tienda; en Avanzados, a los supervisores.</p></div></li>
+        <li><div><b>Cambios de precio solo para gerentes</b><p>Active «Restringir las modificaciones de precio a los gerentes». Deje activo «Descuentos por línea»: así el supervisor puede seguir dando descuentos.</p></div></li>
+        <li><div><b>Guarde</b><p>Repita en cada caja de la tienda.</p></div></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2><span class="n">06</span>Comprobar en la tienda</h2>
+      <p>Haga en una caja de la tienda los pasos 1 a 7 de la prueba de la Caja Móvil, con un cajero y un supervisor de esa tienda. Si todo sale igual, explique al equipo en dos minutos:</p>
+      <table class="tabla">
+        <tr><th>Antes</th><th>Ahora</th></tr>
+        <tr><td>Se entra con el usuario de la tienda.</td><td>Cada cajero elige su nombre y escribe su PIN.</td></tr>
+        <tr><td>El descuento del bazar se marca a mano.</td><td>El bazar se cobra solo. No hay que marcar nada.</td></tr>
+        <tr><td>Cualquiera pone descuentos.</td><td>Los descuentos los aplica un supervisor con su PIN.</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2><span class="n">07</span>Preguntas frecuentes</h2>
+      <div class="preg">
+        <details><summary>Un cajero olvidó su PIN.</summary><p>Usted le pone uno nuevo en Empleados, ficha de la persona, Configuración de RH.</p></details>
+        <details><summary>Entró un cajero nuevo.</summary><p>Créelo como empleado con su PIN y agréguelo en Básicos de las cajas de su tienda.</p></details>
+        <details><summary>Un cajero dejó de trabajar con nosotros.</summary><p>Archive su ficha de empleado. Así ya no aparece en las cajas y su historial de ventas se conserva.</p></details>
+        <details><summary>No hay supervisor en el turno y un cliente necesita un descuento.</summary><p>No se aplica. Por eso cada turno debe tener al menos un supervisor. Si pasa seguido, avise a Carlos.</p></details>
+        <details><summary>Un libro de bazar sale a precio completo.</summary><p>Revise en la caja que la lista de precios sea «Bazar De Museo». Si lo es, el libro entró al bazar después de armar la lista: avise a Carlos para actualizarla.</p></details>
+        <details><summary>¿Cambia algo en la web o en el Checador?</summary><p>No. La lista «Bazar De Museo» solo la usan las cajas donde usted la ponga. El Checador sigue igual.</p></details>
+        <details><summary>Antes había cuatro libros con un precio especial.</summary><p>Están en la lista «Public Pricelist», que deja de usarse en las cajas que cambien. Si alguno debe seguir con precio especial, avise a Carlos para pasarlo a la lista del bazar.</p></details>
+      </div>
+    </section>
+
+    <a class="volver" href="./">← Volver a Revisión de cajas</a>
+  </div>
+</main>
+<footer class="wrap"><p class="sync"></p></footer>
+</body>
+</html>
