@@ -150,6 +150,20 @@ dialog::backdrop { background: rgba(5, 10, 30, .55); }
 dialog form { padding: 18px 20px; display: grid; gap: 12px; }
 @media (max-width: 640px) { .hide-m { display: none; } .ln { grid-template-columns: auto minmax(0, 1fr); } .ln .step { grid-column: 2; justify-self: start; } }
 
+/* Por dónde empezar hoy */
+.prio { list-style: none; margin: 0; padding: 0; display: grid; }
+.prio li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.prio li:last-child { border-bottom: 0; }
+.prio li.hecho { opacity: .6; }
+.prio .num { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); font: 700 14px var(--f-body); font-variant-numeric: tabular-nums; }
+.prio li:nth-child(-n+3) .num { background: var(--navy); color: var(--blanco); }
+.prio .t { font-weight: 700; line-height: 1.25; }
+.prio .why { font-size: 13px; color: var(--muted); }
+.prio .why b { color: var(--ink); }
+#costos { display: block; }
+#costos > * + * { margin-top: 10px; }
+@media (max-width: 640px) { .prio li { grid-template-columns: auto minmax(0, 1fr); } .prio li button { grid-column: 2; justify-self: start; } }
+
 /* Arreglos de la auditoría de diseño (noviembre 2026) */
 :root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
 html, body { overflow-x: clip; }
@@ -240,6 +254,7 @@ async function abrir(clave, silencioso) {
     const r = await fetch("resurtido.enc?t=" + Date.now(), { cache: "no-store" });
     if (!r.ok) throw new Error("falta");
     D = await descifrar(await r.json(), clave);
+    await cargarCostos(clave);
     try { localStorage.setItem("surtido-clave", clave); } catch (e) {}   // misma clave que el checador
     limpiarViejos();
     SEL = new Set(lsGet(selKey(), null) || hoyTocan());
@@ -333,6 +348,119 @@ function estad(t) {
   const m = tot(t).u;
   return { u12, q12, ex, pe, rd, ago, m, hoy: rd ? ex / rd : null, despues: rd ? (ex + pe + m) / rd : null };
 }
+// ---------------------------------------------------------------- prioridad de proveedores (por dónde empezar hoy)
+/* Buenas prácticas: primero lo que se vende rápido y está por agotarse (venta perdida), solo si la bodega lo tiene;
+   el margen real (costo puesto en CEDIS, del Excel de política de compras) solo desempata. Toda la cadena junta,
+   para recoger cada proveedor de una sola vez en bodega. Las tiendas ya aprobadas hoy no cuentan. */
+const HORIZONTE = 14;   // días: lo que se acabaría antes del próximo envío
+/* Costo por proveedor (% del precio de venta): 50 % para todos por defecto. Solo la administración lo cambia:
+   se edita aquí, se descarga "costos.enc" (cifrado) y se sube a site/resurtido/ en GitHub. Hasta subirlo, los
+   cambios solo se ven en el equipo donde se hicieron. */
+const COSTO_DEF = 50, BKEY = "resurtido-costos-borrador";
+let COSTOS = { def: COSTO_DEF, p: {} };   // publicado (costos.enc)
+const borrador = () => lsGet(BKEY, null);
+const costos = () => borrador() || COSTOS;
+const costoDe = i => { const c = costos(), v = c.p[D.prov[i]]; return v == null ? c.def : v; };
+const margenDe = i => 1 - costoDe(i) / 100;
+// Desempate suave: con el costo por defecto = 1; nunca cambia el orden más de ±25 %
+const factorMargen = m => Math.min(1.25, Math.max(0.75, 1 + (m - (1 - costos().def / 100)) * 0.8));
+async function cargarCostos(clave) {
+  try { const r = await fetch("costos.enc?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { const c = await descifrar(await r.json(), clave); COSTOS = { def: +c.def || COSTO_DEF, p: c.p || {} }; } } catch (e) {}
+}
+async function cifrarJS(obj, clave) {
+  const enc = new TextEncoder(), s = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12)), it = 310000;
+  const base = await crypto.subtle.importKey("raw", enc.encode(clave), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: s, iterations: it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
+  const gz = new Uint8Array(await new Response(new Blob([enc.encode(JSON.stringify(obj))]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+  const d = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, gz));
+  const b = u => { let x = ""; for (let k = 0; k < u.length; k += 0x8000) x += String.fromCharCode.apply(null, u.subarray(k, k + 0x8000)); return btoa(x); };
+  return { kdf: "PBKDF2-SHA256", it, s: b(s), iv: b(iv), d: b(d) };
+}
+function prioridad() {
+  const apr = aprobados(), R = new Map();
+  for (const t of D.tiendas) {
+    if (apr[t]) continue;
+    for (const x of D.s[t].l) {
+      if (x[7] <= 0) continue;
+      const p = P(x[0]); if (p[5]) continue;   // bazar no
+      const rd = 0.6 * x[2] / 28 + 0.4 * x[3] / 84;
+      const riesgo = Math.min(x[7], Math.max(0, Math.ceil(rd * HORIZONTE) - x[4] - x[5]));
+      const i = p[3], y = R.get(i) || { i, q: 0, u: 0, n: 0, ago: 0, agoA: 0, ts: new Set() };
+      y.q += riesgo * (p[4] || 0); y.u += x[7]; y.n++; y.ts.add(t);
+      if (x[4] <= 0 && x[1] !== "C") { y.ago++; if (x[1] === "A") y.agoA++; }
+      R.set(i, y);
+    }
+  }
+  return [...R.values()].filter(y => y.q > 0 || y.ago > 0).map(y => {
+    y.m = margenDe(y.i);
+    y.score = (y.q + y.agoA * 150 + y.ago * 50) * factorMargen(y.m);
+    return y;
+  }).sort((a, b) => b.score - a.score);
+}
+function motivoProv(y) {
+  const a = y.agoA ? `<b>${y.agoA}</b> de los más vendidos agotados` : y.ago ? `<b>${y.ago}</b> productos que se venden agotados` : "a las tiendas ya casi no les queda";
+  return `${a} · ${y.ts.size} ${y.ts.size === 1 ? "tienda" : "tiendas"} · ${fmt(y.u)} piezas listas en bodega`;
+}
+const trabKey = () => "resurtido-trab-" + D.v;
+let VERMAS = false;
+function tarjetaPrioridad() {
+  const L = prioridad(); if (!L.length) return "";
+  const trab = new Set(lsGet(trabKey(), [])), n = VERMAS ? 20 : 8;
+  return `<section class="card" id="prio">
+    <div class="row between"><div><h2>Por dónde empezar hoy</h2>
+      <p class="muted">Proveedores ordenados por lo que más conviene surtir: lo que se vende y se está acabando en las tiendas, y que sí hay en bodega. Toda la cadena junta, para recoger cada proveedor de una vez.</p></div></div>
+    <ol class="prio">${L.slice(0, n).map((y, k) => `<li class="${trab.has(D.prov[y.i]) ? "hecho" : ""}">
+      <span class="num">${k + 1}</span>
+      <div><div class="t">${esc(D.prov[y.i])}${trab.has(D.prov[y.i]) ? ' <span class="tag green">Ya lo abriste</span>' : ""}${costoDe(y.i) < costos().def ? ' <span class="tag">buen margen</span>' : ""}</div>
+        <div class="why">${motivoProv(y)}</div>
+        <div class="small">Venta que se cuida: Q${fmt(Math.round(y.q))}</div></div>
+      <button type="button" class="ghost sm" data-trab="${y.i}">Trabajar →</button></li>`).join("")}</ol>
+    <div class="row between">${L.length > 8 ? `<button type="button" class="ghost sm" id="prMas">${VERMAS ? "Ver menos" : `Ver más (${Math.min(20, L.length)})`}</button>` : "<span></span>"}
+      <span class="small">${borrador() ? "Con costos sin publicar (solo en este equipo)." : ""}</span></div>
+  </section>`;
+}
+function trabajarProv(i) {
+  const t = lsGet(trabKey(), []); if (!t.includes(D.prov[i])) { t.push(D.prov[i]); lsSet(trabKey(), t); }
+  const y = prioridad().find(z => z.i === i);
+  if (y) { SEL = new Set([...y.ts]); guardarSel(); }
+  cambiarPlan({ modo: "pers", provs: [i], cats: [], nombre: "" });
+  setTimeout(() => { const s = document.querySelector(".stores"); if (s) s.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30);
+}
+
+// ---------------------------------------------------------------- editor de costos (solo administración)
+let CQ = "";
+function seccionCostos() {
+  const B = borrador(), c = costos();
+  return `<details class="card" id="costos" ${B ? "open" : ""}><summary>Costos por proveedor (administración)</summary>
+    <p class="muted" style="margin-top:8px">Costo puesto en CEDIS como % del precio de venta. Todos empiezan en ${c.def} %. Solo desempata la lista "Por dónde empezar hoy".</p>
+    ${B ? `<p class="notice">Tienes cambios <b>sin publicar</b>: solo se ven en este equipo. Para que cuenten para todos, descarga <b>costos.enc</b> y súbelo a <span class="mono">site/resurtido/</span> en GitHub.</p>` : ""}
+    <div class="row"><label class="small" style="font-weight:700">Costo por defecto <input type="number" id="cDef" min="1" max="99" value="${c.def}" style="width:80px"> %</label>
+      <button type="button" class="ghost sm" id="cBajar" ${B ? "" : "disabled"}>Descargar costos.enc</button>
+      ${B ? `<button type="button" class="ghost sm" id="cDesc">Descartar cambios</button>` : ""}</div>
+    <input type="search" id="cQ" placeholder="Buscar proveedor" value="${esc(CQ)}">
+    <div class="tbl"><table><thead><tr><th>Proveedor</th><th class="n">Costo %</th></tr></thead><tbody>
+    ${D.pr.map(r => r[0]).filter(i => !CQ || norm(D.prov[i]).includes(norm(CQ))).slice(0, 300).map(i => `<tr><td><b>${esc(D.prov[i])}</b></td>
+      <td class="n"><input type="number" min="1" max="99" data-cp="${i}" value="${c.p[D.prov[i]] ?? ""}" placeholder="${c.def}" style="width:80px;text-align:right"></td></tr>`).join("")}
+    </tbody></table></div></details>`;
+}
+function eventosCostos(repintar) {
+  const editar = f => { const c = JSON.parse(JSON.stringify(costos())); f(c); lsSet(BKEY, c); repintar(); };
+  $("cDef").onchange = e => editar(c => { c.def = Math.min(99, Math.max(1, Math.round(+e.target.value || COSTO_DEF))); });
+  app.querySelectorAll("[data-cp]").forEach(inp => inp.onchange = () => editar(c => { const n = D.prov[+inp.dataset.cp], v = Math.round(+inp.value);
+    if (!inp.value || !(v > 0 && v < 100) || v === c.def) delete c.p[n]; else c.p[n] = v; }));
+  let tq; $("cQ").oninput = e => { clearTimeout(tq); tq = setTimeout(() => { CQ = e.target.value; repintar(); const f = $("cQ"); f.focus(); }, 250); };
+  if ($("cDesc")) $("cDesc").onclick = () => { lsDel(BKEY); repintar(); };
+  $("cBajar").onclick = async () => {
+    let clave = ""; try { clave = localStorage.getItem("surtido-clave") || ""; try { clave = JSON.parse(clave); } catch (e) {} } catch (e) {}
+    const sobre = await cifrarJS(costos(), String(clave));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(sobre)], { type: "application/json" })); a.download = "costos.enc"; a.click();
+    dialogo(`<h2>Sube el archivo a GitHub</h2><p class="muted">Se descargó <b>costos.enc</b>. Súbelo a <span class="mono">site/resurtido/</span> en el repo. Cuando esté publicado, toca <b>Ya lo subí</b> y los cambios contarán para todos.</p>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="cOk">Todavía no</button><button type="submit">Ya lo subí</button></div>`);
+    $("cOk").onclick = () => $("dlg").close();
+    $("dlgForm").onsubmit = ev => { ev.preventDefault(); lsDel(BKEY); $("dlg").close(); location.reload(); };
+  };
+}
+
 const diasTxt = d => d == null ? "—" : d > 365 ? "+1 año" : Math.round(d) + " días";
 function fechaLocal(v) { const d = new Date(v.replace(" ", "T") + "Z"); return isNaN(d) ? v : d.toLocaleString("es-GT", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }); }
 
@@ -365,6 +493,7 @@ function pintarInicio() {
       <button type="button" class="ghost sm" id="sNinguna">Quitar todas</button>
     </div>
   </section>
+  ${tarjetaPrioridad()}
   <section class="card">
     <div class="row between"><h2>Plan de resurtido</h2>
       <div class="row">${planesGuardados().length ? `<select id="pGuard" aria-label="Planes guardados"><option value="">Planes guardados…</option>${planesGuardados().map((g, i) => `<option value="${i}">${esc(g.nombre)}</option>`).join("")}</select>` : ""}
@@ -412,6 +541,7 @@ function pintarInicio() {
       <p><b>Se vende</b> = el siguiente 15%. Se le deja para ${D.cfg.semanas_B} semanas. <b>Ocasional</b> = se repone lo que vendió en el último mes.</p>
       <p>A eso se le resta lo que la tienda ya tiene y lo que ya va en camino. Si la bodega no alcanza para todas, se reparte primero a donde más se vende y menos tienen.</p>
       <p>La venta reciente pesa más: últimas 4 semanas 50%, las 4 anteriores 30%, las 4 anteriores 20%.</p>
+      <p><b>Por dónde empezar hoy:</b> ordena los proveedores por lo que se vende y se acabaría en los próximos ${HORIZONTE} días, contando solo lo que sí hay en bodega; los más vendidos agotados pesan más. Las tiendas ya aprobadas hoy dejan de contar. El costo de cada proveedor (50 % si no se ha cambiado) solo desempata. <b>Trabajar</b> abre el plan personalizado de ese proveedor con las tiendas que lo necesitan.</p>
       <p><b>Plan personalizado:</b> para cada producto del proveedor o categoría elegidos se calcula su venta por día en cada tienda y se le manda lo necesario para los días que pidas, menos lo que tiene y lo que va en camino.</p>
     </div></details></section>`;
   app.querySelectorAll("[data-t]").forEach(c => {
@@ -424,6 +554,8 @@ function pintarInicio() {
   $("sTodas").onclick = () => { pend.forEach(t => SEL.add(t)); guardarSel(); pintarInicio(); };
   $("sNinguna").onclick = () => { SEL.clear(); guardarSel(); pintarInicio(); };
   if ($("sHoy")) $("sHoy").onclick = () => { SEL = new Set(toca.filter(t => !apr[t])); guardarSel(); pintarInicio(); };
+  app.querySelectorAll("[data-trab]").forEach(b => b.onclick = () => trabajarProv(+b.dataset.trab));
+  if ($("prMas")) $("prMas").onclick = () => { VERMAS = !VERMAS; pintarInicio(); };
   app.querySelectorAll("[data-modo]").forEach(b => b.onclick = () => cambiarPlan({ modo: b.dataset.modo }));
   app.querySelectorAll("[data-dias]").forEach(b => b.onclick = () => cambiarPlan({ dias: +b.dataset.dias }));
   if ($("pDias")) $("pDias").onchange = e => cambiarPlan({ dias: Math.min(180, Math.max(1, Math.round(+e.target.value || 15))) });
@@ -537,11 +669,13 @@ function pintarAnalisis() {
       <div class="tbl"><table><thead><tr><th>Producto</th><th class="n">Tiene</th><th class="hide-m">Se vende en</th></tr></thead><tbody>
       ${s.d.slice(0, 500).map(x => `<tr>${prodTd(x[0])}<td class="n">${x[1]}</td><td class="small hide-m">${esc(D.tiendas.filter(t => t !== T && D.s[t].l.some(y => y[0] === x[0])).join(", ") || "—")}</td></tr>`).join("") || '<tr><td colspan="3" class="muted">Nada.</td></tr>'}</tbody></table></div>`;
   } else if (ATAB === "prov") {
-    cuerpo = `<p class="muted">Toda la cadena, últimas 12 semanas, ordenado por venta. <b>% vendido</b> = vendido ÷ (vendido + lo que hay en tiendas). <b>Le alcanza</b> = semanas que dura lo que hay en tiendas al ritmo actual: más de 12 es exceso, menos de 3 hace falta mandar.</p>
-      <div class="tbl"><table><thead><tr><th>Proveedor / editorial</th><th class="n">Unidades</th><th class="n">Venta</th><th class="n hide-m">En tiendas</th><th class="n hide-m">En bodega</th><th class="n">% vendido</th><th class="n">Le alcanza</th></tr></thead><tbody>
-      ${D.pr.slice(0, 300).map(([i, u, q, ext, exb]) => { const st = u + ext ? Math.round(u / (u + ext) * 100) : 0, c = u ? ext / (u / 12) : null;
-        return `<tr><td><b>${esc(D.prov[i])}</b></td><td class="n">${fmt(u)}</td><td class="n">Q${fmt(q)}</td><td class="n hide-m">${fmt(ext)}</td><td class="n hide-m">${fmt(exb)}</td><td class="n">${st}%</td>
+    const PRI = new Map(prioridad().map((y, k) => [y.i, k + 1]));
+    cuerpo = `<p class="muted">Toda la cadena, últimas 12 semanas, ordenado por venta. <b>Prioridad</b> = lugar en "Por dónde empezar hoy". <b>% vendido</b> = vendido ÷ (vendido + lo que hay en tiendas). <b>Le alcanza</b> = semanas que dura lo que hay en tiendas al ritmo actual: más de 12 es exceso, menos de 3 hace falta mandar.</p>
+      <div class="tbl"><table><thead><tr><th class="n">Prioridad</th><th>Proveedor / editorial</th><th class="n">Unidades</th><th class="n">Venta</th><th class="n hide-m">En tiendas</th><th class="n hide-m">En bodega</th><th class="n">% vendido</th><th class="n">Le alcanza</th></tr></thead><tbody>
+      ${D.pr.slice(0, 300).map(([i, u, q, ext, exb]) => { const pos = PRI.get(i), st = u + ext ? Math.round(u / (u + ext) * 100) : 0, c = u ? ext / (u / 12) : null;
+        return `<tr><td class="n">${pos ? `<span class="tag ${pos <= 8 ? "green" : ""}">${pos}</span>` : "—"}</td><td><b>${esc(D.prov[i])}</b></td><td class="n">${fmt(u)}</td><td class="n">Q${fmt(q)}</td><td class="n hide-m">${fmt(ext)}</td><td class="n hide-m">${fmt(exb)}</td><td class="n">${st}%</td>
           <td class="n">${c == null ? "—" : `<span class="tag ${c > 12 ? "amber" : c < 3 ? "red" : "green"}">${c > 99 ? "+99" : c.toFixed(1)} sem.</span>`}</td></tr>`; }).join("")}</tbody></table></div>`;
+    cuerpo += seccionCostos();
   } else {
     cuerpo = `<div class="tbl"><table><thead><tr><th>Tienda</th><th class="n">Unidades sugeridas</th><th class="n">Agotados urgentes</th><th class="n">Más vendidos agotados</th><th class="n hide-m">No hay en bodega</th><th class="n hide-m">Para devolver</th></tr></thead><tbody>
       ${D.tiendas.map(t => { const s2 = D.s[t]; return `<tr><td><b>${esc(t)}</b> <span class="small">${esc(D.nombres[t] || "")}</span></td><td class="n">${fmt(tot(t).u)}</td><td class="n">${urgentes(t)}</td><td class="n">${s2.agA} de ${s2.nA}</td><td class="n hide-m">${s2.l.filter(x => x[9] === 2).length}</td><td class="n hide-m">${fmt(s2.d.reduce((a, x) => a + x[1], 0))}</td></tr>`; }).join("")}</tbody></table></div>`;
@@ -551,6 +685,7 @@ function pintarAnalisis() {
   app.querySelectorAll("[data-at]").forEach(b => b.onclick = () => { ATAB = b.dataset.at; pintarAnalisis(); });
   if ($("aT")) $("aT").onchange = e => { T = e.target.value; pintarAnalisis(); };
   $("aXls").onclick = () => excel(D.tiendas, true);
+  if (ATAB === "prov") eventosCostos(() => { const y = window.scrollY; pintarAnalisis(); window.scrollTo({ top: y }); });
 }
 
 // ---------------------------------------------------------------- Excel
@@ -562,7 +697,8 @@ function excel(tiendas, todo) {
   for (const t of tiendas) for (const l of lineas(t)) if (l.on && l.q > 0) filas.push(Object.assign({ "Tienda": t }, fp(l.pid), { "Tipo": l.tipo === "urg" ? "Urgente" : l.tipo === "rep" ? "Reponer" : "Probar", "Mandar": l.q, "Cajas": caja(l.pid) > 1 ? cajasTxt(l.q, l.pid) : "" }));
   add("Pedido", filas);
   if (todo) {
-    add("Proveedores", D.pr.map(([i, u, q, ext, exb, np]) => ({ "Proveedor": D.prov[i], "Unidades 12 sem.": u, "Venta Q": q, "En tiendas": ext, "En bodega": exb, "% vendido": u + ext ? Math.round(u / (u + ext) * 100) : 0, "Productos vendidos": np })));
+    const PRI = new Map(prioridad().map((y, k) => [y.i, [k + 1, y]]));
+    add("Proveedores", D.pr.map(([i, u, q, ext, exb, np]) => ({ "Prioridad hoy": PRI.has(i) ? PRI.get(i)[0] : "", "Proveedor": D.prov[i], "Agotados que se venden": PRI.has(i) ? PRI.get(i)[1].ago : "", "Venta que se cuida Q": PRI.has(i) ? Math.round(PRI.get(i)[1].q) : "", "Unidades 12 sem.": u, "Venta Q": q, "En tiendas": ext, "En bodega": exb, "% vendido": u + ext ? Math.round(u / (u + ext) * 100) : 0, "Productos vendidos": np })));
     const fal = []; for (const t of D.tiendas) for (const x of lineasBase(t)) if (x[9] === 2) fal.push(Object.assign({ "Tienda": t }, fp(x[0]), { "Clase": x[1] ? CLASE[x[1]][0] : "", "Vendió 12 sem.": x[3], "Tiene": x[4], "Necesita": x[8] }));
     add("No hay en bodega", fal);
     const dev = []; for (const t of D.tiendas) for (const x of D.s[t].d) dev.push(Object.assign({ "Tienda": t }, fp(x[0]), { "Tiene": x[1] }));
