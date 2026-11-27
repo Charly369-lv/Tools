@@ -55,6 +55,19 @@ jobs:
           pip install --quiet cryptography
           python sync/existencias.py --out site
 
+      # Negativos por tienda y traslados que llegan a cubrirlos (dashboard de Diferencias). Solo lee Odoo.
+      - name: Negativos por tienda
+        continue-on-error: true
+        env:
+          ODOO_URL: ${{ secrets.ODOO_URL }}
+          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_USER: ${{ secrets.ODOO_USER }}
+          ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+          CLAVE_EXISTENCIAS: ${{ secrets.CLAVE_EXISTENCIAS }}
+        run: |
+          pip install --quiet cryptography
+          python sync/negativos.py --out site
+
       # Resurtido automático BOD → tiendas (cifrado). Si falla, lo demás se publica igual.
       - name: Resurtido de tiendas
         continue-on-error: true

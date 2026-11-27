@@ -203,13 +203,14 @@ function pintar() {
     </div>
   </section>
   <div class="tabs" role="tablist">
-    ${[["pend", "Por resolver (" + p.length + ")"], ["res", "Resueltos"], ["bit", "Bitácora y score"]].map(([k, t]) => `<button type="button" role="tab" data-v="${k}" aria-selected="${VISTA === k}">${t}</button>`).join("")}
+    ${[["pend", "Por resolver (" + p.length + ")"], ["res", "Resueltos"], ["neg", "Negativos" + (NEG && NEG.alertas.some(x => x.pend) ? " ⚠" : "")], ["bit", "Bitácora y score"]].map(([k, t]) => `<button type="button" role="tab" data-v="${k}" aria-selected="${VISTA === k}">${t}</button>`).join("")}
   </div>
   <section class="card" id="vista"></section>`;
   $("bRec").onclick = inicio;
   $("bXls").onclick = excel;
   app.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { VISTA = b.dataset.v; lsSet("diferencias-vista", VISTA); pintar(); });
   if (VISTA === "bit") return pintarBitacora();
+  if (VISTA === "neg") return pintarNegativos();
   const v = $("vista");
   v.innerHTML = `<div class="row">
       <select id="fT"><option value="">Todas las tiendas</option>${tiendas.map(([c, n]) => `<option value="${esc(c)}" ${FIL.tienda === c ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>
@@ -336,6 +337,92 @@ function dibujarBit() {
 }
 
 // ---------------------------------------------------------------- Excel
+// ---------------------------------------------------------------- negativos por tienda (archivo cifrado de la sincronización nocturna)
+let NEG = null, FN = { tienda: "", texto: "" };
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const dia = s => s ? s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4) : "—";
+const diasDesde = s => s ? Math.max(0, Math.round((Date.now() - new Date(s + "T00:00:00")) / 864e5)) : 0;
+async function descifrarNeg(sobre, clave) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(clave), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(sobre.s), iterations: sobre.it, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  let plano;
+  try { plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(sobre.iv) }, key, b64(sobre.d)); } catch (e) { throw new Error("clave"); }
+  return JSON.parse(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+}
+async function cargarNeg(clave) {
+  const r = await fetch("negativos.enc?t=" + Date.now(), { cache: "no-store" });
+  if (!r.ok) throw new Error("falta");
+  NEG = await descifrarNeg(await r.json(), clave);
+  lsSet("surtido-clave", clave);
+}
+async function pintarNegativos() {
+  const v = $("vista");
+  if (!NEG) {
+    const c = lsGet("surtido-clave", null);
+    v.innerHTML = '<p class="muted">Cargando negativos…</p>';
+    try { if (!c) throw new Error("sinclave"); await cargarNeg(String(c)); return pintar(); }
+    catch (e) {
+      if (e.message === "falta") { v.innerHTML = '<p class="notice">Todavía no se han calculado los negativos. Se generan en la sincronización de cada noche.</p>'; return; }
+      v.innerHTML = `<form id="fNeg" class="row"><p class="muted" style="flex-basis:100%">Escribe la clave de existencias (la misma del Checador y Resurtido).</p>
+        <input id="cNeg" type="password" placeholder="Clave" style="flex:1;min-width:200px" autocomplete="off"><button type="submit">Abrir</button>
+        ${e.message === "clave" ? '<p class="notice bad" style="flex-basis:100%">Clave incorrecta.</p>' : ""}</form>`;
+      $("fNeg").onsubmit = async ev => { ev.preventDefault(); try { await cargarNeg($("cNeg").value.trim()); pintar(); } catch (er) { lsDel("surtido-clave"); NEG = null; pintarNegativos(); } };
+      return;
+    }
+  }
+  const al = NEG.alertas, pend = al.filter(x => x.pend), rec = al.filter(x => !x.pend);
+  const tiendas = [...new Map(NEG.negativos.map(n => [n.t, n.tn])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  const por = tiendas.map(([t, tn]) => { const l = NEG.negativos.filter(n => n.t === t); return { t, tn, n: l.length, u: l.reduce((s, x) => s - x.q, 0), val: l.reduce((s, x) => s - x.q * x.costo, 0), viejos: l.filter(x => diasDesde(x.desde) > 7).length }; }).sort((a, b) => b.n - a.n);
+  const filaAl = x => `<tr><td>${esc(x.tn)}</td><td>${esc(x.p)}<div class="small mono">${esc(x.c)}</div></td><td class="n" style="color:var(--red)">${x.neg}</td>
+    <td class="mono small">${esc(x.traslado)}<br>${dia(x.fecha)}</td><td>${esc(x.on)}</td><td class="n">${x.cant}</td><td class="small">${esc(x.pidio)}</td></tr>`;
+  const cab = '<thead><tr><th>Tienda destino</th><th>Producto</th><th class="n">Negativo</th><th>Traslado</th><th>Sale de</th><th class="n">Cant.</th><th>Lo creó</th></tr></thead>';
+  v.innerHTML = `
+    <p class="small">Datos de Odoo al ${esc(NEG.generado)}. Un negativo significa que la tienda vendió algo que el sistema no tenía. Se corrige con conteo físico y ajuste de inventario, nunca con un traslado.</p>
+    <div class="kpis">
+      <div class="kpi ${pend.length ? "alerta" : ""}"><span>Traslados por detener</span><b>${pend.length}</b></div>
+      <div class="kpi ${rec.length ? "alerta" : ""}"><span>Recibidos que taparon un negativo (30 días)</span><b>${rec.length}</b></div>
+      <div class="kpi"><span>Productos en negativo</span><b>${NEG.negativos.length}</b><div class="small">${Q(por.reduce((s, x) => s + x.val, 0))} a costo</div></div>
+      <div class="kpi"><span>Con más de 7 días</span><b>${por.reduce((s, x) => s + x.viejos, 0)}</b></div>
+    </div>
+    <h2>Traslados pendientes hacia una tienda con ese producto en negativo</h2>
+    ${pend.length ? `<p class="notice bad">No validar estos traslados hasta que la tienda explique el negativo (conteo físico del producto).</p><div class="tbl"><table>${cab}<tbody>${pend.map(filaAl).join("")}</tbody></table></div>` : '<p class="notice good">Ningún traslado pendiente va a cubrir un negativo. ✓</p>'}
+    <h2>Recibidos en los últimos 30 días que llegaron a una tienda con negativo</h2>
+    ${rec.length ? `<p class="small">Revisar en la tienda que el producto esté físicamente. Si la tienda pidió el traslado, es la señal de riesgo.</p><div class="tbl"><table>${cab}<tbody>${rec.map(filaAl).join("")}</tbody></table></div>` : '<p class="muted">Ninguno.</p>'}
+    <h2>Negativos por tienda</h2>
+    <div class="tbl"><table><thead><tr><th>Tienda</th><th class="n">Productos</th><th class="n">Unidades</th><th class="n">Valor a costo</th><th class="n">Más de 7 días</th></tr></thead><tbody>
+      ${por.map(x => `<tr class="clic" data-t="${esc(x.t)}"><td>${esc(x.tn)}</td><td class="n">${x.n}</td><td class="n">${x.u}</td><td class="n">${Q(x.val)}</td><td class="n">${x.viejos}</td></tr>`).join("") || '<tr><td colspan="5" class="muted">Sin negativos. ✓</td></tr>'}</tbody></table></div>
+    <div class="row"><select id="nT"><option value="">Todas las tiendas</option>${tiendas.map(([c, n]) => `<option value="${esc(c)}" ${FN.tienda === c ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>
+      <input id="nX" placeholder="Buscar producto o código" value="${esc(FN.texto)}" style="flex:1;min-width:200px"><button type="button" class="ghost sm" id="nXls">Excel de negativos</button></div>
+    <div id="nTabla"></div>`;
+  v.querySelectorAll("tr[data-t]").forEach(tr => tr.onclick = () => { FN.tienda = tr.dataset.t; $("nT").value = FN.tienda; tablaNeg(); });
+  $("nT").onchange = e => { FN.tienda = e.target.value; tablaNeg(); };
+  $("nX").oninput = e => { FN.texto = e.target.value; tablaNeg(); };
+  $("nXls").onclick = excelNeg;
+  tablaNeg();
+}
+function negFiltrados() {
+  const t = FN.texto.toLowerCase();
+  return NEG.negativos.filter(n => (!FN.tienda || n.t === FN.tienda) && (!t || (n.p + " " + n.c).toLowerCase().includes(t)))
+    .sort((a, b) => diasDesde(b.desde) - diasDesde(a.desde) || a.q - b.q);
+}
+function tablaNeg() {
+  const l = negFiltrados().slice(0, 500);
+  $("nTabla").innerHTML = l.length ? `<div class="tbl"><table><thead><tr><th>Tienda</th><th>Producto</th><th class="n">Existencia</th><th class="n">Valor</th><th>Última venta</th><th class="n">Días en negativo</th></tr></thead><tbody>
+    ${l.map(n => { const d = diasDesde(n.desde); return `<tr class="${d > 7 ? "tarde" : ""}"><td>${esc(n.tn)}</td><td>${esc(n.p)}<div class="small mono">${esc(n.c)}</div></td>
+      <td class="n" style="color:var(--red)">${n.q}</td><td class="n">${Q(-n.q * n.costo)}</td><td>${dia(n.venta)}</td><td class="n">${d}</td></tr>`; }).join("")}</tbody></table></div>
+    ${negFiltrados().length > 500 ? '<p class="small">Se muestran 500; el Excel trae todos.</p>' : ""}` : '<p class="notice good">Sin negativos con estos filtros. ✓</p>';
+}
+async function excelNeg() {
+  await window.excelListo;
+  if (!window.XLSX) { alert("No se pudo cargar el generador de Excel. Revisa el internet."); return; }
+  const wb = XLSX.utils.book_new();
+  const n = XLSX.utils.json_to_sheet(negFiltrados().map(x => ({ Tienda: x.tn, Código: x.c, Producto: x.p, Categoría: x.cat, Existencia: x.q, "Valor a costo": Math.round(-x.q * x.costo * 100) / 100, "Última venta": dia(x.venta), "En negativo desde": dia(x.desde), "Días en negativo": diasDesde(x.desde), "Explicación de la tienda": "" })));
+  n["!cols"] = [24, 16, 44, 30, 10, 12, 12, 16, 14, 40].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, n, "Negativos");
+  const a = XLSX.utils.json_to_sheet(NEG.alertas.map(x => ({ Estado: x.pend ? "Pendiente — detener" : "Recibido", "Tienda destino": x.tn, Código: x.c, Producto: x.p, Negativo: x.neg, Traslado: x.traslado, Fecha: dia(x.fecha), "Sale de": x.on, Cantidad: x.cant, "Lo creó": x.pidio })));
+  a["!cols"] = [20, 24, 16, 44, 10, 20, 12, 22, 10, 22].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, a, "Traslados a negativos");
+  XLSX.writeFile(wb, "negativos-" + new Date().toISOString().slice(0, 10) + ".xlsx");
+}
+
 async function excel() {
   await window.excelListo;
   if (!window.XLSX) { alert("No se pudo cargar el generador de Excel. Revisa el internet."); return; }
