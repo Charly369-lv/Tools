@@ -20,6 +20,10 @@
 .consejos { margin: var(--space-md) 0 0; padding-left: 1.2em; max-width: 65ch; }
 .consejos li + li { margin-top: var(--space-2xs); }
 .mas a { color: var(--color-accent); font-weight: 600; }
+.area { padding-top: var(--space-xl); }
+.area h2 { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 400; }
+.area-lead { margin: var(--space-2xs) 0 var(--space-sm); color: var(--color-ink-2); max-width: 65ch; }
+.aviso { margin: 0 0 var(--space-sm); padding: var(--space-sm) var(--space-md); border-left: 3px solid var(--color-accent); background: var(--color-paper-2); max-width: 65ch; }
 @media (max-width: 40rem) { .prio th:nth-child(3), .prio td:nth-child(3) { display: none; } }
 </style>
 </head>
@@ -31,16 +35,31 @@
 <main class="wrap">
   <div class="cab">
     <h1><span class="guide">Soporte</span></h1>
-    <p>¿Algo de computadoras, caja, impresoras, internet u Odoo no funciona? Repórtelo aquí. Entre con su usuario de Odoo.</p>
+    <p>Reporte aquí lo que no funciona en su tienda. Entre con su usuario de Odoo.</p>
   </div>
+  <section class="area" aria-labelledby="t-info">
+  <h2 id="t-info">Informática</h2>
+  <p class="area-lead">Computadoras, caja, impresoras, lectores, internet, Odoo, correo, cámaras, alarma y teléfono.</p>
   <ol class="rows">
     <li><a class="row" id="ir-formulario" href="https://demuseo.odoo.com/helpdesk/informatica-1"><span class="n">01</span><b>Levantar un ticket</b><span class="d">Cuente qué pasa y desde cuándo. Informática lo recibe al momento y le responde por correo. <span class="ext">Abre Odoo</span></span></a></li>
     <li><a class="row" id="ir-mis-tickets" href="https://demuseo.odoo.com/my/tickets"><span class="n">02</span><b>Mis tickets</b><span class="d">Vea en qué va cada ticket de su tienda y conteste lo que le pregunten. <span class="ext">Abre Odoo</span></span></a></li>
     <li><a class="row" href="manual.html"><span class="n">03</span><b>Manual</b><span class="d">Paso a paso: cómo levantar un ticket, qué tan rápido responden, qué pasa después y preguntas frecuentes.</span></a></li>
   </ol>
+  </section>
+
+  <section class="area" aria-labelledby="t-mant">
+  <h2 id="t-mant">Mantenimiento de tiendas</h2>
+  <p class="area-lead">Daños del local: electricidad, aire acondicionado, agua y baños, puertas y vidrios, estanterías, paredes y pisos, rótulos, extintores, limpieza y plagas.</p>
+  <p class="aviso"><b>Si hay riesgo para personas</b> (cable expuesto, chispas, fuga de agua, vidrio roto), avise de inmediato a su gerente y luego levante el ticket.</p>
+  <ol class="rows">
+    <li><a class="row" id="ir-mantenimiento" href="https://demuseo.odoo.com/helpdesk/mantenimiento-2"><span class="n">01</span><b>Reportar un daño</b><span class="d">Diga qué se dañó, dónde y si hay riesgo. Mande una foto: ahorra visitas. <span class="ext">Abre Odoo</span></span></a></li>
+    <li><a class="row" href="https://demuseo.odoo.com/my/tickets"><span class="n">02</span><b>Mis tickets</b><span class="d">Los de informática y los de mantenimiento, en la misma lista. <span class="ext">Abre Odoo</span></span></a></li>
+    <li><a class="row" href="manual-mantenimiento.html"><span class="n">03</span><b>Manual de mantenimiento</b><span class="d">Qué reportar, qué tan rápido responden y qué pasa con las reparaciones que tienen costo.</span></a></li>
+  </ol>
+  </section>
 
   <section class="mas" aria-labelledby="t-urgencia">
-    <h2 id="t-urgencia">¿Qué tan urgente es?</h2>
+    <h2 id="t-urgencia">Informática: ¿qué tan urgente es?</h2>
     <p>En el formulario elija lo que le pasa. Informática confirma la prioridad al abrir el ticket.</p>
     <table class="prio">
       <thead><tr><th scope="col">Si…</th><th scope="col">Le responden en</th><th scope="col">Ejemplo</th></tr></thead>
@@ -68,8 +87,10 @@
 // Direcciones de la Mesa de ayuda en Odoo. Si cambia el formulario, cambie solo esta línea.
 const FORMULARIO = "https://demuseo.odoo.com/helpdesk/informatica-1";
 const MIS_TICKETS = "https://demuseo.odoo.com/my/tickets";
+const MANTENIMIENTO = "https://demuseo.odoo.com/helpdesk/mantenimiento-2";
 document.getElementById("ir-formulario").href = FORMULARIO;
 document.getElementById("ir-mis-tickets").href = MIS_TICKETS;
+document.getElementById("ir-mantenimiento").href = MANTENIMIENTO;
 </script>
 </body>
 </html>

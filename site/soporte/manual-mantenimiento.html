@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Manual de mantenimiento · Herramientas De Museo</title>
+<meta name="description" content="Cómo reportar daños del local y qué pasa con las reparaciones.">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icono-180.png">
+<meta name="theme-color" content="#0b1748">
+<link rel="stylesheet" href="../fuentes/fuentes.css">
+<link rel="stylesheet" href="../estilo/indices.css">
+<style>
+.man { max-width: 46rem; }
+.man section { padding-block: var(--space-xl) 0; }
+.man h2 { font-size: var(--text-2xl); font-weight: 400; font-variation-settings: "opsz" 96; max-width: none; }
+.man h2 .n { margin-right: var(--space-sm); vertical-align: 0.35em; }
+.man > section > p { margin-top: var(--space-sm); color: var(--color-ink-2); }
+.pasos { list-style: none; counter-reset: p; margin: var(--space-md) 0 0; padding: 0; border-top: var(--rule-hair) solid var(--color-rule-2); }
+.pasos > li { counter-increment: p; display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); gap: var(--space-md); padding-block: var(--space-md); border-bottom: var(--rule-hair) solid var(--color-rule); }
+.pasos > li::before { content: counter(p); font-family: var(--font-num); font-weight: 700; font-size: var(--text-xl); line-height: 1.2; color: var(--color-accent); }
+.pasos > li > div > b { display: block; }
+.pasos p, .pasos ul { margin: var(--space-2xs) 0 0; color: var(--color-ink-2); }
+.pasos ul { padding-left: 1.1em; }
+.pasos li li + li { margin-top: 2px; }
+.nota { margin-top: var(--space-md); padding: var(--space-md); background: var(--color-paper-2); border-left: 3px solid var(--color-accent); }
+.preg { margin: var(--space-md) 0 0; border-top: var(--rule-hair) solid var(--color-rule-2); }
+.preg details { border-bottom: var(--rule-hair) solid var(--color-rule); }
+.preg summary { cursor: pointer; padding-block: var(--space-md); font-weight: 600; min-height: 44px; }
+.preg details p { padding-bottom: var(--space-md); color: var(--color-ink-2); }
+.man a { color: var(--color-accent); font-weight: 600; }
+.volver { display: inline-flex; margin-top: var(--space-xl); }
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap bar-in">
+  <a class="bar-logo" href="../"><img src="../checador/logo.png" alt="De Museo, volver a Herramientas" width="800" height="143"></a>
+  <a class="bar-back" href="./">Volver a Soporte</a>
+</div></header>
+<main class="wrap">
+  <div class="cab">
+    <h1><span class="guide">Mantenimiento</span></h1>
+    <p>Qué hacer cuando algo del local se daña: luz, aire, agua, puertas, estanterías, paredes, rótulos o extintores.</p>
+  </div>
+  <div class="man">
+    <section>
+      <h2><span class="n">01</span>Si hay riesgo, primero avisa</h2>
+      <p class="nota"><b>Cable expuesto, chispas, olor a quemado, fuga de agua, inundación o vidrio roto:</b> aleja a las personas, avisa de inmediato a tu gerente y después levanta el ticket. El ticket no reemplaza la llamada.</p>
+    </section>
+    <section>
+      <h2><span class="n">02</span>Reportar un daño</h2>
+      <ol class="pasos">
+        <li><div><b>Entra a Soporte</b><p>En Herramientas toca <a href="./">Soporte</a> y, en Mantenimiento de tiendas, «Reportar un daño».</p></div></li>
+        <li><div><b>Entra con tu usuario de Odoo</b><p>El mismo de la caja o del inventario, si te lo pide.</p></div></li>
+        <li><div><b>Llena el formulario</b>
+          <ul>
+            <li><b>Tienda y parte del local:</b> piso de venta, bodega, baño, oficina, cafetería o fachada.</li>
+            <li><b>¿Daño o solicitud?</b> Daño es algo que se rompió. Solicitud es algo nuevo o una mejora.</li>
+            <li><b>¿Sobre qué es?</b> Electricidad, aire, agua, puertas, estanterías…</li>
+            <li><b>¿Hay riesgo para personas?</b> y <b>¿Afecta la venta?</b> Definen qué tan rápido se atiende.</li>
+            <li><b>Qué pasa:</b> qué se dañó, dónde exactamente y desde cuándo.</li>
+            <li><b>Foto:</b> muy recomendada. Muchas veces evita una visita solo para ver el daño.</li>
+          </ul></div></li>
+        <li><div><b>Toca «Enviar reporte»</b><p>Te llega al correo de la tienda una <b>copia de tu ticket</b> con el número y todo lo que escribiste.</p></div></li>
+      </ol>
+      <p class="nota">Cámaras, alarma y teléfono no van aquí: se reportan en Informática.</p>
+    </section>
+    <section>
+      <h2><span class="n">03</span>¿Qué tan rápido lo atienden?</h2>
+      <table style="width:100%;margin-top:var(--space-md);border-collapse:collapse">
+        <thead><tr><th style="text-align:left;padding:8px 12px 8px 0;border-bottom:1px solid var(--color-rule-2);font-size:var(--text-sm);color:var(--color-muted)">Si…</th><th style="text-align:left;padding:8px 12px 8px 0;border-bottom:1px solid var(--color-rule-2);font-size:var(--text-sm);color:var(--color-muted)">Primera respuesta</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:10px 12px 10px 0;border-bottom:1px solid var(--color-rule)">Hay riesgo para personas o para el local</td><td style="font-family:var(--font-num);font-weight:700;border-bottom:1px solid var(--color-rule)">2 horas</td></tr>
+          <tr><td style="padding:10px 12px 10px 0;border-bottom:1px solid var(--color-rule)">Afecta la venta o la atención</td><td style="font-family:var(--font-num);font-weight:700;border-bottom:1px solid var(--color-rule)">Mismo día</td></tr>
+          <tr><td style="padding:10px 12px 10px 0;border-bottom:1px solid var(--color-rule)">Daño sin riesgo que no detiene la venta</td><td style="font-family:var(--font-num);font-weight:700;border-bottom:1px solid var(--color-rule)">3 días hábiles</td></tr>
+          <tr><td style="padding:10px 12px 10px 0;border-bottom:1px solid var(--color-rule)">Solicitud o mejora</td><td style="font-family:var(--font-num);font-weight:700;border-bottom:1px solid var(--color-rule)">10 días hábiles</td></tr>
+        </tbody>
+      </table>
+      <p>Es el tiempo para revisar el caso y darte una respuesta. La reparación puede tardar más si hace falta un proveedor o un repuesto.</p>
+    </section>
+    <section>
+      <h2><span class="n">04</span>Qué pasa después</h2>
+      <ol class="pasos">
+        <li><div><b>Nuevo</b><p>Se recibe tu reporte.</p></div></li>
+        <li><div><b>Evaluación</b><p>Se revisa el daño y se calcula cuánto cuesta arreglarlo.</p></div></li>
+        <li><div><b>Esperando aprobación de gasto</b><p>Si la reparación cuesta más de Q500, gerencia la aprueba antes de hacerla. Lo de Q500 o menos sigue sin esperar.</p></div></li>
+        <li><div><b>Esperando proveedor o repuesto</b><p>Se coordinó con el técnico o se pidió la pieza.</p></div></li>
+        <li><div><b>En reparación</b><p>Se está arreglando.</p></div></li>
+        <li><div><b>Resuelto</b><p>Ya quedó. Te llega un correo para calificar el servicio; si no quedó bien, respóndelo y se revisa.</p></div></li>
+      </ol>
+    </section>
+    <section>
+      <h2><span class="n">05</span>Ver tus tickets</h2>
+      <p>En Soporte toca <b>«Mis tickets»</b>. Ahí están los de informática y los de mantenimiento. Puedes escribir en cada uno si tienes algo que agregar.</p>
+    </section>
+    <section>
+      <h2><span class="n">06</span>Preguntas frecuentes</h2>
+      <div class="preg">
+        <details><summary>¿Puedo llamar en lugar de levantar ticket?</summary><p>Si hay riesgo, llama primero a tu gerente y luego levanta el ticket. Si no hay riesgo, levanta el ticket: así queda registrado, tiene responsable y se puede ver en qué va.</p></details>
+        <details><summary>Son dos daños distintos.</summary><p>Levanta un ticket por cada uno. Así cada reparación tiene su seguimiento y su costo.</p></details>
+        <details><summary>¿Por qué me piden foto?</summary><p>Con la foto se sabe qué técnico mandar y qué llevar. Muchas veces evita una visita solo para ver el daño.</p></details>
+        <details><summary>Ya pasó el tiempo y nadie respondió.</summary><p>Escribe en el ticket desde «Mis tickets» y avisa a tu gerente.</p></details>
+      </div>
+    </section>
+    <a class="volver" href="./">← Volver a Soporte</a>
+  </div>
+</main>
+<footer class="wrap"><p class="sync"></p></footer>
+</body>
+</html>

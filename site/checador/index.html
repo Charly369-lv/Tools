@@ -18,6 +18,10 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pick.reg .pr b, :root:not([data-theme="light"]) .pick .pe { color: var(--ink); } }
 :root[data-theme="dark"] .pick.reg .pr b, :root[data-theme="dark"] .pick .pe { color: var(--ink); }
 #count.offline::after { content: " · sin internet"; color: #c0392b; font-weight: 600; }
+.man-link { margin: 28px 0 8px; font-size: 14px; text-align: center; }
+.man-link a { color: var(--muted); text-underline-offset: 3px; }
+.man-link a:hover { color: var(--ink); }
+.man-link a:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 </style>
 </head>
 <body>
@@ -310,6 +314,7 @@ body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-vi
       <h3>Últimas consultas</h3>
       <ol id="histList"></ol>
     </section>
+    <p class="man-link"><a href="manual/">Manual del checador</a></p>
   </div>
 </main>
 

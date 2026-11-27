@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Manual del Checador de precios De Museo: cómo consultar precios, ofertas del Bazar y existencias.">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="../../favicon-32.png" sizes="32x32">
+<title>Manual · Checador de precios</title>
+<link rel="stylesheet" href="../../fuentes/fuentes.css">
+<link rel="stylesheet" href="../../estilo/manual.css">
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a href="../"><img src="../../checador/logo.png" alt="De Museo, volver al Checador" width="800" height="143"></a>
+  <nav aria-label="Secciones del manual"><a href="#buscar">Buscar</a><a href="#pantallas">Qué ves</a><a href="#privado">Modo privado</a><a href="#problemas">Si algo falla</a></nav>
+</div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <div class="copy">
+      <h1>Un escaneo, el precio correcto</h1>
+      <p class="lead">El Checador dice si un libro está en el Bazar y cuánto cuesta hoy.</p>
+      <div class="acts"><a class="btn" href="../">Abrir el Checador</a><a class="btn alt" href="#buscar">Cómo buscar</a></div>
+    </div>
+    <figure class="shot"><img src="bazar.jpg" width="1080" height="1086" alt="El Checador mostrando un libro en oferta del Bazar: precio de 46 quetzales, antes 185, con 75% de descuento."></figure>
+  </div>
+
+  <section id="buscar">
+    <div class="head"><h2>Tres formas de buscar</h2><p class="muted">Todo se escribe en la misma barra.</p></div>
+    <ol class="steps">
+      <li><span class="n">1</span><h3>Escanea el código</h3><p>Apunta el lector al código de barras. El resultado sale solo.</p></li>
+      <li><span class="n">2</span><h3>Escribe la referencia</h3><p>La referencia interna de Odoo y luego Enter. Sirve para lo que no tiene código.</p></li>
+      <li><span class="n">3</span><h3>Escribe el título o el autor</h3><p>Basta con una parte, sin tildes. Sale la lista y tocas el que buscas.</p></li>
+    </ol>
+  </section>
+
+  <section id="pantallas">
+    <div class="head"><h2>Qué ves en cada resultado</h2></div>
+    <div class="mods">
+      <div class="mod">
+        <figure class="shot"><img src="bazar.jpg" width="1080" height="1086" alt="Resultado de un libro en el Bazar de Descuentos." loading="lazy"></figure>
+        <div>
+          <div class="head"><h3>Banda roja: está en el Bazar</h3></div>
+          <ul class="keys">
+            <li><span class="k">1</span><p><b>¡Oferta Bazar!</b> con el código y la referencia.</p></li>
+            <li><span class="k">2</span><p><b>Precio bazar</b> en grande, el de antes tachado y el porcentaje de descuento.</p></li>
+            <li><span class="k">3</span><p><b>Te ahorras:</b> cuánto se ahorra el cliente.</p></li>
+            <li><span class="k">4</span><p><b>Del mismo tema:</b> otros libros que le pueden interesar.</p></li>
+          </ul>
+          <p class="note" style="margin-top:24px">El descuento del Bazar es solo en tiendas físicas y ya viene en el precio. En caja no se aplica otra vez.</p>
+        </div>
+      </div>
+      <div class="mod rev">
+        <div>
+          <div class="head"><h3>Banda azul: precio normal</h3></div>
+          <ul class="keys">
+            <li><span class="k">1</span><p><b>Precio normal</b> y el monto.</p></li>
+            <li><span class="k">2</span><p><b>Ofertas del Bazar</b> del mismo tema, para ofrecer al cliente.</p></li>
+            <li><span class="k">3</span><p><b>Últimas consultas:</b> lo que se buscó antes en este equipo. Toca una para verla otra vez.</p></li>
+          </ul>
+          <p class="note" style="margin-top:24px">Si hay una promoción vigente, la banda dice su nombre y muestra el precio con el descuento.</p>
+          <p class="note"><b>Precio por confirmar:</b> el producto no tiene precio en el sistema. Consúltalo en caja y avisa a gerencia.</p>
+        </div>
+        <figure class="shot"><img src="normal.jpg" width="1080" height="1002" alt="Resultado de un libro a precio normal con ofertas del Bazar sugeridas." loading="lazy"></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="privado" class="split">
+    <figure class="shot"><img src="privado.jpg" width="1080" height="1481" alt="Modo privado: existencias en la tienda, total y por ubicación, estante y a dónde pedirlo." loading="lazy"></figure>
+    <div>
+      <div class="head"><h2>Modo privado: existencias</h2><p class="muted">Solo para el personal, con la clave de la tienda.</p></div>
+      <ul class="keys">
+        <li><span class="k">1</span><p><b>Para abrirlo,</b> pídele a tu gerente cómo hacerlo y la clave.</p></li>
+        <li><span class="k">2</span><p><b>Mi tienda:</b> elige la tuya una vez; el equipo la recuerda.</p></li>
+        <li><span class="k">3</span><p><b>En tu tienda y total</b>, y debajo cuántos hay en cada ubicación.</p></li>
+        <li><span class="k">4</span><p><b>Estante</b> donde está y, si aquí no hay, a quién pedirlo: primero a BOD.</p></li>
+      </ul>
+      <p class="note" style="margin-top:24px">Se oculta solo a los 5 minutos sin uso, con la tecla Escape o con el botón Ocultar. Las cantidades son de la sincronización de la noche: no incluyen lo vendido hoy.</p>
+    </div>
+  </section>
+
+  <section id="problemas">
+    <div class="head"><h2>Si algo falla</h2></div>
+    <dl class="fail">
+      <div><dt>Sin resultados</dt><dd>Busca por título. Si tampoco sale, no existe en Odoo: avisa a gerencia.</dd></div>
+      <div><dt>· sin internet</dt><dd>Sigue funcionando con los precios de la última sincronización. Para eso, abre el Checador una vez con internet en cada equipo.</dd></div>
+      <div><dt>No se pudo cargar</dt><dd>Revisa la conexión y recarga la página.</dd></div>
+      <div><dt>Clave incorrecta</dt><dd>Pídela a tu gerente y no la escribas frente a clientes.</dd></div>
+      <div><dt>No suena</dt><dd>Toca el botón Sonido. El Bazar tiene un sonido distinto al precio normal.</dd></div>
+    </dl>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  <div><h2>Listo para escanear</h2><p>El código de arriba a la derecha dice de cuándo son los precios.</p></div>
+  <a class="btn" href="../">Abrir el Checador</a>
+</div></footer>
+</body>
+</html>
