@@ -64,6 +64,10 @@ label.f { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var
 /* Mensaje grande después de cada escaneo */
 .flash { border-radius: 12px; padding: 14px 18px; font-weight: 800; font-size: 20px; line-height: 1.25; display: grid; gap: 2px; }
 .flash small { font-size: 14px; font-weight: 600; }
+.precio { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 6px; padding-top: 8px; border-top: 1px solid currentColor; }
+.precio span { font-size: 14px; font-weight: 600; }
+.precio b { font-family: "Archivo", sans-serif; font-weight: 700; font-size: 34px; letter-spacing: -.01em; }
+.precio i { font-style: normal; font-size: 14px; font-weight: 700; }
 .flash.ok { background: var(--green-bg); color: var(--green); }
 .flash.err { background: var(--fill-red); color: var(--blanco); animation: shake .35s; }
 .flash.info { background: var(--soft); color: var(--ink); }
@@ -1124,6 +1128,40 @@ async function compararAuditoria() {
 
 let RC = null;   // caja en recepción { info, sello, selloRoto, items, inicio, hist }
 let RIDX = new Map();
+// Precio de etiqueta: se toma del catálogo del Checador (../checador/c/NN.json y r/NN.json, por los últimos 2 dígitos)
+// para que la tienda verifique que la etiqueta trae el precio correcto. Solo muestra; no cambia nada.
+let PV = null; const PSH = new Map(), PRE = new Map();
+async function precioVer() {
+  if (PV == null) PV = fetch("../checador/bazar.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.json()).then(d => d.v || String(d.total)).catch(() => "");
+  return PV;
+}
+async function precioShard(k, n) {
+  const id = k + "/" + n;
+  if (!PSH.has(id)) PSH.set(id, precioVer().then(v => fetch("../checador/" + id + ".json?v=" + encodeURIComponent(v))).then(r => r.ok ? r.json() : {}).catch(() => { PSH.delete(id); return {}; }));
+  return PSH.get(id);
+}
+async function buscarPrecio(cods) {
+  for (const c0 of cods) {
+    const c = String(c0 || "").trim(); if (!c) continue;
+    if (PRE.has(c)) return PRE.get(c);
+    const tries = [...new Set([c, c.replace(/^0+/, ""), "0" + c])].filter(Boolean);
+    for (const k of (c.length <= 8 ? ["r", "c"] : ["c", "r"])) for (const t of tries) {
+      const s = await precioShard(k, t.slice(-2).padStart(2, "0"));
+      if (s[t]) { PRE.set(c, s[t]); return s[t]; }
+    }
+  }
+  return null;
+}
+const codsDe = (p, c) => [c, p && p.codigo, p && p.ref, ...((p && p.alternos) || [])];
+function htmlPrecio(q) {
+  if (!q || !(q[5] > 0)) return '<div class="precio"><span>Precio: no se encontró en el catálogo. Avisa a tu supervisor si la etiqueta no trae precio.</span></div>';
+  const bz = q.length > 7 && q[7] != null;
+  return `<div class="precio"><span>Precio en la etiqueta</span><b>Q${Math.round(q[5]).toLocaleString("es-GT")}</b>${bz ? `<i>Bazar ${q[8]}%: Q${Math.round(q[7]).toLocaleString("es-GT")}</i>` : ""}</div>`;
+}
+// Muestra el precio en el aviso del último escaneo sin redibujar la pantalla (así no se pierde un escaneo en curso)
+function mostrarPrecio(f, cods) {
+  buscarPrecio(cods).then(q => { f.precio = htmlPrecio(q); const el = $("rFlash"); if (FLASH === f && el && !el.querySelector(".precio")) el.insertAdjacentHTML("beforeend", f.precio); }).catch(() => {});
+}
 async function abrirCaja(tid, caja) {
   cargando("Abriendo caja…");
   try {
@@ -1132,6 +1170,8 @@ async function abrirCaja(tid, caja) {
     RC = lsGet("despacho-rec-" + tid + "-" + caja, null) || { info, sello: "", selloRoto: false, items: {}, inicio: null, hist: [], paso: "sello" };
     RC.info = info;
     RIDX = indice(info.productos); RCJ = indiceCajas(info.productos);
+    // Se adelantan los precios de lo que trae la caja para que salgan al instante
+    for (const l of info.productos) buscarPrecio(codsDe(l)).catch(() => {});
     FLASH = null;
     pintarRecepcion();
   } catch (e) { error(e, listaRecibir); }
@@ -1176,7 +1216,7 @@ function pintarRecepcion() {
       <div class="kpi"><span>Unidades contadas</span><b>${u}</b></div></div>
     <div class="row foto"><label class="btnfoto ${RC.foto || i.foto ? "hecho" : ""}">${RC.foto || i.foto ? "Foto del sello guardada ✓ (tomar otra)" : "Foto del sello" + (i.fotoObligatoria ? " (obligatoria)" : " (opcional)")}<input type="file" id="rFoto" accept="image/*" capture="environment" hidden></label><span class="small" id="rFotoTxt">${RC.selloRoto ? "Sello roto: la foto ayuda al encargado a decidir." : ""}</span></div>
     <form class="scan" id="fR" autocomplete="off"><input id="rc" placeholder="Escanea cada unidad" inputmode="none"><button type="submit">+1</button></form>
-    ${FLASH ? `<div class="flash ${FLASH.t}">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}</div>` : '<div class="flash info">Escanea todo lo que trae la caja, una unidad a la vez. Al terminar, la app compara con lo que se envió.</div>'}
+    ${FLASH ? `<div class="flash ${FLASH.t}" id="rFlash">${FLASH.h}${FLASH.s ? `<small>${FLASH.s}</small>` : ""}${FLASH.precio || ""}</div>` : '<div class="flash info">Escanea todo lo que trae la caja, una unidad a la vez. Al terminar, la app compara con lo que se envió. Con cada producto verás su precio para revisar la etiqueta.</div>'}
     <div class="row"><button type="button" class="ok" id="bFin" ${u && (!i.fotoObligatoria || RC.foto || i.foto) ? "" : "disabled"}>Terminar caja</button><button type="button" class="ghost" id="bUndo" ${RC.hist.length ? "" : "disabled"}>Quitar el último</button><button type="button" class="ghost" id="bMan">Ingresar a mano</button><button type="button" class="ghost" id="bVol">Dejar para después</button></div>
   </section>
   <section class="card"><h2>Contado en esta caja</h2>${u ? `<div class="tbl"><table><tbody>${Object.values(RC.items).map(x => `<tr><td>${esc(x.nombre)}${x.manual ? ' <span class="chip a">a mano</span>' : ""}${x.extra ? ' <span class="chip r">no viene en la lista</span>' : ""}</td><td class="n big">${x.qty}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Todavía nada.</p>'}</section>`;
@@ -1197,10 +1237,11 @@ function sumarRec(k, base, qty, manual) {
 function contar(v) {
   const c = limpio(v); if (!c) return;
   const cj = RCJ.get(c);
-  if (cj) { const p = cj.l; sumarRec(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, cj.qty); sonar("ok"); FLASH = { t: "ok", h: `+${cj.qty} ${p.nombre} (caja cerrada)` }; return pintarRecepcion(); }
+  if (cj) { const p = cj.l; sumarRec(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, cj.qty); sonar("ok"); FLASH = { t: "ok", h: `+${cj.qty} ${p.nombre} (caja cerrada)` }; mostrarPrecio(FLASH, codsDe(p)); return pintarRecepcion(); }
   const p = RIDX.get(c);
   if (p) { sumarRec(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, 1); sonar("ok"); FLASH = { t: "ok", h: "+1 " + p.nombre }; }
   else { sumarRec("x:" + c, { pid: null, codigo: c, nombre: "Código " + c, extra: true }, 1); sonar("err"); FLASH = { t: "err", h: "Este producto no viene en la lista de la caja", s: "Se cuenta como sobrante. Apártalo." }; }
+  mostrarPrecio(FLASH, codsDe(p, c));
   pintarRecepcion();
 }
 function recManual() {
@@ -1211,7 +1252,7 @@ function recManual() {
   $("mNo").onclick = () => d.close();
   $("dlgForm").onsubmit = e => { e.preventDefault(); const c = limpio($("mC").value); const q = Math.max(1, Math.round(+$("mQ").value || 1)); if (!c) return; d.close();
     const p = RIDX.get(c); if (p) sumarRec(p.pid || "x:" + p.codigo, { pid: p.pid, codigo: p.codigo, nombre: p.nombre }, q, true); else sumarRec("x:" + c, { pid: null, codigo: c, nombre: "Código " + c, extra: true }, q, true);
-    FLASH = { t: p ? "ok" : "err", h: `+${q} ${p ? p.nombre : "Código " + c}`, s: p ? "Ingreso manual" : "No viene en la lista de la caja" }; sonar(p ? "ok" : "err"); pintarRecepcion(); };
+    FLASH = { t: p ? "ok" : "err", h: `+${q} ${p ? p.nombre : "Código " + c}`, s: p ? "Ingreso manual" : "No viene en la lista de la caja" }; mostrarPrecio(FLASH, codsDe(p, c)); sonar(p ? "ok" : "err"); pintarRecepcion(); };
 }
 // Foto del sello: se reduce en el equipo (máx. 1280 px, JPEG) y se guarda en Drive
 function reducirFoto(file) {
