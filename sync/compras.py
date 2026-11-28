@@ -27,7 +27,7 @@ from sync_odoo import Odoo, as_text, clean  # noqa: E402
 from existencias import cifrar  # noqa: E402
 
 CARPETA = "finanzas-d33eda5e"
-MESES = 24
+MESES = 36
 
 
 def meses_atras(n):

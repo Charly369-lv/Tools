@@ -162,12 +162,12 @@ async function bajar(url) { const r = await fetch(url + "?t=" + Date.now(), { ca
 
 // ================================================================ estado y ajustes
 let D = null, ROL = null, CLAVE = null, DEMO = false;
-let V = { tab: "resumen", area: "todo", moneda: "USD", prov: null, filtro: "", color: "", orden: ["inv", -1] };
+let V = { tab: "resumen", area: "todo", periodo: "12m", vistaProv: "rent", moneda: "USD", prov: null, filtro: "", color: "", orden: ["inv", -1] };
 const AJ_DEF = {
-  tc: null, modoCosto: "compra", pctOtro: 25,
+  ver: 2, tc: null, modoCosto: "pvp", factPvp: 40, factProv: {}, consig: {}, pctOtro: 25,
   pctPais: { "Guatemala": 0, "México": 20, "Mexico": 20, "España": 25, "Spain": 25, "Argentina": 35, "Estados Unidos": 20, "United States": 20, "Colombia": 30, "China": 35, "India": 35 },
   pctProv: {}, estrategico: {}, entrega: {}, minimo: {},
-  umb: { vG: 3, vA: 0.75, aG: 2, aA: 1, nG: 1, nA: 1.5, muerto: 30 },
+  umb: { vG: 2, vA: 0.75, aG: 1.2, aA: 1.25, nG: 0.75, nA: 2, muerto: 30 },
   cob: { v: 5, a: 2.5, n: 1.5, r: 0 }, leadOtro: 60,
   leadPais: { "Guatemala": 7, "México": 45, "Mexico": 45, "España": 90, "Spain": 90, "Argentina": 90, "Estados Unidos": 30, "United States": 30, "Colombia": 60, "China": 90, "India": 90 },
 };
@@ -215,7 +215,10 @@ function pctDe(pi) {
   const ps = AJ.pctPais[p.pais];
   return (ps != null ? Number(ps) : Number(AJ.pctOtro)) / 100;
 }
+function factDe(pi) { const n = D.prov[pi].n; return (AJ.factProv[n] != null && AJ.factProv[n] !== "" ? Number(AJ.factProv[n]) : Number(AJ.factPvp) || 40) / 100; }
+const esConsig = pi => !!AJ.consig[D.prov[pi].n];
 function costoUnit(r, pi) {
+  if (AJ.modoCosto === "pvp") return (r[5] || 0) * factDe(pi);
   if (AJ.modoCosto === "odoo") return r[6] || 0;
   const base = r[7] > 0 ? r[7] : r[6];
   return base * (1 + pctDe(pi));
@@ -230,22 +233,35 @@ function semaforo(g, a, m, inv, v12) {
   return "a";
 }
 
+function periodos() {
+  const anios = [...new Set(D.meses.map(m => m.slice(0, 4)))].filter(a => D.meses.filter(m => m.startsWith(a)).length >= 3);
+  return [["12m", "Últimos 12 meses"]].concat(anios.reverse().map(a => { const k = D.meses.filter(m => m.startsWith(a)).length; return [a, a + (k < 12 ? ` (${k} meses)` : "")]; }));
+}
+function periodo() {
+  const n = D.meses.length;
+  let idx, prev;
+  if (V.periodo === "12m" || !D.meses.some(m => m.startsWith(V.periodo))) { idx = [...Array(Math.min(12, n)).keys()].map(i => n - Math.min(12, n) + i); prev = idx.map(i => i - 12).filter(i => i >= 0); }
+  else { idx = D.meses.map((m, i) => m.startsWith(V.periodo) ? i : -1).filter(i => i >= 0); prev = idx.map(i => i - 12).filter(i => i >= 0); }
+  const nombre = V.periodo === "12m" ? "los últimos 12 meses" : V.periodo + (idx.length < 12 ? ` (${idx.length} meses)` : "");
+  return { idx, prev: prev.length === idx.length ? prev : [], nm: idx.length, anual: 12 / idx.length, nombre };
+}
 function calcular() {
-  const n = D.meses.length, i12 = n - 12;
-  const P = D.prov.map((p, i) => ({ i, n: p.n, pais: p.pais, v12: 0, v12p: 0, u12: 0, cv12: 0, inv: 0, muerto: 0, unidades: 0, prods: 0,
+  const n = D.meses.length, i12 = n - 12, PER = periodo(), enP = new Set(PER.idx), enPrev = new Set(PER.prev);
+  const P = D.prov.map((p, i) => ({ i, n: p.n, pais: p.pais, v12: 0, v12p: 0, u12: 0, cv12: 0, inv: 0, invN: 0, ex: 0, invpvp: 0, muerto: 0, unidades: 0, prods: 0, consig: esConsig(i),
     vm: new Array(n).fill(0), cvm: new Array(n).fill(0), co: p.co || new Array(n).fill(0), cats: {} }));
   const T = { v12: 0, cv12: 0, inv: 0, muerto: 0, v12p: 0 };
   for (const r of D.prod) {
     if (!enArea(r[4])) continue;
     const p = P[r[3]], cu = costoUnit(r, r[3]), vu = r[9], vq = r[10];
-    let u12 = 0, q12 = 0, q12p = 0;
+    let u12 = 0, q12 = 0, q12p = 0, uU = 0;
     for (let k = 0; k < n; k++) {
-      if (k >= i12) { u12 += vu[k]; q12 += vq[k]; } else q12p += vq[k];
+      if (enP.has(k)) { u12 += vu[k]; q12 += vq[k]; } else if (enPrev.has(k)) q12p += vq[k];
+      if (k >= i12) uU += vu[k];
       p.vm[k] += vq[k]; p.cvm[k] += vu[k] * cu;
     }
-    const ex = Math.max(0, r[8]), inv = ex * cu;
-    const muerto = ex > 0 && u12 <= 0 && (r[11] || "0") <= D.meses[i12] ? inv : 0;
-    p.v12 += q12; p.v12p += q12p; p.u12 += u12; p.cv12 += u12 * cu; p.inv += inv; p.muerto += muerto; p.prods++;
+    const ex = Math.max(0, r[8]), invN = ex * cu, inv = p.consig ? 0 : invN;
+    const muerto = ex > 0 && uU <= 0 && (r[11] || "0") <= D.meses[i12] ? inv : 0;
+    p.v12 += q12; p.v12p += q12p; p.u12 += u12; p.cv12 += u12 * cu; p.inv += inv; p.invN += invN; p.ex += ex; p.invpvp += ex * (r[5] || 0); p.muerto += muerto; p.prods++;
     p.cats[r[4]] = (p.cats[r[4]] || 0) + q12 + inv;
     T.v12 += q12; T.v12p += q12p; T.cv12 += u12 * cu; T.inv += inv; T.muerto += muerto;
   }
@@ -254,29 +270,32 @@ function calcular() {
     if (!p.prods) continue;
     p.mg = p.v12 - p.cv12;
     p.mgp = p.v12 > 0 ? p.mg / p.v12 : NaN;
-    p.g = p.inv > 0 ? p.mg / p.inv : (p.mg > 0 ? 99 : 0);
-    p.a = p.cv12 > 0 ? p.inv / p.cv12 : (p.inv > 0 ? Infinity : 0);
+    p.g = p.consig ? NaN : p.inv > 0 ? p.mg * PER.anual / p.inv : (p.mg > 0 ? 99 : 0);
+    p.a = p.cv12 > 0 ? p.invN / (p.cv12 * PER.anual) : (p.invN > 0 ? Infinity : 0);
+    p.aU = p.u12 > 0 ? p.ex / (p.u12 * PER.anual) : (p.ex > 0 ? Infinity : 0);
     p.m = p.inv > 0 ? p.muerto / p.inv : 0;
-    p.c12 = sum(p.co.slice(i12));
+    p.c12 = PER.idx.reduce((s, k) => s + (p.co[k] || 0), 0) * (1 + pctDe(p.i));
+    p.gan = p.v12 - p.c12;
     p.crec = p.v12p > 0 ? p.v12 / p.v12p - 1 : NaN;
-    p.s = semaforo(p.g, p.a, p.m, p.inv, p.v12);
+    p.s = p.consig ? (p.v12 <= 0 && p.invN <= 0 ? null : p.a > AJ.umb.nA ? "n" : "v") : semaforo(p.g, p.a, p.m, p.inv, p.v12);
     p.est = AJ.estrategico[p.n] || "";
     if (p.s) lista.push(p);
   }
-  T.mg = T.v12 - T.cv12; T.g = T.inv > 0 ? T.mg / T.inv : 0; T.a = T.cv12 > 0 ? T.inv / T.cv12 : 0;
+  T.mg = T.v12 - T.cv12; T.g = T.inv > 0 ? T.mg * PER.anual / T.inv : 0; T.a = T.cv12 > 0 ? T.inv / (T.cv12 * PER.anual) : 0;
   T.c12 = sum(lista.map(p => p.c12));
-  CALC = { P, lista, T };
+  CALC = { P, lista, T, PER };
 }
 
 function razones(p) {
   const U = AJ.umb, out = [];
-  if (p.v12 <= 0) out.push(`No vendió nada en los últimos 12 meses y tiene ${dinero(p.inv)} en inventario.`);
-  else {
+  if (p.consig) out.push(`<b>Consignación:</b> su inventario no es dinero de la empresa. Margen en ${CALC.PER.nombre}: ${dinero(p.mg)}; ${anios(p.a)} de inventario${p.a > U.nA ? ", ocupa espacio que podría usar otro proveedor" : ""}.`);
+  else if (p.v12 <= 0) out.push(`No vendió nada en ${CALC.PER.nombre} y tiene ${dinero(p.inv)} en inventario.`);
+  else if (!p.consig) {
     out.push(`<b>GMROI ${veces(p.g)}:</b> cada ${V.moneda === "USD" ? "$" : "Q"}1 invertido en su inventario deja ${V.moneda === "USD" ? "$" : "Q"}${num(p.g, 2)} de margen al año ${p.g < U.nG ? "(menos de lo invertido)" : p.g >= U.vG ? "(muy bueno)" : ""}.`);
     out.push(`<b>${anios(p.a)} de inventario:</b> es lo que tardaría en venderse lo que ya hay, al ritmo actual${p.a > U.nA ? ". Es demasiado" : ""}.`);
   }
   if (p.m > 0.05) out.push(`<b>${pct(p.m)} del inventario está muerto</b> (sin una sola venta en 12 meses): ${dinero(p.muerto)} que se pueden liquidar.`);
-  if (p.c12 > p.cv12 * 1.15 && p.cv12 > 0) out.push(`En 12 meses se le compró ${dinero(p.c12)} pero solo se vendió ${dinero(p.cv12)} a costo: <b>el inventario sigue creciendo</b>.`);
+  if (!p.consig && p.c12 > p.cv12 * 1.15 && p.cv12 > 0) out.push(`En ${CALC.PER.nombre} se le compró ${dinero(p.c12)} pero solo se vendió ${dinero(p.cv12)} a costo: <b>el inventario sigue creciendo</b>.`);
   return out;
 }
 
@@ -288,8 +307,9 @@ function cab() {
     .concat(ROL === "fin" ? [["tiendas", "Tiendas"], ["flujo", "Flujo de caja"]] : []).concat([["ajustes", "Ajustes"]]);
   return `<section class="stack">
     <div class="row between"><div><h1>Compras y rentabilidad</h1>
-      <p class="muted" style="margin:4px 0 0">${DEMO ? "<b>Datos de ejemplo</b> (inventados para ver cómo funciona)" : "Datos de Odoo del " + esc(D.generado)}. Últimos 12 meses, con costo ${AJ.modoCosto === "odoo" ? "de Odoo" : "de compra más el % de importación"}.</p></div>
+      <p class="muted" style="margin:4px 0 0">${DEMO ? "<b>Datos de ejemplo</b> (inventados para ver cómo funciona)" : "Datos de Odoo del " + esc(D.generado)}. Ventas y compras de ${esc(periodo().nombre)}; costo ${AJ.modoCosto === "odoo" ? "de Odoo" : AJ.modoCosto === "pvp" ? "como % del PVP" : "de compra más el % de importación"}. GMROI y años, llevados a un año.</p></div>
       <div class="row">
+        <label class="f">Período<select id="selPer">${periodos().map(o => `<option value="${o[0]}"${V.periodo === o[0] ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>
         <label class="f">Área<select id="selArea">${opts.map(o => `<option value="${o[0]}"${V.area === o[0] ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>
         <div class="seg" role="group" aria-label="Moneda"><button type="button" data-mon="USD" aria-pressed="${V.moneda === "USD"}">USD</button><button type="button" data-mon="Q" aria-pressed="${V.moneda === "Q"}">Q</button></div>
       </div></div>
@@ -300,6 +320,7 @@ function pintar() {
   calcular();
   app.innerHTML = cab();
   $("selArea").onchange = e => { V.area = e.target.value; pintar(); };
+  $("selPer").onchange = e => { V.periodo = e.target.value; pintar(); };
   app.querySelectorAll("[data-mon]").forEach(b => b.onclick = () => { V.moneda = b.dataset.mon; pintar(); });
   app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { V.tab = b.dataset.tab; pintar(); });
   if (ROL !== "fin" && (V.tab === "tiendas" || V.tab === "flujo")) V.tab = "resumen";
@@ -307,7 +328,7 @@ function pintar() {
   window.scrollTo({ top: Math.min(window.scrollY, 200) });
 }
 function abrirFicha(i) { V.prov = i; V.tab = "ficha"; pintar(); window.scrollTo({ top: 0 }); }
-const semHtml = p => p.est ? `<span class="sem e" title="${esc(p.est)}">Estratégico</span> <span class="sem ${p.s}">${NOMBRE[p.s]}</span>` : `<span class="sem ${p.s}">${NOMBRE[p.s]}</span>`;
+const semHtml = p => p.consig ? `<span class="sem e">Consignación</span>${p.s === "n" ? ' <span class="sem n">Rota lento</span>' : ""}` : p.est ? `<span class="sem e" title="${esc(p.est)}">Estratégico</span> <span class="sem ${p.s}">${NOMBRE[p.s]}</span>` : `<span class="sem ${p.s}">${NOMBRE[p.s]}</span>`;
 
 // ---------------------------------------------------------------- resumen
 function vResumen() {
@@ -326,9 +347,9 @@ function vResumen() {
     <p class="notice ${rojoInv > T.inv * 0.15 ? "bad" : "info"}" style="font-size:16px;margin:0"><b>${grupos.r.length} proveedores en rojo tienen ${dinero(rojoInv)} en inventario</b>, el ${pct(rojoInv / (T.inv || 1))} del total.
     También hay <b>${dinero(T.muerto)}</b> en productos que no vendieron ni una unidad en 12 meses.</p>
     <div class="kpis">
-      <div class="kpi"><span>Venta 12 meses</span><b>${dinero(T.v12)}</b><small class="${crec >= 0 ? "up" : "down"}">${isFinite(crec) ? (crec >= 0 ? "▲ " : "▼ ") + pct(Math.abs(crec)) + " vs. año anterior" : ""}</small></div>
+      <div class="kpi"><span>Venta del período</span><b>${dinero(T.v12)}</b><small class="${crec >= 0 ? "up" : "down"}">${isFinite(crec) ? (crec >= 0 ? "▲ " : "▼ ") + pct(Math.abs(crec)) + " vs. año anterior" : ""}</small></div>
       <div class="kpi"><span>Margen bruto</span><b>${dinero(T.mg)}</b><small>${pct(T.mg / (T.v12 || 1))} de la venta</small></div>
-      <div class="kpi"><span>Compras 12 meses</span><b>${dinero(T.c12)}</b><small>${T.cv12 ? "vs. " + dinero(T.cv12) + " vendido a costo" : ""}</small></div>
+      <div class="kpi"><span>Compras con gastos</span><b>${dinero(T.c12)}</b><small>${T.cv12 ? "vs. " + dinero(T.cv12) + " vendido a costo" : ""}</small></div>
       <div class="kpi"><span>Inventario a costo</span><b>${dinero(T.inv)}</b><small>${anios(T.a)} de venta</small></div>
       <div class="kpi ${T.g >= AJ.umb.aG ? "bien" : T.g < AJ.umb.nG ? "alerta" : ""}"><span>GMROI de la empresa</span><b>${veces(T.g)}</b><small>margen anual por cada 1 en inventario</small></div>
       <div class="kpi alerta"><span>Inventario muerto</span><b>${dinero(T.muerto)}</b><small>${pct(T.muerto / (T.inv || 1))} del inventario</small></div>
@@ -348,7 +369,7 @@ function vResumen() {
   <div class="g2">
     <section class="card"><h2>Donde más dinero está atrapado</h2><p class="small" style="margin:0">Proveedores en rojo y naranja, por inventario a costo</p>
       <ul class="lista">${trap.map(p => `<li data-p="${p.i}"><span>${semHtml(p)} <b>${esc(p.n)}</b></span><span class="nf">${dinero(p.inv)}</span><span class="barra"><i style="width:${p.inv / maxT * 100}%;background:${COLORES[p.s]}"></i></span></li>`).join("") || "<li>Ninguno, todos rotan bien.</li>"}</ul></section>
-    <section class="card"><h2>Los que más margen dejan</h2><p class="small" style="margin:0">Margen bruto de los últimos 12 meses</p>
+    <section class="card"><h2>Los que más margen dejan</h2><p class="small" style="margin:0">Margen bruto del período</p>
       <ul class="lista">${top.map(p => `<li data-p="${p.i}"><span>${semHtml(p)} <b>${esc(p.n)}</b></span><span class="nf">${dinero(p.mg)}</span><span class="barra"><i style="width:${Math.max(0, p.mg) / maxM * 100}%;background:${COLORES[p.s]}"></i></span></li>`).join("")}</ul></section>
   </div>`;
   v.querySelectorAll("[data-p]").forEach(li => li.onclick = () => abrirFicha(+li.dataset.p));
@@ -391,58 +412,78 @@ function mapa(el, lista) {
 }
 
 // ---------------------------------------------------------------- proveedores
-const COLS = [
-  ["s", "Semáforo", p => ({ v: 0, a: 1, n: 2, r: 3 })[p.s]],
-  ["n", "Proveedor", p => p.n],
-  ["pais", "País", p => p.pais],
-  ["v12", "Venta 12 m", p => p.v12, 1],
-  ["crec", "vs. año ant.", p => isFinite(p.crec) ? p.crec : -9, 1],
-  ["mgp", "Margen %", p => isFinite(p.mgp) ? p.mgp : -9, 1],
-  ["c12", "Compras 12 m", p => p.c12, 1],
-  ["inv", "Inventario a costo", p => p.inv, 1],
-  ["a", "Años de inv.", p => isFinite(p.a) ? p.a : 99, 1],
-  ["g", "GMROI", p => p.g, 1],
-  ["m", "% muerto", p => p.m, 1],
+const COLS_RENT = [
+  ["s", "Semáforo", p => ({ v: 0, a: 1, n: 2, r: 3 })[p.s], 0, p => semHtml(p)],
+  ["n", "Proveedor", p => p.n, 0, p => `<b>${esc(p.n)}</b>`],
+  ["pais", "País", p => p.pais, 0, p => `<span class="small">${esc(p.pais)}</span>`],
+  ["v12", "Venta", p => p.v12, 1, p => dinero(p.v12)],
+  ["crec", "vs. año ant.", p => isFinite(p.crec) ? p.crec : -9, 1, p => isFinite(p.crec) ? `<span class="${p.crec >= 0 ? "up" : "down"}">${p.crec >= 0 ? "▲" : "▼"}${pct(Math.abs(p.crec))}</span>` : "—"],
+  ["mgp", "Margen %", p => isFinite(p.mgp) ? p.mgp : -9, 1, p => pct(p.mgp)],
+  ["c12", "Compras con gastos", p => p.c12, 1, p => dinero(p.c12)],
+  ["inv", "Inventario a costo", p => p.consig ? p.invN : p.inv, 1, p => dinero(p.consig ? p.invN : p.inv) + (p.consig ? '<br><span class="small">consignación</span>' : "")],
+  ["a", "Años de inv.", p => isFinite(p.a) ? p.a : 99, 1, p => anios(p.a)],
+  ["g", "GMROI", p => isFinite(p.g) ? p.g : -1, 1, p => p.consig ? "—" : veces(p.g)],
+  ["m", "% muerto", p => p.m, 1, p => p.inv ? pct(p.m) : "—"],
 ];
+const COLS_REP = [
+  ["n", "Proveedor", p => p.n, 0, p => `${semHtml(p)} <b>${esc(p.n)}</b>`],
+  ["pais", "País", p => p.pais, 0, p => `<span class="small">${esc(p.pais)}</span>`],
+  ["pg", "% gastos", p => pctDe(p.i), 1, p => num(pctDe(p.i) * 100) + " %"],
+  ["c12", "Compras con gastos (Q)", p => p.c12, 1, p => qz(p.c12)],
+  ["v12", "Ventas con IVA (Q)", p => p.v12, 1, p => qz(p.v12)],
+  ["gan", "Ganancia / pérdida (Q)", p => p.gan, 1, p => `<span class="${p.gan < 0 ? "down" : ""}">${qz(p.gan)}</span>`],
+  ["um", "Venta unid. prom. mes", p => p.u12 / CALC.PER.nm, 1, p => num(p.u12 / CALC.PER.nm)],
+  ["u", "Unidades al año", p => p.u12 * CALC.PER.anual, 1, p => num(p.u12 * CALC.PER.anual)],
+  ["ex", "Existencias", p => p.ex, 1, p => num(p.ex)],
+  ["aU", "Años de inventario", p => isFinite(p.aU) ? p.aU : 99, 1, p => isFinite(p.aU) ? num(p.aU, 2) : "sin venta"],
+  ["ci", "Costo inventario (Q)", p => p.invpvp * factDe(p.i), 1, p => qz(p.invpvp * factDe(p.i))],
+  ["fc", "% costo s/ PVP", p => factDe(p.i), 1, p => num(factDe(p.i) * 100) + " %"],
+  ["ip", "Inventario a PVP (Q)", p => p.invpvp, 1, p => qz(p.invpvp)],
+];
+const qz = q => (q < 0 ? "−" : "") + Math.round(Math.abs(q)).toLocaleString("es-GT");
+const colsProv = () => V.vistaProv === "rep" ? COLS_REP : COLS_RENT;
 function filtrados() {
-  const f = V.filtro.trim().toUpperCase();
-  const col = COLS.find(c => c[0] === V.orden[0]) || COLS[7];
-  return CALC.lista.filter(p => (!f || p.n.includes(f)) && (!V.color || p.s === V.color || (V.color === "e" && p.est)))
+  const f = V.filtro.trim().toUpperCase(), C = colsProv();
+  const col = C.find(c => c[0] === V.orden[0]) || C.find(c => c[0] === "v12");
+  return CALC.lista.filter(p => (!f || p.n.includes(f)) && (!V.color || p.s === V.color || (V.color === "e" && p.est) || (V.color === "c" && p.consig)))
     .sort((a, b) => { const x = col[2](a), y = col[2](b); return (x < y ? -1 : x > y ? 1 : 0) * V.orden[1]; });
 }
 function vProveedores() {
-  const v = $("vista");
+  const v = $("vista"), C = colsProv();
   v.innerHTML = `<section class="card">
     <div class="row between">
-      <div class="row"><input id="fBus" type="search" placeholder="Buscar proveedor…" value="${esc(V.filtro)}" style="width:240px">
-        <select id="fCol"><option value="">Todos los colores</option>${["v", "a", "n", "r"].map(k => `<option value="${k}"${V.color === k ? " selected" : ""}>${NOMBRE[k]}</option>`).join("")}<option value="e"${V.color === "e" ? " selected" : ""}>Estratégicos</option></select></div>
+      <div class="row"><div class="seg" role="group" aria-label="Vista"><button type="button" data-vp="rent" aria-pressed="${V.vistaProv !== "rep"}">Rentabilidad</button><button type="button" data-vp="rep" aria-pressed="${V.vistaProv === "rep"}">Como mi reporte</button></div>
+        <input id="fBus" type="search" placeholder="Buscar proveedor…" value="${esc(V.filtro)}" style="width:220px">
+        <select id="fCol"><option value="">Todos los colores</option>${["v", "a", "n", "r"].map(k => `<option value="${k}"${V.color === k ? " selected" : ""}>${NOMBRE[k]}</option>`).join("")}<option value="e"${V.color === "e" ? " selected" : ""}>Estratégicos</option><option value="c"${V.color === "c" ? " selected" : ""}>Consignación</option></select></div>
       <button type="button" class="ghost" id="bXls">Descargar Excel</button></div>
+    ${V.vistaProv === "rep" ? `<p class="small" style="margin:0">Igual que tu hoja de política de compras: compras de ${esc(CALC.PER.nombre)} con su % de gastos, contra ventas con IVA. Siempre en quetzales. El costo del inventario es el inventario a PVP por el % de costo de cada proveedor.</p>` : ""}
     <p class="small" style="margin:0" id="cuenta"></p>
-    <div class="tbl"><table><thead><tr>${COLS.map(c => `<th class="ord${c[3] ? " n" : ""}" data-c="${c[0]}"${V.orden[0] === c[0] ? ` data-dir="${V.orden[1] > 0 ? "▲" : "▼"}"` : ""}>${c[1]}</th>`).join("")}</tr></thead><tbody id="tb"></tbody></table></div>
+    <div class="tbl"><table><thead><tr>${C.map(c => `<th class="ord${c[3] ? " n" : ""}" data-c="${c[0]}"${V.orden[0] === c[0] ? ` data-dir="${V.orden[1] > 0 ? "▲" : "▼"}"` : ""}>${c[1]}</th>`).join("")}</tr></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table></div>
   </section>`;
   const llenar = () => {
     const l = filtrados();
-    $("cuenta").textContent = `${l.length} proveedores, con ${dinero(sum(l.map(p => p.inv)))} de inventario y ${dinero(sum(l.map(p => p.v12)))} de venta`;
-    $("tb").innerHTML = l.slice(0, 600).map(p => `<tr class="clic" tabindex="0" data-p="${p.i}"><td>${semHtml(p)}</td><td><b>${esc(p.n)}</b></td><td class="small">${esc(p.pais)}</td>
-      <td class="n">${dinero(p.v12)}</td><td class="n ${p.crec >= 0 ? "up" : "down"}">${isFinite(p.crec) ? (p.crec >= 0 ? "▲" : "▼") + pct(Math.abs(p.crec)) : "—"}</td><td class="n">${pct(p.mgp)}</td>
-      <td class="n">${dinero(p.c12)}</td><td class="n">${dinero(p.inv)}</td><td class="n">${anios(p.a)}</td><td class="n">${veces(p.g)}</td><td class="n">${p.inv ? pct(p.m) : "—"}</td></tr>`).join("");
+    $("cuenta").textContent = `${l.length} proveedores, con ${dinero(sum(l.map(p => p.inv)))} de inventario propio y ${dinero(sum(l.map(p => p.v12)))} de venta`;
+    $("tb").innerHTML = l.slice(0, 800).map(p => `<tr class="clic" tabindex="0" data-p="${p.i}">${C.map(c => `<td${c[3] ? ' class="n"' : ""}>${c[4](p)}</td>`).join("")}</tr>`).join("");
+    if (V.vistaProv === "rep") { const s = k => sum(l.map(p => k(p)));
+      $("tf").innerHTML = `<tr><td colspan="3"><b>Total</b></td><td class="n"><b>${qz(s(p => p.c12))}</b></td><td class="n"><b>${qz(s(p => p.v12))}</b></td><td class="n"><b>${qz(s(p => p.gan))}</b></td><td></td><td class="n"><b>${num(s(p => p.u12 * CALC.PER.anual))}</b></td><td class="n"><b>${num(s(p => p.ex))}</b></td><td></td><td class="n"><b>${qz(s(p => p.invpvp * factDe(p.i)))}</b></td><td></td><td class="n"><b>${qz(s(p => p.invpvp))}</b></td></tr>`; } else $("tf").innerHTML = "";
     $("tb").querySelectorAll("tr").forEach(tr => { tr.onclick = () => abrirFicha(+tr.dataset.p); tr.onkeydown = e => { if (e.key === "Enter") abrirFicha(+tr.dataset.p); }; });
   };
   llenar();
   $("fBus").oninput = e => { V.filtro = e.target.value; llenar(); };
   $("fCol").onchange = e => { V.color = e.target.value; llenar(); };
+  v.querySelectorAll("[data-vp]").forEach(b => b.onclick = () => { V.vistaProv = b.dataset.vp; vProveedores(); });
   v.querySelectorAll("th.ord").forEach(th => th.onclick = () => { const c = th.dataset.c; V.orden = [c, V.orden[0] === c ? -V.orden[1] : (c === "n" || c === "pais" ? 1 : -1)]; vProveedores(); });
   $("bXls").onclick = excelProveedores;
 }
 
 // ---------------------------------------------------------------- ficha
 function prodsDe(pi) {
-  const n = D.meses.length, i12 = n - 12, out = [];
+  const PER = periodo(), out = [];
   for (const r of D.prod) {
     if (r[3] !== pi || !enArea(r[4])) continue;
-    const cu = costoUnit(r, pi), u12 = sum(r[9].slice(i12)), q12 = sum(r[10].slice(i12)), ex = Math.max(0, r[8]);
+    const cu = costoUnit(r, pi), u12 = PER.idx.reduce((s, k) => s + r[9][k], 0), q12 = PER.idx.reduce((s, k) => s + r[10][k], 0), ex = Math.max(0, r[8]);
     out.push({ c: r[1], n: r[2], cat: D.cats[r[4]], pvp: r[5], cu, u12, q12, mg: q12 - u12 * cu, ex, inv: ex * cu,
-      ult: r[12] >= 0 ? D.meses[r[12]] : "", meses: u12 > 0 ? ex / (u12 / 12) : Infinity, alta: r[11] });
+      ult: r[12] >= 0 ? D.meses[r[12]] : "", meses: u12 > 0 ? ex / (u12 / PER.nm) : Infinity, alta: r[11] });
   }
   return out;
 }
@@ -460,13 +501,13 @@ function vFicha() {
   v.innerHTML = `<section class="card">
     <div class="row between"><label class="f" style="min-width:min(420px,100%)">Proveedor<select id="selProv">${opts.map(o => `<option value="${o.i}"${o.i === p.i ? " selected" : ""}>${esc(o.n)}</option>`).join("")}</select></label>
       <button type="button" class="ghost" id="bXlsF">Descargar ficha en Excel</button></div>
-    <div class="row" style="gap:14px"><h1 style="font-size:clamp(22px,4vw,30px)">${esc(p.n)}</h1>${semHtml(p)}<span class="muted">${esc(p.pais ? p.pais + ", " : "")}${p.prods} productos, importación ${num(pctDe(p.i) * 100)} %</span></div>
+    <div class="row" style="gap:14px"><h1 style="font-size:clamp(22px,4vw,30px)">${esc(p.n)}</h1>${semHtml(p)}<span class="muted">${esc(p.pais ? p.pais + ", " : "")}${p.prods} productos, costo ${num(factDe(p.i) * 100)} % del PVP, gastos ${num(pctDe(p.i) * 100)} %</span></div>
     ${p.est ? `<p class="notice info" style="margin:0"><b>Proveedor estratégico:</b> ${esc(p.est)}</p>` : ""}
     <div class="porque ${p.s}"><b>Por qué está en «${NOMBRE[p.s]}»</b>${razones(p).map(t => `<span>${t}</span>`).join("")}</div>
     <div class="kpis">
-      <div class="kpi"><span>Venta 12 meses</span><b>${dinero(p.v12)}</b><small class="${p.crec >= 0 ? "up" : "down"}">${isFinite(p.crec) ? (p.crec >= 0 ? "▲ " : "▼ ") + pct(Math.abs(p.crec)) + " vs. año anterior" : "sin año anterior"}</small></div>
+      <div class="kpi"><span>Venta del período</span><b>${dinero(p.v12)}</b><small class="${p.crec >= 0 ? "up" : "down"}">${isFinite(p.crec) ? (p.crec >= 0 ? "▲ " : "▼ ") + pct(Math.abs(p.crec)) + " vs. año anterior" : "sin año anterior"}</small></div>
       <div class="kpi"><span>Margen bruto</span><b>${dinero(p.mg)}</b><small>${pct(p.mgp)} de la venta</small></div>
-      <div class="kpi"><span>Compras 12 meses</span><b>${dinero(p.c12)}</b></div>
+      <div class="kpi"><span>Compras con gastos</span><b>${dinero(p.c12)}</b></div>
       <div class="kpi"><span>Inventario a costo</span><b>${dinero(p.inv)}</b><small>${anios(p.a)}</small></div>
       <div class="kpi ${p.g >= AJ.umb.aG ? "bien" : p.g < AJ.umb.nG ? "alerta" : ""}"><span>GMROI</span><b>${veces(p.g)}</b></div>
       <div class="kpi ${p.m * 100 > AJ.umb.muerto ? "alerta" : ""}"><span>Inventario muerto</span><b>${dinero(p.muerto)}</b><small>${pct(p.m)}</small></div>
@@ -485,7 +526,9 @@ function vFicha() {
   </div>
   <section class="card"><h2>Ajustes de este proveedor</h2>
     ${puedeEditar ? `<div class="row" style="align-items:end">
-      <label class="f">% de costo de importación<input class="num" id="fPct" type="number" min="0" max="200" step="1" placeholder="${num(pctDe(p.i) * 100)}" value="${AJ.pctProv[p.n] != null ? esc(AJ.pctProv[p.n]) : ""}"></label>
+      <label class="f">Costo como % del PVP<input class="num" id="fFac" type="number" min="1" max="100" step="1" placeholder="${num(factDe(p.i) * 100)}" value="${AJ.factProv[p.n] != null ? esc(AJ.factProv[p.n]) : ""}"></label>
+      <label class="row small" style="align-self:center"><input type="checkbox" id="fCon"${AJ.consig[p.n] ? " checked" : ""}> Consignación</label>
+      <label class="f">% de gastos de importación<input class="num" id="fPct" type="number" min="0" max="200" step="1" placeholder="${num(pctDe(p.i) * 100)}" value="${AJ.pctProv[p.n] != null ? esc(AJ.pctProv[p.n]) : ""}"></label>
       <label class="f">Tiempo de entrega (días)<input class="num" id="fEnt" type="number" min="0" value="${esc(AJ.entrega[p.n] || "")}"></label>
       <label class="f">Pedido mínimo (USD)<input class="num" id="fMin" type="number" min="0" value="${esc(AJ.minimo[p.n] || "")}"></label>
       <label class="f" style="flex:1;min-width:240px">Estratégico: motivo (vacío = no es estratégico)<input id="fEst" value="${esc(p.est)}" placeholder="Ej.: exclusiva de marca, atrae clientes a la tienda…"></label>
@@ -498,6 +541,8 @@ function vFicha() {
   if (puedeEditar) $("bGuardarP").onclick = () => {
     const put = (obj, val) => { if (val === "" || val == null) delete obj[p.n]; else obj[p.n] = val; };
     put(AJ.pctProv, $("fPct").value === "" ? "" : Number($("fPct").value));
+    put(AJ.factProv, $("fFac").value === "" ? "" : Number($("fFac").value));
+    put(AJ.consig, $("fCon").checked ? true : "");
     put(AJ.entrega, $("fEnt").value === "" ? "" : Number($("fEnt").value));
     put(AJ.minimo, $("fMin").value === "" ? "" : Number($("fMin").value));
     put(AJ.estrategico, $("fEst").value.trim());
@@ -532,6 +577,7 @@ function vAjustes() {
     <label class="f">Tipo de cambio (quetzales por 1 USD)<input class="num" id="aTc" type="number" step="0.01" value="${esc(AJ.tc || "")}" placeholder="${num(D.tc, 2)}"${dis}></label>
     <p class="small" style="margin:0">Vacío = el de Odoo (${num(D.tc, 4)}).</p>
     <div class="f" style="font-size:13px;font-weight:700;color:var(--muted)">Cómo se calcula el costo de cada producto</div>
+    <label class="row"><input type="radio" name="aModo" value="pvp"${AJ.modoCosto === "pvp" ? " checked" : ""}${dis}> <span><b>Porcentaje del PVP</b> <input class="num" id="aFac" type="number" min="1" max="100" value="${AJ.factPvp}"${dis}> %<br><span class="small">Como en la política de compras: el costo de cada producto es su PVP por este %. Se cambia por proveedor en su ficha.</span></span></label>
     <label class="row"><input type="radio" name="aModo" value="compra"${AJ.modoCosto === "compra" ? " checked" : ""}${dis}> <span><b>Precio del proveedor + % de importación</b><br><span class="small">Mientras los costos de Odoo no estén completos. Si un producto no tiene precio de proveedor, se usa el costo de Odoo + %.</span></span></label>
     <label class="row"><input type="radio" name="aModo" value="odoo"${AJ.modoCosto === "odoo" ? " checked" : ""}${dis}> <span><b>Costo de Odoo tal cual</b><br><span class="small">Cuando Odoo ya tenga el costo bruto puesto en CEDIS al 100 %.</span></span></label>
   </section>
@@ -551,14 +597,14 @@ function vAjustes() {
     <div class="row">${paises.map(ps => `<label class="f">${esc(ps)}: días<input class="num" data-lead="${esc(ps)}" type="number" min="0" step="1" value="${AJ.leadPais[ps] != null ? AJ.leadPais[ps] : ""}" placeholder="${AJ.leadOtro}"${dis}></label>`).join("")}
       <label class="f">Otros: días<input class="num" id="aLeadOtro" type="number" min="0" value="${AJ.leadOtro}"${dis}></label></div>
   </section>
-  <section class="card"><h2>% de costo de importación por país</h2>
+  <section class="card"><h2>% de gastos de importación por país</h2>
     <p class="small" style="margin:0">Lo que cuesta poner la mercadería en el CEDIS sobre el precio del proveedor: flete, aranceles, IVA, agente aduanal. Se puede cambiar por proveedor en su ficha.</p>
     <div class="row">${paises.map(ps => `<label class="f">${esc(ps)}<input class="num" data-pais="${esc(ps)}" type="number" min="0" step="1" value="${AJ.pctPais[ps] != null ? AJ.pctPais[ps] : ""}" placeholder="${AJ.pctOtro}"${dis}></label>`).join("")}
       <label class="f">Otros / sin país<input class="num" id="aOtro" type="number" min="0" step="1" value="${AJ.pctOtro}"${dis}></label></div>
   </section>
   <section class="card"><h2>Proveedores con ajustes propios</h2>
-    <div class="tbl" style="max-height:340px"><table><thead><tr><th>Proveedor</th><th class="n">% importación</th><th class="n">Entrega (días)</th><th class="n">Pedido mínimo</th><th>Estratégico</th></tr></thead><tbody>
-    ${[...new Set([...Object.keys(AJ.pctProv), ...Object.keys(AJ.estrategico), ...Object.keys(AJ.entrega), ...Object.keys(AJ.minimo)])].sort().map(n => `<tr><td><b>${esc(n)}</b></td><td class="n">${AJ.pctProv[n] != null ? num(AJ.pctProv[n]) + " %" : "—"}</td><td class="n">${esc(AJ.entrega[n] || "—")}</td><td class="n">${AJ.minimo[n] ? "$" + num(AJ.minimo[n]) : "—"}</td><td class="small">${esc(AJ.estrategico[n] || "")}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">Ninguno todavía. Se agregan desde la ficha de cada proveedor.</td></tr>`}
+    <div class="tbl" style="max-height:340px"><table><thead><tr><th>Proveedor</th><th class="n">Costo s/ PVP</th><th>Consignación</th><th class="n">% gastos</th><th class="n">Entrega (días)</th><th class="n">Pedido mínimo</th><th>Estratégico</th></tr></thead><tbody>
+    ${[...new Set([...Object.keys(AJ.pctProv), ...Object.keys(AJ.estrategico), ...Object.keys(AJ.entrega), ...Object.keys(AJ.minimo), ...Object.keys(AJ.factProv), ...Object.keys(AJ.consig)])].sort().map(n => `<tr><td><b>${esc(n)}</b></td><td class="n">${AJ.factProv[n] != null ? num(AJ.factProv[n]) + " %" : "—"}</td><td>${AJ.consig[n] ? "Sí" : ""}</td><td class="n">${AJ.pctProv[n] != null ? num(AJ.pctProv[n]) + " %" : "—"}</td><td class="n">${esc(AJ.entrega[n] || "—")}</td><td class="n">${AJ.minimo[n] ? "$" + num(AJ.minimo[n]) : "—"}</td><td class="small">${esc(AJ.estrategico[n] || "")}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">Ninguno todavía. Se agregan desde la ficha de cada proveedor.</td></tr>`}
     </tbody></table></div>
   </section>
   ${fin ? `<section class="card"><h2>Guardar y compartir</h2>
@@ -568,7 +614,8 @@ function vAjustes() {
   if (!fin) return;
   const leer = () => {
     AJ.tc = $("aTc").value ? Number($("aTc").value) : null;
-    AJ.modoCosto = (v.querySelector("input[name=aModo]:checked") || {}).value || "compra";
+    AJ.modoCosto = (v.querySelector("input[name=aModo]:checked") || {}).value || "pvp";
+    AJ.factPvp = Number($("aFac").value) || 40;
     AJ.umb = { vG: +$("uvG").value, vA: +$("uvA").value, aG: +$("uaG").value, aA: +$("uaA").value, nG: +$("unG").value, nA: +$("unA").value, muerto: +$("uM").value };
     v.querySelectorAll("[data-pais]").forEach(i => { if (i.value === "") delete AJ.pctPais[i.dataset.pais]; else AJ.pctPais[i.dataset.pais] = Number(i.value); });
     AJ.pctOtro = Number($("aOtro").value || 0);
@@ -946,12 +993,17 @@ async function excelProveedores() {
   await window.excelListo;
   if (!window.XLSX) { alert("No se pudo cargar el generador de Excel. Revisa el internet."); return; }
   const m = V.moneda;
+  if (V.vistaProv === "rep") {
+    const fr = filtrados().map(p => Object.fromEntries(COLS_REP.map(c => [c[1], c[0] === "n" ? p.n : c[0] === "pais" ? p.pais : (v => isFinite(v) ? Math.round(v * 100) / 100 : "")(c[2](p))])));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, hoja(XLSX, fr, [36, 12, 9, 18, 18, 18, 12, 12, 12, 12, 18, 10, 18]), "Como mi reporte");
+    XLSX.writeFile(wb, `Proveedores ${CALC.PER.nombre} ${iso(HOY)}.xlsx`); return;
+  }
   const f = filtrados().map(p => ({
     "Semáforo": NOMBRE[p.s], "Estratégico": p.est, "Proveedor": p.n, "País": p.pais,
-    [`Venta 12 meses (${m})`]: m === "USD" ? usd(p.v12) : Math.round(p.v12), "Crecimiento vs. año anterior": isFinite(p.crec) ? Math.round(p.crec * 1000) / 1000 : "",
+    [`Venta (${m})`]: m === "USD" ? usd(p.v12) : Math.round(p.v12), "Crecimiento vs. año anterior": isFinite(p.crec) ? Math.round(p.crec * 1000) / 1000 : "",
     [`Margen bruto (${m})`]: m === "USD" ? usd(p.mg) : Math.round(p.mg), "Margen %": isFinite(p.mgp) ? Math.round(p.mgp * 1000) / 1000 : "",
-    [`Compras 12 meses (${m})`]: m === "USD" ? usd(p.c12) : Math.round(p.c12), [`Inventario a costo (${m})`]: m === "USD" ? usd(p.inv) : Math.round(p.inv),
-    "Años de inventario": isFinite(p.a) ? Math.round(p.a * 100) / 100 : "sin venta", "GMROI": Math.round(p.g * 100) / 100,
+    [`Compras con gastos (${m})`]: m === "USD" ? usd(p.c12) : Math.round(p.c12), [`Inventario a costo (${m})`]: m === "USD" ? usd(p.inv) : Math.round(p.inv),
+    "Años de inventario": isFinite(p.a) ? Math.round(p.a * 100) / 100 : "sin venta", "GMROI": isFinite(p.g) ? Math.round(p.g * 100) / 100 : "consignación", "Período": CALC.PER.nombre,
     [`Inventario muerto (${m})`]: m === "USD" ? usd(p.muerto) : Math.round(p.muerto), "% importación": Math.round(pctDe(p.i) * 100),
   }));
   const wb = XLSX.utils.book_new();
@@ -983,6 +1035,7 @@ async function cargarAjustesCompartidos() {
   try { const s = await bajar("ajustes.enc"); const r = await descifrar(ROL === "fin" ? s.fin : s.com, CLAVE); base = r.aj || {}; basef = r.ajf || {}; } catch (e) {}
   const local = ROL === "fin" ? lsGet("fin-ajustes", null) : null;
   AJ = mezclar(mezclar(AJ_DEF, base), local || {});
+  if (!(local && local.ver) && !(base && base.ver)) { AJ.modoCosto = "pvp"; AJ.umb = Object.assign({}, AJ_DEF.umb); AJ.ver = 2; }
   AJF = ROL === "fin" ? mezclar(mezclar(AJF_DEF, basef), lsGet("fin-privado", null) || {}) : JSON.parse(JSON.stringify(AJF_DEF));
 }
 async function entrar(clave, recordar) {
@@ -1029,7 +1082,7 @@ function login(err) {
 function demo() {
   let semilla = 7; const rnd = () => (semilla = (semilla * 16807) % 2147483647) / 2147483647;
   const meses = []; const h = new Date(); h.setDate(1);
-  for (let k = 23; k >= 0; k--) { const d = new Date(h.getFullYear(), h.getMonth() - k, 1); meses.push(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")); }
+  for (let k = 35; k >= 0; k--) { const d = new Date(h.getFullYear(), h.getMonth() - k, 1); meses.push(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")); }
   const cats = ["2001 AROMAS", "2002 HOGAR", "2004 JUEGOS DE MESA", "2005 LIBRERIA VARIOS", "2006 LIBROS", "2007 MODAS Y ACCESORIOS", "2008 MUSICA", "2009 PIEDRAS", "2010 TEMPORADA"];
   const tipos = [ // nombre, país, categoría, ventas base/mes (u), precio, costo base (Q), rotación (meses de stock), tendencia
     ["EDITORIAL ALFA", "México", 4, 900, 165, 62, 7, 1.08], ["EDITORIAL BETA", "México", 4, 780, 150, 60, 11, 1.02], ["DISTRIBUIDORA IBERICA", "España", 4, 420, 210, 82, 14, 0.97],
@@ -1043,20 +1096,20 @@ function demo() {
   const prov = [], prod = [], oc = [], cxp = [];
   let id = 1;
   tipos.forEach((t, pi) => {
-    prov.push({ id: pi + 1, n: t[0], pais: t[1], co: new Array(24).fill(0) });
+    prov.push({ id: pi + 1, n: t[0], pais: t[1], co: new Array(36).fill(0) });
     const nP = 40 + Math.floor(rnd() * 120);
     for (let j = 0; j < nP; j++) {
       const peso = Math.pow(rnd(), 2.2) * 3 / nP * 20;
       const muerto = rnd() < (t[6] > 20 ? 0.35 : 0.08);
       const vu = [], vq = [];
       const precio = Math.round(t[4] * (0.6 + rnd() * 0.9));
-      for (let k = 0; k < 24; k++) {
+      for (let k = 0; k < 36; k++) {
         const temp = [0.8, 0.75, 0.85, 0.9, 0.95, 0.9, 0.95, 1, 0.95, 1.05, 1.25, 1.9][Number(meses[k].slice(5)) - 1];
-        const base = muerto ? 0 : t[3] * 9 * peso / 20 * temp * Math.pow(t[7], (k - 12) / 12);
+        const base = muerto ? 0 : t[3] * 9 * peso / 20 * temp * Math.pow(t[7], (k - 24) / 12);
         const u = Math.max(0, Math.round(base * (0.6 + rnd() * 0.8)));
         vu.push(u); vq.push(Math.round(u * precio * 0.93));
       }
-      const u12 = sum(vu.slice(12)) || 1;
+      const u12 = sum(vu.slice(-12)) || 1;
       const ex = Math.round((muerto ? 5 + rnd() * 60 : u12 / 12 * t[6] * (0.5 + rnd())));
       const costo = Math.round(precio * t[5] / t[4] * 100) / 100;
       const pc = Math.round(costo / 1.25 * 100) / 100;
@@ -1064,7 +1117,7 @@ function demo() {
       const cam = !muerto && rnd() < 0.15 ? Math.round(u12 / 12 * (1 + rnd() * 2)) : 0;
       prod.push([id, String(7500000000000 + id), t[0].split(" ")[0] + " PRODUCTO " + (j + 1), pi, t[2], precio, costo, pc, ex, vu, vq, "2022-01", ult, cam]);
       if (cam) oc.push([pi, iso(masDias(HOY, 10 + rnd() * 70)), Math.round(cam * pc * 1.1)]);
-      for (let k = 0; k < 24; k++) prov[pi].co[k] += vu[k] * pc * (t[6] > 20 ? 1.6 : 1.05) * (0.4 + rnd() * 1.2);
+      for (let k = 0; k < 36; k++) prov[pi].co[k] += vu[k] * pc * (t[6] > 20 ? 1.6 : 1.05) * (0.4 + rnd() * 1.2);
       id++;
     }
     prov[pi].co = prov[pi].co.map(Math.round);
@@ -1072,8 +1125,8 @@ function demo() {
   const tiendas = [["PRADE", "Galerías La Pradera", 1.4], ["CONCE", "Pradera Concepción", 1], ["ANTIG", "La Antigua Guatemala", 1.2], ["MIRAF", "Miraflores", 1.3], ["PORTA", "Portales", 0.8], ["INTER", "Interplaza Xela", 0.7],
     ["COBAN", "Plaza Magdalena Cobán", 0.45], ["AMERI", "Parque Las Américas", 0.9], ["ZONA1", "Centro Histórico", 0.6], ["SANC", "SanKris Mall", 0.5], ["VIDER", "Vidēre", 0.55], ["MAJAD", "Majadas ONCE", 0.35]];
   const pesoT = tiendas.map(t => t[2]), totP = sum(pesoT), vt = [];
-  prod.forEach((r, fi) => { const u12 = sum(r[9].slice(12)); if (u12 > 0) tiendas.forEach((t, ti) => { const q = Math.round(u12 * 0.85 * pesoT[ti] / totP * (0.7 + rnd() * 0.6)); if (q > 0) vt.push([fi, ti, q]); }); });
-  prov.forEach((p, pi) => { const mes = sum(p.co.slice(12)) / 12; for (let k = 0; k < 3; k++) if (mes > 0) cxp.push([pi, iso(masDias(HOY, -20 + k * 30 + rnd() * 15)), Math.round(mes * (0.5 + rnd() * 0.6))]); });
+  prod.forEach((r, fi) => { const u12 = sum(r[9].slice(-12)); if (u12 > 0) tiendas.forEach((t, ti) => { const q = Math.round(u12 * 0.85 * pesoT[ti] / totP * (0.7 + rnd() * 0.6)); if (q > 0) vt.push([fi, ti, q]); }); });
+  prov.forEach((p, pi) => { const mes = sum(p.co.slice(-12)) / 12; for (let k = 0; k < 3; k++) if (mes > 0) cxp.push([pi, iso(masDias(HOY, -20 + k * 30 + rnd() * 15)), Math.round(mes * (0.5 + rnd() * 0.6))]); });
   const gastos = {}; tiendas.forEach(t => { gastos[t[0]] = { sueldos: Math.round(32000 * (0.6 + t[2] * 0.5)), renta: Math.round(30000 * (0.5 + t[2] * 0.6)), servicios: Math.round(6000 * (0.6 + t[2] * 0.4)), otros: 4000 }; });
   const ajfDemo = { saldo: 3500000, colchon: 1500000, credito: 30, quitarIva: true, incluirPedido: true, gastos, corp: { sueldos: 160000, renta: 45000, servicios: 15000, otros: 25000 },
     deudas: [{ c: "Préstamo bancario (ejemplo)", monto: 180000, cada: "mensual", fecha: iso(masDias(HOY, 12)), hasta: "" }, { c: "Acuerdo de pago proveedor (ejemplo)", monto: 250000, cada: "trimestral", fecha: iso(masDias(HOY, 40)), hasta: "" }, { c: "Bono 14 (ejemplo)", monto: 420000, cada: "anual", fecha: (HOY.getMonth() >= 6 ? HOY.getFullYear() + 1 : HOY.getFullYear()) + "-07-15", hasta: "" }, { c: "Aguinaldo (ejemplo)", monto: 420000, cada: "anual", fecha: (HOY.getMonth() === 11 && HOY.getDate() > 15 ? HOY.getFullYear() + 1 : HOY.getFullYear()) + "-12-15", hasta: "" }] };
