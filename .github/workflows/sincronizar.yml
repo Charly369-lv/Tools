@@ -101,6 +101,18 @@ jobs:
           CLAVE_EXISTENCIAS: ${{ secrets.CLAVE_EXISTENCIAS }}
         run: python sync/revisar_cajas.py --out site
 
+      # Compras y rentabilidad (app privada de finanzas, sin enlace en índices). Dos claves propias.
+      - name: Compras y rentabilidad
+        continue-on-error: true
+        env:
+          ODOO_URL: ${{ secrets.ODOO_URL }}
+          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_USER: ${{ secrets.ODOO_USER }}
+          ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+          CLAVE_COMPRAS_FINANZAS: ${{ secrets.CLAVE_COMPRAS_FINANZAS }}
+          CLAVE_COMPRAS: ${{ secrets.CLAVE_COMPRAS }}
+        run: python sync/compras.py --out site
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v4
