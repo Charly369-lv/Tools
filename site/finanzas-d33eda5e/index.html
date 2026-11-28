@@ -456,7 +456,7 @@ function vProveedores() {
         <input id="fBus" type="search" placeholder="Buscar proveedor…" value="${esc(V.filtro)}" style="width:220px">
         <select id="fCol"><option value="">Todos los colores</option>${["v", "a", "n", "r"].map(k => `<option value="${k}"${V.color === k ? " selected" : ""}>${NOMBRE[k]}</option>`).join("")}<option value="e"${V.color === "e" ? " selected" : ""}>Estratégicos</option><option value="c"${V.color === "c" ? " selected" : ""}>Consignación</option></select></div>
       <button type="button" class="ghost" id="bXls">Descargar Excel</button></div>
-    ${V.vistaProv === "rep" ? `<p class="small" style="margin:0">Igual que tu hoja de política de compras: compras de ${esc(CALC.PER.nombre)} con su % de gastos, contra ventas con IVA. Siempre en quetzales. El costo del inventario es el inventario a PVP por el % de costo de cada proveedor.</p>` : ""}
+    ${V.vistaProv === "rep" ? `<p class="small" style="margin:0">Igual que tu hoja de política de compras: compras de ${esc(CALC.PER.nombre)} (facturas de proveedor menos notas de crédito) con su % de gastos, contra ventas con IVA. Siempre en quetzales. El costo del inventario es el inventario a PVP por el % de costo de cada proveedor.</p>` : ""}
     <p class="small" style="margin:0" id="cuenta"></p>
     <div class="tbl"><table><thead><tr>${C.map(c => `<th class="ord${c[3] ? " n" : ""}" data-c="${c[0]}"${V.orden[0] === c[0] ? ` data-dir="${V.orden[1] > 0 ? "▲" : "▼"}"` : ""}>${c[1]}</th>`).join("")}</tr></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table></div>
   </section>`;

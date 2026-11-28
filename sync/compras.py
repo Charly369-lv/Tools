@@ -8,8 +8,8 @@ de caja se agregarán solo a fin.enc.
 
 Qué lee de Odoo (solo lectura, no cambia nada). Solo fin.enc lleva tiendas, compras pendientes y cuentas por pagar:
   - Productos: categoría, PVP, costo de Odoo, proveedor principal (product.supplierinfo) y su precio.
-  - Ventas de los últimos 24 meses: líneas de punto de venta + pedidos de venta (con IVA).
-  - Compras de los últimos 24 meses por proveedor (pedidos de compra confirmados), pasadas a quetzales.
+  - Ventas de los últimos 36 meses: líneas de punto de venta + pedidos de venta (con IVA).
+  - Compras de los últimos 36 meses por proveedor: facturas de proveedor menos notas de crédito, en quetzales.
   - Existencias en ubicaciones internas.
 Uso: python sync/compras.py --out site
 """
@@ -153,19 +153,18 @@ def main():
             prov_t[s["product_tmpl_id"][0]] = (s["partner_id"][0], as_text(s["partner_id"]), precio)
 
     # ------------------------------------------------------------ compras por proveedor y mes
-    print("Compras por proveedor…")
-    CO = collections.defaultdict(lambda: [0.0] * MESES)    # partner_id -> quetzales
+    print("Compras por proveedor (facturas de proveedor)…")
+    CO = collections.defaultdict(lambda: [0.0] * MESES)    # partner_id -> quetzales, facturas menos notas de crédito
     try:
-        for g in o.call("purchase.order.line", "read_group",
-                        [[["state", "in", ["purchase", "done"]], ["create_date", ">=", desde], ["display_type", "=", False]],
-                         ["price_total:sum", "partner_id", "currency_id"], ["partner_id", "currency_id", "create_date:month"]],
-                        {"lazy": False}):
-            m = mi.get(mes_de(g, "create_date"))
-            if m is None or not g.get("partner_id"):
+        for f in o.search_read_all("account.move", [["move_type", "in", ["in_invoice", "in_refund"]], ["state", "=", "posted"], ["invoice_date", ">=", desde[:10]]],
+                                   ["partner_id", "invoice_date", "amount_total_signed", "move_type"]):
+            m = mi.get((f.get("invoice_date") or "")[:7])
+            if m is None or not f.get("partner_id"):
                 continue
-            CO[g["partner_id"][0]][m] += a_q((g.get("currency_id") or [0])[0], float(g.get("price_total") or 0))
+            # amount_total_signed va en quetzales: negativo en facturas y positivo en notas de crédito
+            CO[f["partner_id"][0]][m] += -float(f.get("amount_total_signed") or 0)
     except SystemExit as e:
-        print("  Aviso: no se pudieron leer las compras:", str(e)[:200])
+        print("  Aviso: no se pudieron leer las facturas de proveedor:", str(e)[:200])
 
     # ------------------------------------------------------------ pedidos de compra pendientes de recibir
     print("Pedidos de compra en camino…")
