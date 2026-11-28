@@ -4,7 +4,7 @@
    - bazar.json, promocion.json, existencias: intenta internet (hasta 4 s); si no hay, usa la última copia.
    - Partes del catálogo (c/ y r/): llevan versión en la dirección; se guardan y se reutilizan.
    - catalogo.json no se guarda aquí: la página ya lo guarda en el equipo (IndexedDB). */
-const VERSION = "checador-v1";
+const VERSION = "checador-v2";
 const FIJOS = [
   "./", "logo.png", "sonido-normal.mp3", "sonido-bazar.mp3",
   "../fuentes/fuentes.css",
@@ -69,6 +69,10 @@ self.addEventListener("fetch", e => {
   if (/\/catalogo\.json$/.test(url.pathname)) return;           // lo guarda la página
   if (DATOS.test(url.pathname)) return e.respondWith(redPrimero(req));
   if (PARTES.test(url.pathname)) return e.respondWith(guardadoPrimero(req));
-  if (req.mode === "navigate" || FIJOS.some(u => url.href === new URL(u, self.registration.scope).href))
+  // Solo la página del Checador se sirve guardada; el manual y otras páginas van directo a internet
+  const raiz = new URL("./", self.registration.scope).href;
+  const esChecador = url.href.split(/[?#]/)[0] === raiz || url.pathname.endsWith("/checador/index.html");
+  if (req.mode === "navigate" && !esChecador) return;
+  if ((req.mode === "navigate" && esChecador) || FIJOS.some(u => url.href === new URL(u, self.registration.scope).href))
     return e.respondWith(rapidoYActualiza(e));
 });
