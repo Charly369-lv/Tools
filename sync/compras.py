@@ -67,10 +67,15 @@ def mes_de(g, campo):
     return ""
 
 
-def agrupar(o, modelo, dominio, sumas, por, fecha):
-    """read_group por producto (o proveedor) y mes. Devuelve lista de dicts."""
-    campos = sumas + [por]
-    return o.call(modelo, "read_group", [dominio, campos, [por, fecha + ":month"]], {"lazy": False})
+def agrupar(o, modelo, dominio, sumas, por, fecha, meses):
+    """read_group por producto y mes, en bloques de 3 meses para que Odoo no corte la consulta."""
+    campos, out = sumas + [por], []
+    for i in range(0, len(meses), 3):
+        ini = meses[i] + "-01 00:00:00"
+        fin = meses[i + 3] + "-01 00:00:00" if i + 3 < len(meses) else None
+        dom = [d for d in dominio if d[0] != fecha] + [[fecha, ">=", ini]] + ([[fecha, "<", fin]] if fin else [])
+        out += o.call(modelo, "read_group", [dom, campos, [por, fecha + ":month"]], {"lazy": False})
+    return out
 
 
 def main():
@@ -99,7 +104,7 @@ def main():
     print("Ventas de punto de venta…")
     try:
         for g in agrupar(o, "pos.order.line", [["order_id.state", "in", ["paid", "done", "invoiced"]], ["create_date", ">=", desde]],
-                         ["qty:sum", "price_subtotal_incl:sum"], "product_id", "create_date"):
+                         ["qty:sum", "price_subtotal_incl:sum"], "product_id", "create_date", meses):
             m = mi.get(mes_de(g, "create_date"))
             if m is None or not g.get("product_id"):
                 continue
@@ -107,11 +112,12 @@ def main():
             VU[pid][m] += float(g.get("qty") or 0)
             VQ[pid][m] += float(g.get("price_subtotal_incl") or 0)
     except SystemExit as e:
-        print("  Aviso: no se pudo leer el punto de venta:", str(e)[:200])
+        print("  Error: no se pudo leer el punto de venta, no se publican datos incompletos:", str(e)[:200])
+        raise
     print("Ventas de pedidos (mayoreo, web)…")
     try:
         for g in agrupar(o, "sale.order.line", [["state", "in", ["sale", "done"]], ["create_date", ">=", desde], ["display_type", "=", False]],
-                         ["qty_delivered:sum", "price_total:sum", "product_uom_qty:sum"], "product_id", "create_date"):
+                         ["qty_delivered:sum", "price_total:sum", "product_uom_qty:sum"], "product_id", "create_date", meses):
             m = mi.get(mes_de(g, "create_date"))
             if m is None or not g.get("product_id"):
                 continue
