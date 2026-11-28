@@ -10,168 +10,215 @@
 <title>Mayoreo · Fitness One</title>
 <link rel="stylesheet" href="../fuentes/fuentes.css">
 <style>
-/* Surtido: 1 existencias propias (con clave), 2 aprobados, 3 reportes de tiendas, 4 por confirmar, 5 sugerido por tienda */
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: full
+ * paper: oklch(97% 0.01 275) · accent: oklch(30% 0.13 268) · display: Bodoni Moda · body: Archivo
+ * nav: kept (barra navy con logo) · signature: el stand, un cuadro por espacio pintado por tema · states: cargando, sin datos, clave, error, lleno
+ * axes: paper/bodoni/navy · posture: tool · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H3 E4 S4 R4 V4 · weakest: H, la barra se queda igual que en el resto de Tools para no romper la familia */
 :root {
-  --navy: #112369; --navy-deep: #0b1748; --on-navy: #fff;
-  --bg: #f3f4f9; --surface: #fff; --ink: #111a3d; --muted: #5b6386; --line: #d9dcea; --soft: #e9ecf6;
-  --red: #c42318; --red-bg: #fde8e6; --amber: #9a6700; --amber-bg: #fff3d1; --green: #157a3d; --green-bg: #e3f4e8;
-  --gray: #5b6386; --gray-bg: #eceef4; --gold: #f2bd3c;
-  --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
-  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --color-paper: #f3f4f9; --color-paper-2: #ffffff; --color-paper-3: #e9ecf6;
+  --color-ink: #111a3d; --color-ink-2: #2b3563; --color-muted: #5b6386; --color-rule: #d9dcea;
+  --color-accent: #112369; --color-accent-deep: #0b1748; --color-accent-ink: #ffffff; --color-focus: #f2bd3c; --color-on-navy: #ffffff;
+  --color-error: #c42318; --color-error-bg: #fde8e6; --color-warn: #8a5a00; --color-warn-bg: #fff3d1; --color-success: #157a3d; --color-success-bg: #e3f4e8;
+  --t-inf: #e0892b; --t-dep: #1f8a5b; --t-rel: #7a4fb0; --t-emp: #2f6fd0; --t-aut: #c2477a; --t-otro: #8a90ab; --t-vacio: #e3e6f0;
+  --font-display: "Bodoni Moda", "Bodoni 72", Didot, serif; --font-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem;
+  --radius: 8px; --radius-card: 12px; --dur-micro: 120ms; --dur-short: 220ms; --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --container: 1180px; --gutter: 24px;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --navy: #2a40a0; --bg: #080e26; --surface: #111a3d; --ink: #edf0fa; --muted: #9da6c9; --line: #26315e; --soft: #18224c;
-    --red: #ff7a6b; --red-bg: #3a1512; --amber: #f2bd3c; --amber-bg: #3a2f10; --green: #4fd383; --green-bg: #10331f; --gray: #9da6c9; --gray-bg: #1c2650; color-scheme: dark; }
+  :root { --color-paper: #080e26; --color-paper-2: #111a3d; --color-paper-3: #18224c; --color-ink: #edf0fa; --color-ink-2: #c9cfe8; --color-muted: #9da6c9; --color-rule: #26315e;
+    --color-accent: #2a40a0; --color-error: #ff7a6b; --color-error-bg: #3a1512; --color-warn: #f2bd3c; --color-warn-bg: #3a2f10; --color-success: #4fd383; --color-success-bg: #10331f;
+    --t-vacio: #1f2a55; color-scheme: dark; }
 }
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); }
-.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.inner { max-width: 1180px; margin: 0 auto; }
-header.mast { background: var(--navy-deep); color: var(--on-navy); padding-block: 18px; }
-.mast .inner { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
-.mast img { display: block; width: min(220px, 56vw); height: auto; }
-.mast-t { font-family: var(--f-display); font-weight: 900; font-size: 22px; }
-main { padding-block: 22px 56px; }
-main .inner { display: grid; gap: 18px; }
-h2 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(21px, 4.4vw, 27px); line-height: 1.15; }
-h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
-p { margin: 0; }
-.muted { color: var(--muted); font-size: 14px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
-.step { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
-.num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); color: var(--ink); font-weight: 800; }
-.step.done .num { background: var(--green-bg); color: var(--green); }
-.step-b { display: grid; gap: 10px; min-width: 0; }
-.status { font-size: 15px; font-weight: 600; }
-.status.ok { color: var(--green); }
-button, .btn { font: 700 15px var(--f-body); border-radius: 8px; cursor: pointer; padding: 9px 15px; border: 2px solid var(--navy); background: var(--navy); color: var(--on-navy); min-height: 42px; display: inline-flex; align-items: center; }
-button.ghost, .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
-button.small { min-height: 34px; padding: 5px 10px; font-size: 13px; }
-button:disabled { opacity: .45; cursor: not-allowed; }
-button:focus-visible, select:focus-visible, input:focus-visible, .btn:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
-input[type=password], input[type=number], input[type=search], select { font: 15px var(--f-body); padding: 8px 10px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
-input[type=number] { width: 90px; }
-.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.drop { border: 3px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; display: grid; gap: 4px; justify-items: center; cursor: pointer; }
-.drop.over { border-color: var(--navy); background: var(--soft); }
-.drop b { font-size: 16px; }
-.notice { border-radius: 10px; padding: 11px 14px; font-size: 14px; background: var(--amber-bg); }
-.notice.bad { background: var(--red-bg); }
-.notice.ok { background: var(--green-bg); }
-.stores { display: flex; flex-wrap: wrap; gap: 6px; }
-.stores span { font-size: 13px; background: var(--soft); border-radius: 6px; padding: 4px 8px; }
-.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-.sets label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
-.locs { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
-.locs label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; color: var(--ink); }
-details > summary { cursor: pointer; font-weight: 700; }
-
-.tbl { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 70vh; }
-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
-td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-td.big { font-weight: 800; font-size: 16px; }
-.mono { font-family: var(--f-mono); font-size: 13px; }
-.chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
-.c-rep { background: var(--navy); color: var(--blanco); }
-.c-new { background: var(--green-bg); color: var(--green); }
-.c-sin { background: var(--gray-bg); color: var(--gray); }
-.c-quieto { background: var(--fill-red); color: var(--blanco); }
-.pill-red { display: inline-block; min-width: 28px; text-align: center; font-weight: 800; background: var(--fill-red); color: var(--blanco); border-radius: 999px; padding: 2px 9px; }
-tr.alerta td { background: var(--red-bg); }
-.alerta-box { border-radius: 10px; padding: 12px 14px; background: var(--red-bg); border: 1px solid var(--red); display: grid; gap: 2px; }
-.alerta-box b { color: var(--red); font-size: 17px; }
-.tabs button.t-red[aria-pressed="false"] { color: var(--red); border-color: var(--red); }
-.tabs button.t-red[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
-select.rev { font-size: 13px; padding: 5px 6px; }
-select.rev.hecho { border-color: var(--green); }
-.from { font-size: 13px; }
-.from b { font-family: var(--f-mono); }
-.small-t { font-size: 12px; color: var(--muted); }
-tr.click { cursor: pointer; }
-tr.click:hover td, tr.sel td { background: var(--soft); }
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.tabs button[aria-pressed="true"] { background: var(--navy); color: var(--blanco); }
-.tabs button[aria-pressed="false"] { background: transparent; color: var(--ink); border-color: var(--line); }
-.cand { display: grid; gap: 6px; }
-.cand select { max-width: 100%; width: 100%; font-size: 13px; }
-.opts { display: grid; gap: 6px; }
-.opt { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; text-align: left; width: 100%; background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 500 14px var(--f-body); min-height: 0; cursor: pointer; }
-.opt:hover { border-color: var(--navy); }
-.opt.top { border-color: var(--green); }
-.opt .ot { font-weight: 700; }
-.opt .os { font-size: 12px; color: var(--muted); }
-.opt .ox { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--navy); }
-.opt .ox small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
-.opt .ox.cero { color: var(--muted); }
-.opt.no { grid-template-columns: 1fr; color: var(--muted); border-style: dashed; }
-@media (max-width: 640px) { #s4 thead { display: none; } #pcBody td { display: block; border-bottom: 0; } #pcBody tr { display: block; border-bottom: 1px solid var(--line); padding-bottom: 6px; } }
-.show-sm { display: none; }
-@media (max-width: 640px) { .show-sm { display: block; margin-top: 6px; } .hide-sm { display: none; } .step { grid-template-columns: 1fr; } .num { display: none; } }
-
-/* Arreglos de la auditoría de diseño (noviembre 2026) */
-:root { --blanco: oklch(99% 0.004 270); --fill-red: #c42318; --fill-green: #157a3d; }
+*, *::before, *::after { box-sizing: border-box; }
 html, body { overflow-x: clip; }
+[hidden] { display: none !important; }
+::selection { background: color-mix(in oklab, var(--color-focus) 45%, transparent); }
+body { margin: 0; caret-color: var(--color-accent); background: var(--color-paper); color: var(--color-ink); font: var(--text-md)/1.5 var(--font-body); -webkit-font-smoothing: antialiased; }
+p { margin: 0; text-wrap: pretty; }
+h1, h2, h3 { margin: 0; overflow-wrap: break-word; min-width: 0; text-wrap: balance; }
+.wrap { width: 100%; max-width: var(--container); margin-inline: auto; padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px)); }
+.num, td.n { font-family: var(--font-body); font-weight: 700; font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); font-size: var(--text-xs); }
+.muted { color: var(--color-muted); font-size: var(--text-sm); }
+
+/* Barra */
+header.mast { background: var(--color-accent-deep); color: var(--color-on-navy); padding-block: var(--space-md); }
+.mast .wrap { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm) var(--space-md); flex-wrap: wrap; }
+.mast img { display: block; width: min(200px, 50vw); height: auto; }
+a.logo-link { display: inline-block; border-radius: var(--space-2xs); line-height: 0; }
+.mast-t { display: grid; justify-items: end; line-height: 1.1; }
+.mast-t h1 { font-family: var(--font-display); font-weight: 900; font-size: var(--text-xl); }
+.mast-t span { font-size: var(--text-sm); color: color-mix(in oklab, var(--color-on-navy) 72%, transparent); }
+
+main { padding-block: var(--space-lg) var(--space-xl); }
+main > .wrap { display: grid; gap: var(--space-md); }
+
+/* Barra de trabajo: sucursal + estado de datos */
+.bar { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-lg); align-items: end; justify-content: space-between; padding: var(--space-md); background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: var(--radius-card); }
+.field { display: grid; gap: var(--space-2xs); font-size: var(--text-sm); font-weight: 600; color: var(--color-muted); min-width: 0; }
+.datos { display: grid; gap: var(--space-xs); min-width: 0; flex: 1 1 320px; }
+.status { font-size: var(--text-sm); font-weight: 600; color: var(--color-ink-2); }
+.status.ok { color: var(--color-success); }
+
+/* Controles */
+button, .btn { font: 700 var(--text-sm) var(--font-body); border-radius: var(--radius); cursor: pointer; padding: var(--space-xs) var(--space-md); border: 1px solid var(--color-accent); background: var(--color-accent); color: var(--color-accent-ink); min-height: 40px; display: inline-flex; align-items: center; gap: var(--space-xs); white-space: nowrap; transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out); }
+button:hover:not(:disabled) { background: var(--color-accent-deep); border-color: var(--color-accent-deep); }
 button:active:not(:disabled) { transform: scale(0.98); }
-input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
-a.logo-link { display: inline-block; border-radius: 4px; line-height: 0; }
-a.logo-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
-body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--ink); }
-body .mast :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--gold); }
-</style>
-<style>
-.temas { display: grid; gap: 8px; }
-.tema-row { display: grid; grid-template-columns: 1.2fr repeat(2, 110px) 70px; gap: 8px; align-items: center; font-size: 14px; }
-.tema-row.h { font-size: 12px; font-weight: 700; color: var(--muted); }
-.tema-row b { font-weight: 700; }
-textarea { font: 13px var(--f-mono); width: 100%; min-height: 54px; padding: 8px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
-.tot { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.tot div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; display: grid; gap: 2px; }
-.tot span { font-size: 12px; font-weight: 700; color: var(--muted); }
-.tot b { font-size: 22px; font-variant-numeric: tabular-nums; }
-.tot b.mal { color: var(--red); }
-td input[type=number] { width: 62px; padding: 5px 6px; }
-td .acc { display: flex; gap: 4px; flex-wrap: wrap; }
-.cover { width: 34px; height: 50px; object-fit: cover; border-radius: 3px; background: var(--soft); display: block; }
-.res { display: grid; gap: 4px; max-height: 260px; overflow: auto; }
-.res button { justify-content: space-between; gap: 10px; text-align: left; width: 100%; background: var(--surface); color: var(--ink); border-color: var(--line); font-weight: 500; font-size: 13px; min-height: 0; }
-@media (max-width: 640px) { .tema-row { grid-template-columns: 1fr 70px 70px 50px; } }
+button.ghost { background: var(--color-paper-2); color: var(--color-ink); border-color: var(--color-rule); }
+button.ghost:hover:not(:disabled) { background: var(--color-paper-3); border-color: var(--color-muted); }
+button.small { min-height: 32px; padding: var(--space-2xs) var(--space-sm); font-size: var(--text-xs); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+input[type=password], input[type=number], input[type=search], select, textarea { font: var(--text-sm) var(--font-body); color: var(--color-ink); background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: var(--radius); padding: var(--space-xs) var(--space-sm); min-height: 40px; min-width: 0; transition: border-color var(--dur-micro) var(--ease-out); }
+input:hover, select:hover, textarea:hover { border-color: var(--color-muted); }
+input[type=number] { width: 88px; font-weight: 700; font-variant-numeric: tabular-nums; }
+textarea { font-family: var(--font-mono); font-size: var(--text-xs); width: 100%; min-height: 52px; }
+:focus-visible, body :is(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid var(--color-ink); outline-offset: 2px; }
+.mast :focus-visible { outline-color: var(--color-focus); }
+.row { display: flex; gap: var(--space-xs); flex-wrap: wrap; align-items: center; }
+
+.notice { border-radius: var(--radius); padding: var(--space-sm) var(--space-md); font-size: var(--text-sm); background: var(--color-warn-bg); color: var(--color-ink); }
+.notice.bad { background: var(--color-error-bg); }
+.notice button { margin-left: var(--space-xs); }
+
+/* El stand */
+.stand { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--space-lg); padding: var(--space-lg); background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: var(--radius-card); }
+.stand-h { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-sm); flex-wrap: wrap; }
+.stand-h h2 { font-family: var(--font-display); font-weight: 900; font-size: var(--text-2xl); line-height: 1.1; }
+.ocupa { font-size: var(--text-lg); }
+.ocupa.mal { color: var(--color-error); }
+.cells { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-2xs); margin-top: var(--space-md); }
+.cell { aspect-ratio: 2 / 3; border-radius: 3px; background: var(--t-vacio); }
+.cell.extra { background: transparent; border: 2px dashed var(--color-error); }
+.leyenda { display: grid; gap: var(--space-xs); margin-top: var(--space-md); }
+.ley { display: grid; grid-template-columns: 12px 1fr auto; gap: var(--space-xs); align-items: center; font-size: var(--text-sm); }
+.ley i { width: 12px; height: 12px; border-radius: 3px; }
+.ley .meta.mal { color: var(--color-error); }
+.figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md) var(--space-lg); align-content: start; }
+.fig { display: grid; gap: 2px; padding-top: var(--space-sm); border-top: 1px solid var(--color-rule); }
+.fig span { font-size: var(--text-xs); color: var(--color-muted); font-weight: 600; }
+.fig b { font-size: var(--text-xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+.fig b.mal { color: var(--color-error); }
+.fig.wide { grid-column: 1 / -1; }
+
+/* Acciones */
+.acciones { display: flex; flex-wrap: wrap; gap: var(--space-xs); align-items: center; justify-content: space-between; }
+
+/* Temas y tablas */
+.tema { background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: var(--radius-card); overflow: hidden; }
+.tema-h { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); }
+.tema-h h3::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--tc, var(--t-otro)); margin-right: var(--space-xs); vertical-align: -1px; }
+.tema-h h3 { font-size: var(--text-md); font-weight: 700; }
+.cuenta { font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-success); }
+.cuenta.mal { color: var(--color-error); }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: var(--text-sm); }
+th, td { text-align: left; padding: var(--space-xs) var(--space-sm); border-top: 1px solid var(--color-rule); vertical-align: top; }
+th { font-size: var(--text-xs); font-weight: 600; color: var(--color-muted); background: var(--color-paper-3); white-space: nowrap; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+td.n { font-weight: 600; }
+.cover { width: 34px; height: 50px; object-fit: cover; border-radius: 3px; background: var(--color-paper-3); display: block; }
+.tit { font-weight: 700; }
+.sub { display: flex; flex-wrap: wrap; gap: 0 var(--space-sm); font-size: var(--text-xs); color: var(--color-muted); margin-top: 2px; }
+.from { display: flex; flex-wrap: wrap; gap: var(--space-2xs); }
+.loc { font-size: var(--text-xs); background: var(--color-paper-3); border-radius: var(--space-2xs); padding: 2px var(--space-xs); white-space: nowrap; }
+.loc b { font-family: var(--font-mono); font-weight: 600; }
+.tag { display: inline-block; font-size: var(--text-xs); font-weight: 700; padding: 2px var(--space-xs); border-radius: var(--space-2xs); background: var(--color-error-bg); color: var(--color-error); white-space: nowrap; }
+td input[type=number] { width: 64px; min-height: 32px; padding: var(--space-2xs) var(--space-xs); }
+.acc { display: flex; gap: var(--space-2xs); flex-wrap: wrap; }
+.vacio { padding: var(--space-md); }
+
+/* Buscar y ajustes */
+.panel { background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: var(--radius-card); padding: var(--space-md); display: grid; gap: var(--space-sm); }
+.panel h3 { font-size: var(--text-md); font-weight: 700; }
+.res { display: grid; gap: var(--space-2xs); max-height: 280px; overflow: auto; }
+.res button { justify-content: space-between; gap: var(--space-sm); text-align: left; white-space: normal; width: 100%; background: var(--color-paper-2); color: var(--color-ink); border-color: var(--color-rule); font-weight: 500; }
+.res button:hover { background: var(--color-paper-3); }
+.res .r-m { font-size: var(--text-xs); color: var(--color-muted); white-space: nowrap; }
+details > summary { cursor: pointer; font-weight: 700; padding: var(--space-2xs) 0; }
+.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--space-sm); }
+.sets label { display: grid; gap: var(--space-2xs); font-size: var(--text-xs); font-weight: 600; color: var(--color-muted); }
+.temas { display: grid; gap: var(--space-sm); }
+.tema-row { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(2, 96px) 64px; gap: var(--space-xs); align-items: center; font-size: var(--text-sm); }
+.tema-row.h { font-size: var(--text-xs); font-weight: 600; color: var(--color-muted); }
+.tema-row b { display: flex; align-items: center; gap: var(--space-xs); }
+.tema-row b i { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.solo-cat { font-size: var(--text-xs); color: var(--color-muted); }
+.locs { display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-md); font-size: var(--text-sm); }
+.locs label { display: inline-flex; gap: var(--space-2xs); align-items: center; }
+
+@media (max-width: 860px) { .stand { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  :root { --gutter: 16px; }
+  .cells { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+  .tema-row { grid-template-columns: minmax(0, 1fr) 64px 64px 40px; }
+  .hide-sm { display: none; }
+  .mast-t { justify-items: start; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; } }
+@media print { header.mast, .acciones, .panel, .bar { display: none !important; } }
 </style>
 </head>
 <body>
-<header class="mast pad"><div class="inner">
+<header class="mast"><div class="wrap">
   <a class="logo-link" href="../area-mayoreo/" aria-label="Volver a las herramientas de Mayoreo" title="Volver a Mayoreo"><img src="../checador/logo.png" alt="De Museo" width="800" height="144"></a>
-  <span class="mast-t">Mayoreo · Fitness One</span>
+  <div class="mast-t"><h1>Fitness One</h1><span>Mayoreo, sugerido de envío</span></div>
 </div></header>
 
-<main class="pad"><div class="inner">
-  <p class="muted">Arma el sugerido de envío para la librería De Museo dentro de Fitness One. Elige los libros por tema y ventas, y los saca primero de la Bodega Central (BOD), luego de la bodega Walmart (WALLM) y, si falta, de las tiendas con más existencia. Los datos vienen de Odoo cada noche.</p>
-
-  <section class="card step" id="s1">
-    <span class="num">1</span>
-    <div class="step-b">
-      <h3>Libros disponibles en Odoo</h3>
-      <p class="status" id="stStatus">Cargando…</p>
+<main><div class="wrap">
+  <section class="bar" id="s1">
+    <label class="field">Sucursal
+      <span class="row"><select id="suc"></select><button type="button" class="ghost small" id="sucNueva">Agregar sucursal</button></span></label>
+    <div class="datos">
+      <p class="muted">Saca los libros primero de la Bodega Central (BOD), luego de la bodega Walmart (WALLM) y, si falta, de las tiendas con más existencia. Los datos vienen de Odoo cada noche.</p>
+      <p class="status" id="stStatus">Cargando los libros de Odoo…</p>
       <form class="row" id="claveForm" hidden autocomplete="off">
-        <input type="password" id="clave" placeholder="Clave de existencias" autocomplete="current-password" style="flex:1;max-width:320px">
+        <input type="password" id="clave" placeholder="Clave de existencias" aria-label="Clave de existencias" autocomplete="current-password" style="flex:1;max-width:320px">
         <button type="submit">Abrir</button>
       </form>
       <p class="notice bad" id="stErr" hidden></p>
     </div>
   </section>
 
-  <section class="card">
-    <div class="row" style="justify-content:space-between">
-      <div style="display:grid;gap:4px"><h3>Sucursal</h3>
-        <select id="suc"></select></div>
-      <div class="row"><button type="button" class="ghost small" id="sucNueva">Agregar sucursal</button></div>
+  <section id="out" hidden style="display:grid;gap:var(--space-md)">
+    <div class="stand">
+      <div>
+        <div class="stand-h"><h2 id="outTitle">Sugerido de envío</h2><span class="ocupa num" id="ocupa"></span></div>
+        <div class="cells" id="cells" aria-hidden="true"></div>
+        <div class="leyenda" id="leyenda"></div>
+      </div>
+      <div class="figs" id="tot"></div>
     </div>
+
+    <div class="acciones">
+      <div class="row">
+        <button type="button" id="pdf">Descargar PDF</button>
+        <button type="button" class="ghost" id="xls">Descargar Excel</button>
+        <button type="button" class="ghost" id="xlsFit">Exportar para Fitness One</button>
+      </div>
+      <div class="row">
+        <button type="button" class="ghost" id="guardar">Guardar como enviado</button>
+        <button type="button" class="ghost" id="rehacer">Volver a sugerir</button>
+      </div>
+    </div>
+    <p class="notice" id="choques" hidden></p>
+    <p class="notice" id="envNote" hidden></p>
+    <div id="tablas" style="display:grid;gap:var(--space-md)"></div>
+
+    <section class="panel">
+      <h3>Agregar un libro a mano</h3>
+      <div class="row"><input type="search" id="busca" placeholder="Título, autor, ISBN o referencia" aria-label="Buscar libro" style="flex:1;min-width:220px">
+        <select id="buscaTema" aria-label="Tema del libro agregado"></select></div>
+      <div class="res" id="buscaRes"></div>
+    </section>
+  </section>
+
+  <section class="panel">
     <details id="ajustes">
       <summary>Ajustes del sugerido</summary>
-      <div style="display:grid;gap:16px;margin-top:12px">
+      <div style="display:grid;gap:var(--space-md);margin-top:var(--space-sm)">
         <div class="sets">
           <label>Espacios en el stand<input type="number" id="cfEsp" min="1" max="500"></label>
           <label>Ganancia de Fitness One (% del PVP)<input type="number" id="cfMargen" min="0" max="90"></label>
@@ -180,38 +227,15 @@ td .acc { display: flex; gap: 4px; flex-wrap: wrap; }
           <label>Precio máximo (Q, 0 = sin tope)<input type="number" id="cfTope" min="0" max="5000"></label>
           <label>Bodega principal<select id="cfPrin"></select></label>
         </div>
-        <div style="display:grid;gap:8px">
+        <div style="display:grid;gap:var(--space-xs)">
           <h3>Mezcla por tema</h3>
           <div class="temas" id="cfTemas"></div>
         </div>
-        <div style="display:grid;gap:6px"><h3>Ubicaciones que NO se usan para surtir</h3>
-          <div class="locs" id="cfLocs"><span class="muted">Se muestran al abrir los datos.</span></div></div>
-        <div class="row"><button type="button" class="ghost small" id="cfReset">Volver a los ajustes iniciales</button></div>
+        <div style="display:grid;gap:var(--space-xs)"><h3>Ubicaciones que no se usan para surtir</h3>
+          <div class="locs" id="cfLocs"><span class="muted">Aparecen cuando abres los datos.</span></div></div>
+        <div class="row"><button type="button" class="ghost small" id="cfReset">Ajustes iniciales</button></div>
       </div>
     </details>
-  </section>
-
-  <section id="out" hidden style="display:grid;gap:14px">
-    <div class="row" style="justify-content:space-between">
-      <h2 id="outTitle">Sugerido de envío</h2>
-      <div class="row">
-        <button type="button" class="ghost" id="rehacer">Volver a sugerir</button>
-        <button type="button" id="xls">Descargar Excel</button>
-        <button type="button" class="ghost" id="xlsFit">Exportar para Fitness One</button>
-        <button type="button" class="ghost" id="guardar">Guardar como enviado</button>
-      </div>
-    </div>
-    <div class="tot" id="tot"></div>
-    <p class="notice" id="choques" hidden></p>
-    <p class="notice" id="envNote" hidden></p>
-    <div id="tablas" style="display:grid;gap:14px"></div>
-
-    <section class="card">
-      <h3>Agregar un libro a mano</h3>
-      <div class="row"><input type="search" id="busca" placeholder="Título, autor, ISBN o referencia" style="flex:1;min-width:220px">
-        <select id="buscaTema"></select></div>
-      <div class="res" id="buscaRes"></div>
-    </section>
   </section>
 </div></main>
 
@@ -232,6 +256,7 @@ const Q = n => "Q" + Number(n || 0).toLocaleString("es-GT", { minimumFractionDig
 
 // ---------------------------------------------------------------- ajustes
 const TEMAS0 = [
+  { id: "inf", nombre: "Infantil", dos: 3, uno: 2, claves: "INFANTIL", soloCat: true },
   { id: "dep", nombre: "Deporte / fitness / nutrición", dos: 6, uno: 0, claves: "DEPORT, FITNESS, NUTRICI, EJERCICIO, ENTRENAMIENTO, RUNNING, CORRER, FUTBOL, YOGA, DIETA, ALIMENTACION, SALUD, ATLET, CICLISMO, MARATON" },
   { id: "rel", nombre: "Religioso / espiritual", dos: 1, uno: 2, claves: "RELIGI, ESPIRITU, CRISTIAN, BIBLIA, BIBLIC, TEOLOG, CATOLIC, DEVOCIONAL, ORACION, IGLESIA" },
   { id: "emp", nombre: "Empresarial / finanzas", dos: 3, uno: 2, claves: "EMPRESA, NEGOCIO, ADMINISTRACION, FINANZA, ECONOMIA, LIDERAZGO, MARKETING, MERCADEO, EMPRENDI, VENTAS, INVERSION, GERENCIA" },
@@ -239,6 +264,9 @@ const TEMAS0 = [
 ];
 const CF0 = { walmV2: true, esp: 36, margen: 35, minRes: 4, dejar: 2, tope: 0, prin: "BOD", sinLocs: null, temas: TEMAS0 };
 let CF = Object.assign(structuredClone(CF0), lsGet("fit-ajustes", {}));
+// Infantil se agregó en noviembre de 2026: se suma una sola vez a los ajustes guardados
+if (!CF.temas.some(t => t.id === "inf")) { CF.temas.unshift(structuredClone(TEMAS0[0])); lsSet("fit-ajustes", CF); }
+CF.temas.forEach(t => { if (t.id === "inf") t.soloCat = true; });
 // Antes la bodega Walmart venía excluida: se habilita una sola vez en los ajustes guardados
 if (!lsGet("fit-ajustes", {}).walmV2) { if (CF.sinLocs) CF.sinLocs = CF.sinLocs.filter(l => !/^WALLM/i.test(l)); CF.walmV2 = true; lsSet("fit-ajustes", CF); }
 const SUC0 = ["Fitness One Rus"];
@@ -248,14 +276,15 @@ let ENV = lsGet("fit-enviados", {});    // { sucursal: [{ fecha, items:[[barra, 
 let D = null;   // datos de Odoo
 let ITEMS = []; // [{ barra, ref, titulo, autor, editorial, pvp, cat, tema, genero, st:Map, v30, v90, portada, tid }]
 
+const color = id => `var(--t-${["inf", "dep", "rel", "emp", "aut"].includes(id) ? id : "otro"})`;
 function guardarCF() { lsSet("fit-ajustes", CF); }
 function pintarAjustes() {
   $("cfEsp").value = CF.esp; $("cfMargen").value = CF.margen; $("cfMinRes").value = CF.minRes; $("cfDejar").value = CF.dejar; $("cfTope").value = CF.tope;
-  $("cfTemas").innerHTML = `<div class="tema-row h"><span>Tema y palabras que lo identifican (en género, tema o categoría de Odoo)</span><span>Títulos × 2</span><span>Títulos × 1</span><span>Espacios</span></div>` +
-    CF.temas.map((t, i) => `<div style="display:grid;gap:4px"><div class="tema-row"><b>${esc(t.nombre)}</b>
+  $("cfTemas").innerHTML = `<div class="tema-row h"><span>Tema y palabras que lo identifican en Odoo</span><span>Títulos × 2</span><span>Títulos × 1</span><span>Espacios</span></div>` +
+    CF.temas.map((t, i) => `<div style="display:grid;gap:4px"><div class="tema-row"><b><i style="background:${color(t.id)}"></i>${esc(t.nombre)}</b>
       <input type="number" min="0" max="100" data-i="${i}" data-k="dos" value="${t.dos}"><input type="number" min="0" max="100" data-i="${i}" data-k="uno" value="${t.uno}">
       <span class="mono">${t.dos * 2 + t.uno}</span></div>
-      <textarea data-i="${i}" data-k="claves" aria-label="Palabras para ${esc(t.nombre)}">${esc(t.claves)}</textarea></div>`).join("");
+      <textarea data-i="${i}" data-k="claves" aria-label="Palabras para ${esc(t.nombre)}">${esc(t.claves)}</textarea>${t.soloCat ? `<span class="solo-cat">Solo se busca en la categoría de Odoo.</span>` : ""}</div>`).join("");
   $("buscaTema").innerHTML = CF.temas.map(t => `<option value="${t.id}">${esc(t.nombre)}</option>`).join("");
 }
 $("cfTemas").addEventListener("change", e => {
@@ -330,8 +359,10 @@ function listo() {
 }
 
 // ---------------------------------------------------------------- clasificación
-function temaDe(txt) {
+// Infantil solo cuenta por la categoría de Odoo (30056 INFANTIL), nunca por Tema ni Metadatos
+function temaDe(txt, esCat) {
   for (const t of CF.temas) {
+    if (t.soloCat && !esCat) continue;
     const cl = t.claves.split(",").map(s => norm(s).trim()).filter(Boolean);
     if (cl.some(c => txt.includes(c))) return t.id;
   }
@@ -343,7 +374,7 @@ function prepararItems() {
     const st = new Map(); for (let i = 0; i < r[8].length; i += 2) st.set(D.L[r[8][i]], r[8][i + 1]);
     const it = { barra, ref: r[0], titulo: r[1], autor: r[2], editorial: r[3], pvp: r[4], cat: r[5], tema: r[6], genero: r[7], st, v30: r[9], v90: r[10], portada: r[12] || "", sinopsis: r[13] || "", paginas: r[14] || "" };
     // Manda la categoría de Odoo; luego el campo Tema. El género de Metadatos solo si los otros dos no dicen nada.
-    const tc = temaDe(norm(it.cat)), tt = temaDe(norm(it.tema)), tg = temaDe(norm(it.genero));
+    const tc = temaDe(norm(it.cat), true), tt = temaDe(norm(it.tema)), tg = temaDe(norm(it.genero));
     it.tid = tc || tt || tg;
     it.choque = !!(tg && (tc || tt) && tg !== (tc || tt)) || !!(tc && tt && tc !== tt);
     return it;
@@ -396,16 +427,27 @@ function filas() {
 function pintar() {
   if (!D) return;
   $("out").hidden = false; pintarChoques();
-  $("outTitle").textContent = "Sugerido de envío · " + SUC;
+  $("outTitle").textContent = SUC;
   const fs = filas(), P = POR();
   const unidades = fs.reduce((s, x) => s + x.u, 0), pvp = fs.reduce((s, x) => s + x.u * x.it.pvp, 0);
   const fact = pvp * (1 - CF.margen / 100);
   const faltan = fs.reduce((s, x) => s + sacarDe(x.it, x.u).falta, 0);
-  $("tot").innerHTML = `<div><span>Unidades / espacios</span><b class="${unidades !== CF.esp ? "mal" : ""}">${unidades} / ${CF.esp}</b></div>
-    <div><span>Títulos</span><b>${fs.filter(x => x.u > 0).length}</b></div>
-    <div><span>Valor a PVP</span><b>${Q(pvp)}</b></div>
-    <div><span>A facturar (PVP − ${CF.margen}%)</span><b>${Q(fact)}</b></div>
-    <div><span>Ganancia de Fitness One</span><b>${Q(pvp - fact)}</b></div>` + (faltan ? `<div><span>Sin existencia para surtir</span><b class="mal">${faltan}</b></div>` : "");
+  const lleno = unidades === CF.esp;
+  $("ocupa").textContent = `${unidades} de ${CF.esp} espacios`; $("ocupa").className = "ocupa num" + (lleno ? "" : " mal");
+  const orden = [...CF.temas.map(t => t.id), ""], cel = [];
+  for (const id of orden) for (const x of fs.filter(f => f.tema === id)) for (let k = 0; k < x.u; k++) cel.push(id);
+  const n = Math.max(CF.esp, cel.length);
+  $("cells").innerHTML = Array.from({ length: n }, (_, i) => i >= CF.esp ? `<span class="cell extra" style="background:${color(cel[i])}"></span>` : `<span class="cell"${i < cel.length ? ` style="background:${color(cel[i])}"` : ""}></span>`).join("");
+  $("leyenda").innerHTML = [...CF.temas, { id: "", nombre: "Sin tema", dos: 0, uno: 0 }].map(t => {
+    const u = fs.filter(x => x.tema === t.id).reduce((a, x) => a + x.u, 0), meta = t.dos * 2 + t.uno;
+    if (!t.id && !u) return "";
+    return `<div class="ley"><i style="background:${color(t.id)}"></i><span>${esc(t.nombre)}</span><span class="meta num${t.id && u !== meta ? " mal" : ""}">${u}${t.id ? " de " + meta : ""}</span></div>`;
+  }).join("") + (n > CF.esp ? `<p class="muted">Los cuadros punteados no caben en el stand.</p>` : "");
+  $("tot").innerHTML = `<div class="fig"><span>Títulos</span><b>${fs.filter(x => x.u > 0).length}</b></div>
+    <div class="fig"><span>Unidades</span><b>${unidades}</b></div>
+    <div class="fig wide"><span>Valor a precio de venta</span><b>${Q(pvp)}</b></div>
+    <div class="fig"><span>A facturar (PVP menos ${CF.margen} %)</span><b>${Q(fact)}</b></div>
+    <div class="fig"><span>Ganancia de Fitness One</span><b>${Q(pvp - fact)}</b></div>` + (faltan ? `<div class="fig wide"><span>Unidades sin existencia para surtir</span><b class="mal">${faltan}</b></div>` : "");
   const env = (ENV[SUC] || []).slice(-1)[0];
   if (env) {
     const f = new Date(env.fecha), cambio = new Date(f.getTime() + 90 * 864e5);
@@ -417,17 +459,18 @@ function pintar() {
     const ft = fs.filter(x => x.tema === t.id).sort((a, b) => b.u - a.u || b.it.v90 - a.it.v90);
     if (!ft.length && !t.id) return "";
     const meta = t.id ? t.dos * 2 + t.uno : 0, u = ft.reduce((s, x) => s + x.u, 0);
-    return `<section class="card"><div class="row" style="justify-content:space-between"><h3 style="font-size:15px;color:var(--ink)">${esc(t.nombre)}</h3>
-      <span class="${t.id && u !== meta ? "chip c-quieto" : "chip c-new"}">${u}${t.id ? " de " + meta : ""} unidades</span></div>
-      ${ft.length ? `<div class="tbl" style="max-height:none"><table><thead><tr><th></th><th>Título</th><th class="n">PVP</th><th class="n">Ventas 90 d</th><th class="n">En ${esc(CF.prin)}</th><th>Sacar de</th><th class="n">Unidades</th><th></th></tr></thead><tbody>
+    return `<section class="tema"><div class="tema-h" style="--tc:${color(t.id)}"><h3>${esc(t.nombre)}</h3>
+      <span class="cuenta${t.id && u !== meta ? " mal" : ""}">${u}${t.id ? " de " + meta : ""} unidades</span></div>
+      ${ft.length ? `<div class="tbl"><table><thead><tr><th class="hide-sm"></th><th>Título</th><th class="n">PVP</th><th class="n">Vendidos en 90 días</th><th class="n">En ${esc(CF.prin)}</th><th>Sacar de</th><th class="n">Unidades</th><th></th></tr></thead><tbody>
       ${ft.map(x => { const s = sacarDe(x.it, x.u); return `<tr>
-        <td>${x.it.portada ? `<img class="cover" loading="lazy" src="${esc(x.it.portada)}" alt="">` : `<span class="cover"></span>`}</td>
-        <td><b>${esc(x.it.titulo)}</b><div class="small-t">${esc(x.it.autor)}${x.it.editorial ? " · " + esc(x.it.editorial) : ""} · <span class="mono">${esc(x.barra)}</span></div><div class="small-t">${esc(x.it.cat)}${x.it.choque ? ` <span class="chip c-quieto" title="La categoría, el tema y el género de Metadatos no coinciden en Odoo">Metadatos: ${esc(x.it.genero)}</span>` : ""}</div></td>
+        <td class="hide-sm">${x.it.portada ? `<img class="cover" loading="lazy" src="${esc(x.it.portada)}" alt="">` : `<span class="cover"></span>`}</td>
+        <td><div class="tit">${esc(x.it.titulo)}</div><div class="sub"><span>${esc(x.it.autor)}</span>${x.it.editorial ? `<span>${esc(x.it.editorial)}</span>` : ""}<span class="mono">${esc(x.barra)}</span></div>
+          <div class="sub"><span>${esc(x.it.cat)}</span>${x.it.choque ? `<span class="tag" title="La categoría, el tema y el género de Metadatos no coinciden en Odoo">Metadatos: ${esc(x.it.genero)}</span>` : ""}</div></td>
         <td class="n">${Q(x.it.pvp)}</td><td class="n">${x.it.v90}</td><td class="n">${x.it.st.get(CF.prin) || 0}</td>
-        <td class="from">${s.r.map(([l, n]) => `<b>${esc(l)}</b> ${n}`).join(" · ")}${s.falta ? ` <span class="chip c-quieto">faltan ${s.falta}</span>` : ""}</td>
-        <td class="n"><input type="number" min="0" max="20" value="${x.u}" data-u="${esc(x.barra)}" aria-label="Unidades"></td>
+        <td><div class="from">${s.r.map(([l, n]) => `<span class="loc"><b>${esc(l)}</b> ${n}</span>`).join("")}${s.falta ? `<span class="tag">faltan ${s.falta}</span>` : ""}</div></td>
+        <td class="n"><input type="number" min="0" max="20" value="${x.u}" data-u="${esc(x.barra)}" aria-label="Unidades de ${esc(x.it.titulo)}"></td>
         <td><div class="acc"><button type="button" class="ghost small" data-cambiar="${esc(x.barra)}" ${t.id ? "" : "disabled"}>Cambiar</button><button type="button" class="ghost small" data-quitar="${esc(x.barra)}">Quitar</button></div></td></tr>`; }).join("")}
-      </tbody></table></div>` : `<p class="muted">No hay libros de este tema con existencia suficiente. Revisa las palabras del tema en Ajustes.</p>`}</section>`;
+      </tbody></table></div>` : `<p class="muted vacio">No hay libros de este tema con existencia suficiente. Revisa sus palabras en Ajustes.</p>`}</section>`;
   }).join("");
 }
 $("tablas").addEventListener("change", e => {
@@ -452,7 +495,7 @@ $("busca").addEventListener("input", () => {
   if (q.length < 3 || !D) { $("buscaRes").innerHTML = ""; return; }
   const ws = q.split(/\s+/), sel = SEL[SUC] || {};
   const r = ITEMS.filter(it => !sel[it.barra] && ws.every(w => norm(it.titulo + " " + it.autor + " " + it.barra + " " + it.ref).includes(w))).sort((a, b) => b.v90 - a.v90).slice(0, 30);
-  $("buscaRes").innerHTML = r.length ? r.map(it => `<button type="button" data-add="${esc(it.barra)}"><span><b>${esc(it.titulo)}</b> · ${esc(it.autor)} <span class="small-t">${esc(it.genero || it.cat)}</span></span><span class="small-t">${Q(it.pvp)} · vende ${it.v90} · disp. ${disponible(it)}</span></button>`).join("") : `<p class="muted">Sin resultados con existencia.</p>`;
+  $("buscaRes").innerHTML = r.length ? r.map(it => `<button type="button" data-add="${esc(it.barra)}"><span><b>${esc(it.titulo)}</b><span class="sub"><span>${esc(it.autor)}</span><span>${esc(it.cat || it.genero)}</span></span></span><span class="r-m">${Q(it.pvp)}, vendió ${it.v90}, hay ${disponible(it)}</span></button>`).join("") : `<p class="muted">Sin resultados con existencia.</p>`;
 });
 $("buscaRes").addEventListener("click", e => {
   const b = e.target.closest("[data-add]")?.dataset.add; if (!b) return;
@@ -465,7 +508,7 @@ $("buscaRes").addEventListener("click", e => {
 function pintarChoques() {
   const n = ITEMS.filter(i => i.choque).length;
   $("choques").hidden = !n;
-  if (n) $("choques").innerHTML = `${n.toLocaleString("es-GT")} libros tienen la clasificación cruzada en Odoo: la categoría, el tema o el género de Metadatos dicen cosas distintas. El app usa la categoría. <button type="button" class="ghost small" id="xlsChoques">Descargar lista para corregir</button>`;
+  if (n) $("choques").innerHTML = `${n.toLocaleString("es-GT")} libros tienen la clasificación cruzada en Odoo: la categoría, el tema o el género de Metadatos dicen cosas distintas. La app usa la categoría.<button type="button" class="ghost small" id="xlsChoques">Descargar lista para corregir</button>`;
 }
 $("choques").addEventListener("click", e => {
   if (e.target.id !== "xlsChoques") return;
@@ -519,6 +562,58 @@ $("xlsFit").addEventListener("click", () => {
     ["Imágenes: la columna image_1920 trae el enlace a la portada en el servidor de De Museo; Odoo la descarga al importar. Los libros sin enlace quedan sin imagen."],
   ], [110]);
   XLSX.writeFile(wb, `Fitness One - productos para Odoo - ${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+// PDF del sugerido para compartir con Fitness One. La librería se descarga solo al pedir el PDF.
+let pdfListo = null;
+function cargarPdf() {
+  if (pdfListo) return pdfListo;
+  const js = src => new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+  pdfListo = js("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js").then(() => js("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"));
+  pdfListo.catch(() => { pdfListo = null; });
+  return pdfListo;
+}
+async function logoDataUrl() {
+  try { const b = await (await fetch("../checador/logo.png")).blob(); return await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); }); } catch (e) { return null; }
+}
+$("pdf").addEventListener("click", async () => {
+  const fs = filas().filter(x => x.u > 0); if (!fs.length) return;
+  const btn = $("pdf"), txt = btn.textContent; btn.disabled = true; btn.textContent = "Preparando PDF…";
+  try { await cargarPdf(); } catch (e) { btn.disabled = false; btn.textContent = txt; alert("No se pudo descargar la herramienta del PDF. Revisa la conexión e intenta de nuevo."); return; }
+  const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: "pt", format: "letter" });
+  const W = doc.internal.pageSize.getWidth(), M = 40, NAVY = [11, 23, 72], GRIS = [91, 99, 134];
+  const f = 1 - CF.margen / 100, hoy = new Date();
+  const unidades = fs.reduce((s, x) => s + x.u, 0), pvp = fs.reduce((s, x) => s + x.u * x.it.pvp, 0), fact = pvp * f;
+  doc.setFillColor(...NAVY); doc.rect(0, 0, W, 64, "F");
+  const logo = await logoDataUrl(); if (logo) doc.addImage(logo, "PNG", M, 18, 156, 28);
+  doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+  doc.text("Sugerido de libros para Fitness One", W - M, 30, { align: "right" });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+  doc.text(SUC + ", " + hoy.toLocaleDateString("es-GT", { day: "numeric", month: "long", year: "numeric" }), W - M, 46, { align: "right" });
+  // Resumen
+  const res = [["Títulos", String(fs.length)], ["Unidades", unidades + " de " + CF.esp + " espacios"], ["Valor a precio de venta", Q(pvp)], ["A facturar (PVP menos " + CF.margen + " %)", Q(fact)], ["Ganancia de Fitness One", Q(pvp - fact)]];
+  doc.autoTable({ startY: 84, body: res, theme: "plain", margin: { left: M, right: M }, tableWidth: 300, styles: { fontSize: 10, cellPadding: 3, textColor: [17, 26, 61] }, columnStyles: { 0: { textColor: GRIS }, 1: { fontStyle: "bold", halign: "right" } } });
+  let y = doc.lastAutoTable.finalY + 18;
+  const temas = [...CF.temas, { id: "", nombre: "Sin tema" }];
+  for (const t of temas) {
+    const ft = fs.filter(x => x.tema === t.id).sort((a, b) => a.it.titulo.localeCompare(b.it.titulo, "es")); if (!ft.length) continue;
+    const u = ft.reduce((s, x) => s + x.u, 0);
+    if (y > doc.internal.pageSize.getHeight() - 90) { doc.addPage(); y = M; }
+    doc.setTextColor(...NAVY); doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text(t.nombre + " (" + u + " unidades)", M, y);
+    doc.autoTable({ startY: y + 6, margin: { left: M, right: M },
+      head: [["Título", "Autor", "ISBN", "PVP", "Unid.", "Precio Fitness One", "Subtotal"]],
+      body: ft.map(x => [x.it.titulo, x.it.autor, x.barra.replace(/^r:/, ""), Q(x.it.pvp), String(x.u), Q(x.it.pvp * f), Q(x.u * x.it.pvp * f)]),
+      styles: { fontSize: 8.5, cellPadding: 4, textColor: [17, 26, 61], lineColor: [217, 220, 234], lineWidth: 0.5 },
+      headStyles: { fillColor: [233, 236, 246], textColor: GRIS, fontStyle: "bold" },
+      columnStyles: { 0: { cellWidth: 150 }, 1: { cellWidth: 95 }, 2: { cellWidth: 78 }, 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right", fontStyle: "bold" } } });
+    y = doc.lastAutoTable.finalY + 20;
+  }
+  if (y > doc.internal.pageSize.getHeight() - 80) { doc.addPage(); y = M; }
+  doc.setTextColor(...GRIS); doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  doc.text(doc.splitTextToSize("Venta en firme. Los libros que no se vendan se pueden cambiar con factura a los 90 días. Fitness One gana el " + CF.margen + " % del precio de venta y vende al mismo precio que De Museo. Los precios incluyen IVA.", W - 2 * M), M, y);
+  const pags = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pags; i++) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text("De Museo, página " + i + " de " + pags, W - M, doc.internal.pageSize.getHeight() - 20, { align: "right" }); }
+  doc.save(`Fitness One - ${SUC} - ${hoy.toISOString().slice(0, 10)}.pdf`);
+  btn.disabled = false; btn.textContent = txt;
 });
 $("guardar").addEventListener("click", () => {
   const items = filas().filter(x => x.u > 0).map(x => [x.barra, x.u]);
